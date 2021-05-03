@@ -1,0 +1,927 @@
+---
+author: Solomon Bothwell
+description: 'Implementing cellular automata with Comonads,
+  Representable Functors, and Dependent Types'
+title: Bounded Space Automata
+---
+
+Rule 110
+--------
+
+After reading Chris Penner\'s blog post on [Conway\'s Game Of Life Using
+Representable and
+Comonads](https://chrispenner.ca/posts/conways-game-of-life), I decided
+to implement a similar solution for the 1 dimensional automata [Rule
+110](https://en.wikipedia.org/wiki/Rule_110). Being such a simple
+algorithm I thought the implementation would be trivial. However, it
+turns out that working with arbitarily bounded spaces in the
+`Store Comonad` requires a clever use of dependent types to apply
+memoizaition as described in Chris\' blog.
+
+This blog post walks through my experience attempting to use `Store`,
+`Representable` in Haskell to implement Rule 110, difficulty finding a
+suitable `Representable` instance, and then a pivot to Idris where I was
+able to solve the problem using the finite set type `Fin n`.
+
+The Rule 110 algorithm takes a vector of boolean values and applies a
+simple set of rules for transforming each index based upon its
+neighbors. You can think of it as a 1 dimensional variant of Conway\'s
+Game of Life, but with the twist that the first and last element of the
+vector are considered neighbors. In other words, the automata in Rule
+110 exists on a circle rather then a line segment.
+
+Here is the rubric for generating the new state for a given element:
+
+  ----------------- ----- ----- ----- ----- ----- ----- ----- -----
+  Current Pattern   111   110   101   100   011   010   001   000
+  New State         0     1     1     0     1     1     1     0
+  ----------------- ----- ----- ----- ----- ----- ----- ----- -----
+
+This post assumes no prior knowledge of Comonads, Representable
+Functors, `Fin n`. The first few sections are intended to introduce
+these concepts by focusing on the actual implementations of their APIs.
+
+The Store Type and its API
+--------------------------
+
+The `Store` type can be thought of as a way to query some indexable
+state along with a cursor that queries into the store at some index.
+
+``` {.haskell}
+data Store s a = Store (s -> a) s
+```
+
+State is held implicitly in your query function and, as we shall see
+later, can be transformed through composition.
+
+As an example, we can construct a `Store` whose implicit state is an
+infinite list of Booleans which we index into with an Integer:
+
+``` {.haskell}
+initialStore :: Store Int Bool
+initialStore = Store query 0
+    where
+      query :: Int -> Bool
+      query i = (cycle [True, False]) !! abs i
+```
+
+The `Store` API then allows us to do things like query arbitrary
+indices, shift around our cursor, and through its `Functor` and
+`Comonad` instances to perform transformations on the implicit state
+held inside the query function.
+
+Lets walk through the implementation of this API to gain a better
+intuition.
+
+First we need a getter to lookup the current index:
+
+``` {.haskell}
+pos :: Store s a -> s
+pos (Store query s) = s
+```
+
+Next, we want a way to query the `Store`:
+
+``` {.haskell}
+peek :: s -> Store s a -> a
+peek s (Store query _) = query s
+
+peeks :: (s -> s) -> Store s a -> a
+peeks f (Store query s) = query (f s)
+```
+
+`peek` disregards the current cursor and instead applies a new cursor to
+the store\'s query function. `peeks` uses a function `s ->
+  s` to modify the current cursor and then query the store with the new
+cursor.
+
+We would also like a way to set and shift our cursor index:
+
+``` {.haskell}
+seek :: s -> Store s a -> Store s a
+seek s (Store query _) = Store query s
+
+seeks :: (s -> s) -> Store s a -> Store s a
+seeks f (Store query s) = Store query (f s)
+```
+
+This covers are basic getters and setters, but what if we wanted a way
+to query multiple indices into our store?
+
+We might write this function:
+
+``` {.haskell}
+peekMany :: [s] -> Store s a -> [a]
+peekMany xs store = fmap (flip peek store) xs
+```
+
+This function looks pretty good, but notice we are using `fmap`. We can
+take advantage of polymorphism here allow use use of any `Functor`:
+
+``` {.haskell}
+peekFunctor :: Functor f => f s -> Store s a -> f a
+peekFunctor fs store = fmap (flip peek store) fs
+```
+
+Now we can use any `Functor` we want, but notice how we aren\'t using
+our cursor at all. This is a clue that we might be able to generalize
+this function further.
+
+It would be great if we could modify `peekFunctor` to use our cursor
+value without losing the current behavior of the function.
+
+If we replace the `f s` parameter with a function `s -> f s` then we
+could apply the current cursor to our function and generate an `f
+  s` to generate our `f a` output. Then if we want the precise behavior
+of `peekFunctor` we can simply apply `const (x :: f s)` and ignore the
+current cursor!
+
+``` {.haskell}
+experiment :: Functor f => (s -> f s) -> Store s a -> f a
+experiment f store = fmap (flip peek store) (f (pos store))
+```
+
+To recap our `Store` API we have:
+
+``` {.haskell}
+pos :: Store s a -> a
+peek :: s -> Store s a -> a
+peeks :: (s -> s) Store s a -> a
+seek :: s -> Store s a -> a
+seeks :: (s -> s) Store s a -> a
+experiment :: Functor f => (s -> f s) -> Store s a -> f a
+```
+
+Transformation of State
+-----------------------
+
+The state of the system is stored implicitely inside the `s -> a` query
+function rather then in some data structure. Because of this, the only
+way to modify the state would be to modify the query function itself.
+
+We can do this by first querying the current store to get an `a` value
+and then apply some `a -> b` function to the value to produce a modified
+version of the state at that index.
+
+We can do this by pattern matching on our `Store` then composing an
+`a -> b` function with our query function:
+
+``` {.haskell}
+updateStoreState :: (a -> b) -> Store s a -> Store s b
+updateStoreState f (Store query s) = Store (f . query) s
+```
+
+`updateStoreState` allows you to modify the query result for all
+possible values inside the Store\'s implicit state. This signature shoud
+look familiar as it is `fmap` and `Store` is in fact a `Functor`.
+
+``` {.haskell}
+instance Functor (Store s) where
+    fmap :: (a -> b) -> Store s a -> Store s b
+    fmap f (Store query s) = Store (f . query) s
+```
+
+Now we can model successive transformations of the state through
+applications of `fmap`. For example, using the `Store Int Bool` example
+from earlier, we might want to apply `not :: Bool -> Bool` to invert the
+state of our system:
+
+``` {.haskell}
+initialStore :: Store Int Bool
+initialStore = Store query 0
+    where
+      query i = (cycle [True, False]) !! i
+
+newState :: Store Int Bool
+newState = fmap not initialStore
+```
+
+Using equational reasoning we can translate that into:
+
+``` {.haskell}
+newState = fmap not initialStore
+         = fmap not (Store query s)
+         = Store (not . query) s
+```
+
+Using this technique to model 3 manipulations of a system shows how each
+modification to the implicit state builds up a larger composed query
+function:
+
+``` {.haskell}
+newState :: (a -> b) -> (b -> c) -> (c -> d) -> Store s a -> Store s b
+newState h g f store = fmap f (fmap g (fmap h store))
+                     = fmap f (fmap g (fmap h (Store query s)))
+                     = fmap f (fmap g (Store (h . query) s))
+                     = fmap f (Store (g . h . query) s)
+                     = Store (f . g . h . query) s
+```
+
+While elegant, modeling state transformations as function composition
+means that every time we query an index in a `Store`, we must
+recalculate every single previous transformation going back to the
+original `Store` query. Without caching these intermediate computations
+this will get very expensive.
+
+Luckily, Chris Penner showed us a fantastic solution for this using
+Representable Functors. We will look at `Representable` shortly, but for
+now lets ignore the performance issue and focus on the tools we need to
+naively implement Rule 110.
+
+Extending our API with Comonad
+------------------------------
+
+Not only is `Store` a `Functor`, it is also a `Comonad`.
+
+`Comonads` are the dual of `Monads`. Where `Monads` introduce some
+effect to an argument via the form `a -> m b`, `Comonads` introduce a
+notion of querying a structure for data (co-effects):
+
+``` {.haskell}
+-- Monadic
+a -> m a
+repeat :: a -> [a]
+-- Comonadic
+w a -> a
+length :: [a] -> Int
+```
+
+The `Comonad` Typeclass has three functions:
+
+``` {.haskell}
+class Functor w => Comonad w where
+    extract   :: w a -> a
+    duplicate :: w a -> w (w a)
+    extend    :: (w a -> b) -> w a -> w b
+```
+
+Notice the inverse relation to `return`, `join`, and `(=<<)` from
+`Monad`:
+
+``` {.haskell}
+extract :: w a -> a
+return  :: a -> m a
+
+duplicate :: w a     -> w (w a)
+join      :: m (m a) -> m a
+
+extend :: (w a -> b) -> w a -> w b
+(=<<)  :: (a -> m b) -> m a -> m b
+```
+
+If a defining characteristic of `Comonads` in Haskell is to provide a
+mechanism for querying some structure for data, then we can almost
+definitionally say that `Store` is a `Comonad`. `Store` is literally a
+mechnanism for querying a structure to produce data!
+
+``` {.haskell}
+instance Comonad (Store s) where
+    extract :: Store s a -> a
+    extract (Store query s) = query s
+
+    extend :: (Store s a -> b) -> Store s a -> Store s b
+    extend f (Store query s) = Store (\s' -> f (Store query s')) s
+```
+
+`extract` applies the current cursor to the query function and `extend`
+chains state transforming queries.
+
+`extract` is fairly trivial in this case, but `extend` is a little
+trickier. It helps to think about in relation to our `fmap`
+implementation.
+
+Like `fmap`, it uses a function to modify our implicit state, but where
+`fmap` composed a pure `a -> b` function with our query, `extend`
+creates a new query function by applying your entire store to a
+comonadic action. This allows us to bring into scope the entire current
+store when modifying particular points in the store.
+
+`extend` is extremely powerful and allows us to do really interesting
+things like create windowing functions and perform kernel convolution.
+It allows us to modify every single individual points in \"parallel\"
+using the entire state as context.
+
+One interesting example of extend is to perform a moving average on some
+time series data.
+
+First we need a `Store` modeling time sequenced data. We will use `Int`
+for our Index and it will represent a single unit of time in a data
+stream. We want some fairly dynamic data source so I chose the Fibbonaci
+sequence. At each point in time (each index) we get the next Fibbonaci
+number.
+
+``` {.haskell}
+fibStore :: Store Int Int
+fibStore = store query 0
+  where
+    query :: Int -> Int
+    query 0 = 0
+    query 1 = 1
+    query n = query (n - 1) + query (n - 2)
+```
+
+Now, if we want to calculate a window starting from a given cursor want
+some way to query for the subsequent points in time. `experiement` will
+work perfectly here:
+
+``` {.haskell}
+window :: Store Int a -> [a]
+window store = experiment (\s -> [s..s+10]) store
+```
+
+I chose to fix the window at 10 units of time arbitrarily.
+
+Now notice the shape of `window` is `Store Int a -> [a]`. That looks a
+lot like the comonadic action for `extend`: `Store s a ->
+   b`. We can use `extend` to apply `window` over the enter store:
+
+``` {.haskell}
+windowedStore :: Store Int [Int]
+windowedStore = extend window fibStore
+```
+
+Now if we `peek` at any index in the store we see a window of the
+subsequent Fibonacci numbers!
+
+``` {.haskell}
+λ> peek 4 $ extend window fibStore
+[3,5,8,13,21,34,55,89,144,233,377]
+```
+
+A First Attempt at an Algorithm
+-------------------------------
+
+With the tools now available to us, we can make a first attempt at our
+Rule 110 algorithm.
+
+The first step is to load our initial state into the `Store`:
+
+``` {.haskell}
+type Index = Int
+
+initializeStore :: [Bool] -> Store Index Bool
+initializeStore xs = Store query 0
+    where
+      query :: Index -> Bool
+      query i = xs !! i
+```
+
+We are modeling our initial state as a list and using an unsafe list
+lookup function for our query. This isn\'t ideal, but we are just trying
+to put together a rough draft.
+
+Next we need a way to query an index and its neighbors. Just like our
+windowing function, we can use `experiment` here.
+
+``` {.haskell}
+neighbors :: Store Index Bool -> [Bool]
+neighbors = experiment _lookupIndices
+```
+
+`_lookupIndices` is a type hole we need to fill. By starting from
+`neighborValues` we let GHC tell us what shape we need for
+`lookupIndices`:
+
+``` {.haskell}
+• Found hole: _lookupIndices :: Index -> [Index]
+```
+
+We wan\'t something like this:
+
+``` {.haskell}
+lookupIndices :: Int -> [Int]
+lookupIndices s = [s-1, s, s+1]
+```
+
+But which accounts for the fact that our automata lives on a circle not
+a line. We need to be able to identify the first and last index and use
+that information to select the correct neighbors.
+
+The first, simplest solution is to pass in the length of the list as a
+value:
+
+``` {.haskell}
+type Index = Int
+type Size = Int
+
+lookupIndices :: Size -> Index -> [Index]
+lookupIndices size i
+ | i == 0       = [size - 1, 0, 1]
+ | i == size -1 = [i - 1, i, 0]
+ | otherwise    = [i - 1, i, i + 1]
+
+neighbors :: Size -> Store Int Bool -> [Bool]
+neighbors size = experiment (lookupIndices size)
+```
+
+With a mechanism to lookup the state for our index and its neighbors, we
+next need to use that information to calculate the next state of at our
+index. We can do this by casing on the output of `neighborValues`:
+
+Now we need to case on the state of the neighbors and apply our rubric
+to determine the new state at our index:
+
+``` {.haskell}
+newState :: Size -> Store Index Bool -> Bool
+newState size store =
+  case neighbors size store of
+    [False, False, False] -> False
+    [True, False, False]  -> False
+    [True, True, True]    -> False
+    _ -> True
+```
+
+Lastly, we need a way to apply this transformation to the entire store
+to create the next generation of the automata. `extend` to the rescue!
+
+``` {.haskell}
+nextGen :: Size -> Store Index Bool -> Store Index Bool
+nextGen size = extend (newState size)
+```
+
+Lets use equational reasoning to take a closer look at what happens when
+you call `nextGen`:
+
+``` {.haskell}
+nextGen size store = extend (newState size) store
+                   = extend (newState size) (Store query s)
+                   = Store (\s' -> (newState size) (Store query s')) s
+```
+
+And calling `nextGen` twice:
+
+``` {.haskell}
+nextGen size (nextGen size store) = extend (newState size) (extend (newState size) store)
+                                  = extend (newState size) (extend (newState size) (Store query s))
+                                  = extend (newState size) (Store (\s' -> (newState size) (Store query s')) s)
+                                  = Store (\s'' -> (newState size) (Store (\s' -> (newState size) (Store query s')) s'')) s
+```
+
+Its a little hard to grok, but if you squint your eyes a bit you can see
+that we are building up our `query` function by chaining calls of
+`newState` on the store. So whenever you query an index, the composed
+query function will apply `newState` a bunch of times to your store.
+
+The last step to a working implementation is a function to view a store
+as a list. This isn\'t really a part of the algorithm per se, but we do
+want a way to view our results!
+
+``` {.haskell}
+viewStore :: Size -> Store Index Bool -> [Bool]
+viewStore size store = experiment (const [0..size]) store
+```
+
+To run the simulation we can use a recursive function in `IO` to
+repeatedely print the result of `viewStore` and then call `nextGen` to
+update the state:
+
+``` {.haskell}
+runSimulation :: Size -> Store Index Bool -> IO ()
+runSimulation size store = do
+    print $ viewStore size store
+    runSimulation size $ nextGen size store
+```
+
+This implementation does work, but if you try running it you will see
+that it has major performance issue. Extending a new generation means
+growing a chain of calls to `newState`.
+
+This ever growing query function has to be calculated in full every time
+you peek into an index. We do that for every index at every generation
+when we call `runSimulation`.
+
+Its actually worse then that though! To calculate the new state at each
+index we also have to peek at its neighbors. So that means for every
+index we are repeating the same huge query 3 times!
+
+What we need is a way to memoize all these calculations.
+
+Representable Functors
+----------------------
+
+A `Functor` `f` is representable if it has a corresponding type `Rep f`
+that indexes `f` completely. There must be a valid index into `f` for
+every value of `Rep f` and at the same time we must be able to construct
+a container where each element in the container is produced from its
+`Rep f` index.
+
+Another more formal way of stating this is that there must exist an
+isomorphism between `f a` and `Rep f -> a`. This isomorphism is
+witnessed by the `tabulate` and `index` functions from the
+`Representable` typeclass:
+
+``` {.haskell}
+class Functor f => Representable f where
+  type Rep f :: *
+  tabulate :: (Rep f -> a) -> f a
+  index    :: f a -> (Rep f -> a)
+```
+
+It\'s hard to see exactly how this would be useful to us, but there is a
+clever trick we can play with `Representable` to get memoization \'for
+free.\'
+
+`tabulate` will takes some function that produces `a` values from
+`Rep f` values and then constructors a `Representable f` containing an
+`a` value for every possible `Rep f` value.
+
+`index` lets you use a `Rep f` to query a `Representable f` for `a`
+values. One nice property of `Representable` is that if you have a
+lawful instance then `index` must be a safe function without the need
+for `Maybe`!
+
+Lets try to come up with a valid instance of `Representable`.
+
+The most obvious first choice for `Functor` is `[]`, but what would we
+use for `Rep f`? `Int` doesn\'t work because you can\'t have a negative
+index into `[]`. `Nat` almost works, but then what happes if the list is
+empty? Unfortunately there is no `Representable` instance for `[]`.
+
+`NonEmpty` solves those problems, but it is still possible to have a
+`NonEmpty` without an element for every `Nat`.
+
+What if our `Functor` was an infinite stream?
+
+``` {.haskell}
+newtype Stream a = Cons a (Strema a)
+data Nat = Z | S Nat
+
+instance Functor Stream where
+    fmap :: (a -> b) -> Stream a -> Stream b
+    fmap f (Stream a as) = Cons (f a) (fmap f as)
+
+instance Representable Stream where
+    type Rep f = Nat
+
+    tabulate :: (Nat -> a) -> Stream a
+    tabulate f = Cons (f Z) (tabulate (f . S))
+
+    index    :: Stream a -> Nat -> a
+    index (Cons a as) Z = a
+    index (Cons _ as) (S n) = index as n
+```
+
+Yup! Our First `Representable`. Here is another somewhat trivial
+instance:
+
+``` {.haskell}
+data Identity a = Identity a
+
+instance Functor Identity where
+    fmap f (Identity a) = Identity (f a)
+
+instance Representable Identity where
+    type Rep f = ()
+
+    tabulate :: (() -> a) -> Identity a
+    tabulate f = Identity $ f ()
+
+    index :: Identity a -> () -> a
+    index (Identity a) () = a
+```
+
+Since `Identity` can only hold a single `a` and `()` is inhabited by a
+single value, this instance lawful and total. :)
+
+If our `Store` had a single element `Identity` would be perfect to
+represent queries into it and likewise, if it had an infinite amount of
+elements `Stream` might be perfect. However, we are looking for
+something in between.
+
+What we need is some sort of bounded data structure, but in order to
+make it `Representable` we also need a corresponding bounded indexing
+type `Rep f`. `Identity` and `()` is a great example of a such a bounded
+`Representable`, but its bound at a fixed size of 1 element. We would
+like some `Functor f` and `Rep f` where we can fix the bound at whatever
+size we wish.
+
+Another way of saying this is that we want is a family of
+`Representable` functors and a family of corresponding `Rep f` types,
+one pairing for each possible size boundary.
+
+We can do this using `Vect n a` and `Fin n a`. `Vect` is a fixed length
+vector whose length is encoded with a type level `Nat`. `Fin` is a
+finite natural whose maximum value is encoded with a type level `Nat`.
+
+``` {.haskell}
+data Vect (n :: Nat) a where
+    VNil  :: Vect Z a
+    VCons :: a -> Vect n a -> Vect (S n) a
+
+data Fin (n :: Nat) where
+    FZ :: Fin (S n)
+    FS :: Fin n -> Fin (S n)
+```
+
+And like that, we have entered the world of dependent types. A world
+very messy and confusing in Haskell. It is now time to switch over to
+Idris, but don\'t worry all the implementations up to this point are
+identical modulo a few small syntax changes.
+
+Here is our `Representable` interface (Typeclass) in Idris and our
+instance for `Vect~/~Fin`:
+
+``` {.idris}
+interface Functor f => Representable (f : Type -> Type) (rep : Type) | f where
+  tabulate : (rep -> a) -> f a
+  index : f a -> rep -> a
+
+Representable (Vect n) (Fin n) where
+  tabulate f {n = Z} = []
+  tabulate f {n = (S k)} = f FZ :: tabulate (f . FS)
+  index (x :: _) FZ {n = (S k)} = x
+  index (_ :: xs) (FS x) {n = (S k)} = index xs x
+```
+
+In Idris there is no distinction between the \"type level\" and \"term
+level.\" Types are first class values that can be passed around and
+worked with like any other values.
+
+Correspondingly, type parameters (such as the `n` in `Vect n (Fin
+   n)` are the same as term level parameters and can be passed into
+functions and pattern matched on. You can see this in the definition of
+`tabulate` above where the `n` from `Vect n` is wrapped in curly braces
+and treated like a function parameter.
+
+The curly braces indicate that it is an implict parameter. This means
+that the typechecker is able to infer the value of the parameter and the
+caller never has to explicitely pass a value in. This might seem like
+magic, but its very similar to the type inference you are used to with
+Haskell.
+
+With this instance of `Representable`, the indexing type `Fin n` cannot
+ever produce a value greater then `n - 1` and the `Functor` must be of
+size `n`. This is guaranteed at compile time.
+
+This means that by choosing a different value for `n`, we can have a
+`Representable` instance for an arbitrary fixed length vector.
+
+Using Representable with Store
+------------------------------
+
+Now that we have switched over to Idris we need to rewrite our `Store`
+type. We also need to make it to work with `Representable`:
+
+``` {.idris}
+data Store : (Type -> Type) -> Type -> Type -> Type where
+  MkStore : rep -> f a -> Store f rep a
+```
+
+This version of `Store` contains our current index (now called `rep`)
+and our `Representable` type `f a`. We no longer have a query function.
+Instead we are going to store our state as data in the
+`Representable Functor` and then use the `index` function to query it.
+
+We then need to rewrite our API using `index` and `tabulate`. `peek` and
+`peeks`, and `extract` are all used for querying data so they will
+defined using `index`. `extend` is used for modifying our query so we
+know we will need to use `tabulate`.
+
+Here is the full `Store` API in Idris:
+
+``` {.idris}
+pos : Store f rep a -> rep
+pos (MkStore rep' fa) = rep'
+
+peek : Representable f rep => rep -> Store f rep a -> a
+peek rep' (MkStore _ fa) = index fa rep'
+
+peeks : Representable f rep => (rep -> rep) -> Store f rep a -> a
+peeks f (MkStore rep' fa) = index fa (f rep')
+
+seek : Representable f rep => rep -> Store f rep a -> Store f rep a
+seek rep' (MkStore _ fa) = MkStore rep' fa
+
+seeks : Representable f rep => (rep -> rep) -> Store f rep a -> Store f rep a
+seeks func (MkStore rep' fa) = MkStore (func rep') fa
+
+experiment : (Representable f rep, Functor g) => (rep -> g rep) -> Store f rep a -> g a
+experiment f s = map (`peek` s) (f (pos s))
+
+Representable f rep => Comonad (Store f rep) where
+extract (MkStore rep fa) = index fa rep
+extend func (MkStore rep' fa) = MkStore rep' (tabulate (\rep'' => func (MkStore rep'' fa)))
+```
+
+Again we use `index` to do our actual lookup inside the `f a`. The real
+magic is in `extend`. In our previous `Store`, extend created a new
+query function using a lambda which applied the initial `Store` to
+`f : Store s a -> b`:
+
+``` {.haskell}
+extend f (Store' g s) = Store (\s' -> f (Store g s')) s
+```
+
+In our new version, we do the exact same thing but then we pass the new
+query function into `tabulate :: (Fin n -> Bool) -> Vect (Fin
+   N) Bool`, which uses that query function to generate the complete new
+state in a `Vect (Fin n)`.
+
+Lets use equational reasoning to walk through a small example of
+`extend` where we pass in a function to extract the element at the
+current index and apply `not` to it. We can use that to create a small
+example where we walk through all the subsitutions.
+
+``` {.idris}
+initialStore : Store (Vect (Fin 3) (Fin 3) Bool)
+initialStore = MkStore FZ [True, False, True]
+
+= extend (not . extract) initialStore
+= extend (not . extract) (MkStore FZ [True,False,True])
+= extend (not . extract) (MkStore FZ (tabulate (\rep' => extract (MkStore rep' fa))))
+= extend (not . extract) (MkStore FZ
+                                  (  (\rep'  => (not . extract) (MkStore rep' fa)) FZ
+                                  :: ((\rep' => (not . extract) (MkStore rep' fa)) . FS) FZ
+                                  :: ((\rep' => (not . extract) (MkStore rep' fa)) . FS . FS) FZ
+                                  :: [])
+                                  )
+= extend extract (MkStore FZ
+                          (  (\FZ           => (not . extract) (MkStore rep' [True,False,True]))
+                          :: (\(FS FZ)      => (not . extract) (MkStore rep' [True,False,True]))
+                          :: (\(FS (FS FZ)) => (not . extract) (MkStore rep' [True,False,True]))
+                          :: [])
+                          )
+= extend extract (MkStore FZ
+                          (  (not . extract) (MkStore FZ           [True,False,True])
+                          :: (not . extract) (MkStore (FS FZ)      [True,False,True])
+                          :: (not . extract) (MkStore (FS (FS FZ)) [True,False,True])
+                          :: [])
+                          )
+= extend extract (MkStore FZ
+                          (  not (extract (MkStore FZ           [True,False,True]))
+                          :: not (extract (MkStore (FS FZ)      [True,False,True]))
+                          :: not (extract (MkStore (FS (FS FZ)) [True,False,True]))
+                          :: [])
+                          )
+= extend extract (MkStore FZ
+                          (  not (index [True,False,True] FZ)
+                          :: not (index [True,False,True] (FS FZ))
+                          :: not (index [True,False,True] (FS (FS FZ)))
+                          :: [])
+                          )
+= extend extract (MkStore FZ
+                          (  not True
+                          :: not False
+                          :: not True
+                          :: [])
+                          )
+= extend extract (MkStore FZ
+                          (  False
+                          :: True
+                          :: False
+                          :: [])
+                          )
+= extend extract (MkStore FZ [False, True, False])
+```
+
+That example got a little big, but it demonstrates that the entire store
+transformation is done once and only once when you call `extend`. This
+is a huge improvement over having to recompute every prior generation
+every time you extend into a new generation.
+
+Putting it all together
+-----------------------
+
+The last thing to do is reimplement our algorith using our new version
+of `Store`. Other then switching languages, at this point we actually
+don\'t need to modify our code a whole bunch!
+
+The biggest changes are updating type signatures and writing some clever
+helper functions to work with `Fin n`.
+
+First we intialize the store:
+
+``` {.idris}
+initialStore : Vect (3 + k) Bool -> Store (Vect (3 + k)) (Fin (3 + k)) Bool
+initialStore xs = MkStore FZ xs
+```
+
+Lets take a closer look at this type signature:
+
+1.  Notice the dependent type signature `Vect (3 + k) Bool`. This tells
+
+the compiler that the `Vect`\'s size must be 3 greater then any `Nat`.
+The smallest possible `Nat` is 0 so this means that the `Vect` must be
+at a minimum length 3.
+
+1.  Notice how in the `Store` our `Representable` is `Vect (3 + k)` and
+    our `Rep f` is `Fin (3 + k)`. By sharing the same type variable `k`
+    this tells the compiler that the `Fin` must be 3 greater then the
+    exact same `Nat` as the `Vect`.
+
+2.  Lastly, notice how we no longer need to pass around our `Size` as a
+    term. All the information we need is now encoded in the types. :)
+
+The next function we will need to rewrite is `indices`. This will
+require some clever tricks with `Fin`:
+
+``` {.idris}
+up : Fin (S k) -> Fin (S k)
+up = either (const FZ) FS . strengthen
+
+down : Fin (S k ) -> Fin (S k)
+down FZ = last
+down (FS k) = weaken k
+
+indices : Fin (3 + k) -> Vect 3 (Fin (3 + k))
+indices x = [down x, x, up x]
+```
+
+When applying `FS` to produce the succesor to some `Fin n` we produce a
+`Fin (S n)`. Likewise, pattern matching and removing a `FS` from some
+`Fin (S k)` produces a `Fin k`.
+
+This is a problem for us. We need to maintain the size of the finite set
+as an invariant thorughout our program. We have to use some tricks to
+shift our `Fin` values while maintaining the same size of set.
+
+If `Fin (S k)` represents the finite set of naturals smaller then `k`,
+then we know morally that unwrapping `FS` constructors from our `Fin`
+does produce numbers that fit within `Fin (S k)`. We just need a way to
+demonstrate that to the type system.
+
+Idris provides us with `weaken` and `strengthen` to do just this:
+
+``` {.idris}
+weaken : Fin n -> Fin (S n)
+strengthen : Fin (S n) -> Either (Fin (S n)) (Fin n)
+```
+
+`weaken` says that any `Fin n` is also a valid `Fin (S n)`. It\'s like
+saying any number `x` is smaller then `x + 1`. This allows us to unwrap
+one `FS` from our `Fin (S k)` to produce a number one digit smaller that
+is type `Fin k` and then convert it back to a `Fin (S k)`.
+
+`last` is another helper function from Idris that gives you the largest
+valid value for `Fin n`. In `down` we use pattern matching and `weaken`
+to produce a smaller `Fin n` in the successor case and `last` in the
+zero case to wrap around the modulus point.
+
+In order to increase the value of a `x : Fin (S n)`, we need to show
+whether or not `x` is also a valid `Fin n`. eg., if `x` were 4, then it
+would be a member of the set of numbers 0 to 5 and the set 0 to 4 but
+not the set 0 to 3.
+
+`strengthen` says if `x : Fin (S n)` is too big to be a valid `Fin
+  n` then return it as `Fin (S n)`, otherwise return it as `Fin
+  n`. `up` is saying that if `x : Fin (S n)` is too big to be `Fin n` it
+must be the modulus point and we loop around to zero. Otherwise, we
+convert it to `Fin n` and apply `FS` to it to increment its value and
+keep the type as `Fin (S n)`.
+
+The rest of the algorithm is as you would expect. The only changes were
+in the type signatures and removing the explicit threading of the size:
+
+``` {.idris}
+neighbors : Store (Vect (3 + k)) (Fin (3 + k)) Bool -> Vect 3 Bool
+neighbors = experiment indices
+
+isAlive : Store (Vect (3 + k)) (Fin (3 + k)) Bool -> Bool
+isAlive s =
+  case neighbors s of
+    [False, False, False] => False
+    [True, False, False] => False
+    [True, True, True] => False
+    _ => True
+
+nextGen : Store (Vect (3 + k)) (Fin (3 + k)) Bool -> Store (Vect (3 + k)) (Fin (3 + k)) Bool
+nextGen = extend isAlive
+```
+
+The last thing we need is an updated `runSimulation` written in Idris:
+
+``` {.idris}
+universe : Vect k (Fin k)
+universe {k = Z} = []
+universe {k = (S k)} = FZ :: map FS (universe {k=k})
+
+boolToString : Bool -> String
+boolToString False = "0"
+boolToString True = "1"
+
+printState : (Vect (3 + k)) Bool -> IO ()
+printState xs = do
+  traverse_ (putStr . boolToString) $ toList xs
+  putStrLn ""
+
+runSimulation : Store (Vect (3 + k)) (Fin (3 + k)) Bool -> IO ()
+runSimulation s {k} =
+  if all id curr || all not curr
+     then printState curr
+     else printState curr >>= \_ => runAutomata (nextGen s)
+  where
+    curr : Vect (3 + k) Bool
+    curr = experiment (const universe) s
+
+
+main : IO ()
+main = runSimulation init
+  where
+   start : Vect 14 Bool
+   start = map (\i => if i == 0 then False else True) [0,0,0,1,0,0,1,1,0,1,1,1,1,1]
+   init : Store (Vect 14) (Fin 14) Bool
+   init = initialStore start
+```
+
+And there it is! A type safe, performant implementation of Rule 110
+using Comonads!

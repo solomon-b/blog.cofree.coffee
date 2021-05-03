@@ -1,0 +1,27 @@
+---
+author: Solomon Bothwell
+date: '2020-1016'
+title: Hello World
+---
+
+Its October 2020, COVID-19 has wreaked havoc across the globe, the US is
+deeply divided along partisan lines, the environment is in collapse, the
+government is in a seemingly endless consitutional crisis, and I\'ve
+decided to start blogging! What a time to be alive.
+
+My main goal here is to document my various projects. I suspect this
+will mostly be a technical blog presenting my work on functional
+programming, math, and philsophy, but I expect to also include reports
+on garden, mycology, carpentry, and whatever other projects I get around
+to finishing.
+
+If you are wondering why you are reading this, allow me to elaborate on
+who I am. My name is Solomon. I have worn many hats such as art
+fabricator, free school organizer, community radio station
+founder/manager, permaculture gardener, and most recently software
+engineer.
+
+My main interest in software development and computer science is trying
+to understand the connection between functional programming, math, and
+philosophical logic. This is a deep topic which I am only starting to
+scratch the surface on, but I hope to use this platform to dive deeper.
