@@ -1,12 +1,18 @@
-// A simple static site generator
+/**
+ * SSG: A simple static site generator
+ **/
 
+#include <ctype.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define ENTRY_FIELD_SIZE 256
-
 
 typedef struct index {
   char* title;
@@ -16,17 +22,22 @@ typedef struct index {
   struct index* next;
 } index_t;
 
-char* create_link(char* path) {
-  char* link = malloc(sizeof(char) * ENTRY_FIELD_SIZE);
-  char* ext;
+/**
+ * Constructing the index.
+ **/
 
-  strcpy(link, path);
-  ext = strrchr(link, '.');
+char* create_link(char* path, char* dest_dir) {
+  char* link;
+  asprintf(&link, "%s/%s", dest_dir, path);
+
+  // Replace the old extension with .html
+  char* ext = strrchr(link, '.');
   strcpy(ext, ".html");
+
   return link;
 }
 
-index_t* read_entry(char* path) {
+index_t* read_entry(char* path, char* src_dir, char* dest_dir) {
   index_t* entry = malloc(sizeof(index_t));
   char* title = malloc(sizeof(char) * ENTRY_FIELD_SIZE);
   char* author = malloc(sizeof(char) * ENTRY_FIELD_SIZE);
@@ -35,59 +46,73 @@ index_t* read_entry(char* path) {
   entry->title = title;
   entry->author = author;
   entry->date = date;
-  entry->link = create_link(path);
+  entry->link = create_link(path, dest_dir);
 
   // We are looking for two matching lines that start with '-'.
   // Therefore, every time we see one, we are going to decrement the
   // read_lines counter, and terminate once it hits zero.
   int read_lines = 2;
-  char line[256];
-  FILE* fp = fopen(path, "r");
+  char line[ENTRY_FIELD_SIZE];
+
+  char* src_path;
+  asprintf(&src_path, "%s/%s", src_dir, path);
+  FILE* fp = fopen(src_path, "r");
+
+  if (fp == NULL) {
+    fprintf(stderr, "Could not open file %s\n", path);
+    exit(1);
+  }
+
   while (read_lines && fgets(line, ENTRY_FIELD_SIZE, fp)) {
     line[strcspn(line, "\n")] = 0;
-    switch (line[0]) {
-    case '-':
-      read_lines--;
-      break;
-    case 't':
-      strcpy(title, line + 7);
-      break;
-    case 'a':
-      strcpy(author, line + 8);
-      break;
-    case 'd':
+
+    if (strcmp("date:", line) == 0) {
       strcpy(date, line + 6);
-      break;
+    } else if (strcmp("author:", line) == 0) {
+      strcpy(author, line + 8);
+    } else if (strcmp("title:", line) == 0) {
+      strcpy(title, line + 7);
+    } else if (line[0] == '-') {
+      read_lines--;
     }
   }
 
   fclose(fp);
+  free(src_path);
   return entry;
 }
 
-index_t* read_index(char* path) {
-  index_t* index;
+index_t* read_index(char* src_dir, char* dest_dir) {
+  index_t* head;
+  index_t* current;
   struct dirent* dir;
-  DIR* d = opendir(path);
-  char *fpath;
+
+  DIR* d = opendir(src_dir);
+  if (d == NULL) {
+    fprintf(stderr, "Could not open source directory %s\n", src_dir);
+    exit(1);
+  }
 
   while((dir = readdir(d)) != NULL) {
     char* ext = strrchr(dir->d_name, '.');
     if (strcmp(ext, ".md") == 0) {
-      asprintf(&fpath, "%s/%s", path, dir->d_name);
-      printf("Adding %s\n", fpath);
-      if (index == NULL) {
-        index = read_entry(fpath);
+      if (head == NULL) {
+        head = read_entry(dir->d_name, src_dir, dest_dir);
+        current = head;
       } else {
-        index->next = read_entry(fpath);
-        index = index->next;
+        current->next = read_entry(dir->d_name, src_dir, dest_dir);
+        current= current->next;
       }
     }
   }
 
   closedir(d);
-  return index;
+  return head;
 }
+
+/**
+ * Rendering the index.
+ **/
 
 void render_index(index_t* index, FILE* fp) {
   index_t* item = index;
@@ -115,15 +140,53 @@ void render_index(index_t* index, FILE* fp) {
   fprintf(fp, "</html>\n");
 }
 
+/**
+ * Command Line option parsing.
+ **/
+
 int main(int argc, char** argv) {
-  if (argc != 2) {
-    fprintf(stderr, "%s", "Please provide the directory you want to generate an index file for.");
+  int opt;
+  char* src_dir;
+  char* dest_dir;
+  char* index_path;
+
+  while ((opt = getopt (argc, argv, "s:d:i:")) != -1) {
+    switch (opt) {
+    case 's':
+      src_dir = optarg;
+      break;
+    case 'd':
+      dest_dir = optarg;
+      break;
+    case 'i':
+      index_path = optarg;
+      break;
+    default:
+      exit(1);
+    }
+  }
+
+  if (src_dir == NULL) {
+    fprintf(stderr, "Please provide a source directory via -s\n");
     exit(1);
   }
 
-  char* dir = argv[1];
+  if (dest_dir == NULL) {
+    fprintf(stderr, "Please provide a destination directory via -d\n");
+    exit(1);
+  }
 
-  index_t* index = read_index(dir);
-  render_index(index, stdout);
-  return 0;
+  FILE* index_file = stdout;
+  if (index_path != NULL) {
+    index_file = fopen(index_path, "w");
+  }
+
+  index_t* index = read_index(src_dir, dest_dir);
+  render_index(index, index_file);
+
+  if (index_path != NULL) {
+    fclose(index_file);
+  }
+
+  exit(0);
 }
