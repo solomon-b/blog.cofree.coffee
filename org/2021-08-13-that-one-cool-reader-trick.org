@@ -1,0 +1,128 @@
+#+AUTHOR: Solomon Bothwell
+#+TITLE: That One Cool Reader Trick
+If you are writing an interpreter, odds are you will want to bind
+variables. If you are binding variables, there is a decent chance you
+will want to locally scope your variables.
+
+For tracking your bindings, your first thought might be to reach for
+the ~State~ monad. Unfortunately it will get you a global binding
+context and many tears.
+
+It sure would be a shame of ~x~ in the function ~f~ was bound over the
+globally scoped ~x~:
+
+#+begin_src javascript
+  let x = 0;
+  let f = (x) => x + 1;
+
+  f(5) > x;
+#+end_src
+
+Luckily there is a really neat trick using the ~Reader~ monad to get
+local scoping for free.
+
+
+* Typing The Lambda Calculus
+Lets say we want to write a typechecker for a minimal Simply Typed
+Lambda Calculus. Our Types will look like:
+
+#+begin_src haskell
+data Term = Var String
+          | Abs String Type Term
+          | App Term Term
+
+data Type = Type :-> Type | UnitT | BoolT
+  deriving Eq
+#+end_src
+
+~Term~ is our Term AST, ~Type~ is our types. In this calculus all we
+can construct are functions that take functions as arguments.
+
+Now for our typechecker we want to traverse the AST, collecting all
+our bindings and their types as we pass over Lambda terms (~Abs~) and
+then return the type of the entire expression.
+
+We will our save our types in the typing context which we call ~Context~:
+#+begin_src haskell
+  type Context = [(String, Type)]
+#+end_src
+
+~Context~ is a mapping from binder to ~Type~.
+
+Each time we pass through a Lambda term we must create a new local
+context with everything above that Lambda term plus the new local
+binding.
+
+* Setting up our transformer stack
+An ill typed term should terminate the typechecker and throw an
+error. For this we use ~ExceptT~.
+
+For managing our ~Context~ I already revealed that we will use
+~Reader~. This may still seem like an unusual choice, but as we will
+see, it is in fact the ideal candidate for local state.
+
+Our final Typechecking Monad is thus:
+#+begin_src haskell
+  type Context = [(String, Type)]
+
+  data TypeErr = TypeError
+    deriving (Show, Eq)
+
+  newtype TypecheckM a =
+    TypecheckM { unTypecheckM :: ExceptT TypeErr (Reader Context) a }
+    deriving (Functor, Applicative, Monad, MonadReader Context, MonadError TypeErr)
+#+end_src
+
+* The Basic Operation of our Typechecker
+In general we know that what we want to do is traverse an AST and
+build up the type of the expression represnted by the AST. If at any
+point the type of the AST (or a supexpression of the AST) violates our
+typing judgements then we have a type error and abort the traversal.
+
+Our typechecker is a functon ~Term -> TypecheckM Type~. The
+implementation will amount to a giant case statement with some monadic
+effects for throwing errors and accumulating the typing context.
+
+Our minimal calculus conssists soley of Lambda terms (~Abs~),
+variables (~Var~), and function application ~App~.
+
+In plain english, our typing rules are as follows:
+
+1. Var: Lookup the binder in ~Context~ and return it. If the binder does
+   not exist in ~Context~ then throw a type error.
+2. App: Check the types of the two sub terms. The first one must be of
+   type ~T1 :-> T2~ where the second sub term is of type ~T1~, then
+   return ~T2~.
+3. Abs: Create a new local scope for the term ~T : T1~ in context, then
+   typecheck the body of the Lambda. The type of the ~Abs~ term is
+   ~T1 :-> T2~ where the body is of type ~T2~.
+
+* Our Typechecker
+#+begin_src haskell
+  typecheck :: Term -> TypecheckM Type
+  typecheck = \case
+    Var x -> do
+      ty <- asks $ lookup x
+      maybe (throwError TypeError) pure ty
+    Abs bndr ty1 trm -> do
+      ty2 <- local ((bndr, ty1) :) (typecheck trm)
+      pure $ ty1 :-> ty2
+    App t1 t2 -> do
+      ty1 <- typecheck t1
+      case ty1 of
+        tyA :-> tyB -> do
+          ty2 <- typecheck t2
+          if tyA == ty2 then pure tyB else throwError TypeError
+        _ -> throwError TypeError
+#+end_src
+
+The ~Reader~ trick happens in the ~Abs~ case where we introduce a new
+binder. Notice the use of ~local :: MonadReader r m => (r -> r) -> m a
+-> m a~. This function allows us to create a new local ~Reader~
+context using an ~r -> r~ function and the current context ~r~.
+
+In our case ~r~ is ~Context~ and our ~r -> r~ function simply cons's the
+new binder and its type onto our ~Context~. This little one liner allows us
+to create a brand new scope every time we recurse through a Lambda
+term. We don't need to do anything complicated to track the scope of
+our bindings at all. Pretty neat. :)
