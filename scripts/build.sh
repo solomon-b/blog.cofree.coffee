@@ -32,7 +32,7 @@ cd html || exit 2;
 touch "index.html"&& test -w "index.html" || exit 2;
 
 # find folders
-POSTS=$(find -maxdepth 1 -type d -not -path . -printf '%f\n' )
+POSTS=$(find -maxdepth 1 -type d -not -path . -printf '%f\n' | sort -r)
 HEADER=$(<../scripts/header.html)
 FOOTER=$(<../scripts/footer.html)
 (
