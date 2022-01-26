@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Solomon Bothwell" />
+  <meta name="description" content="Modular Arithmetic with finite sets" />
+  <title>Finally Modular Arithmetic</title>
+  <style>
+    html {
+      line-height: 1.5;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      word-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, 'Lucida Console', Consolas, monospace;
+      font-size: 85%;
+      margin: 0;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Finally Modular Arithmetic</h1>
+<p class="author">Solomon Bothwell</p>
+</header>
+<p><code>Fin _</code> is one of those data types that makes you take a step back and question how much you really understand typed functional programming.</p>
+<pre class="idris2"><code>data Fin : (n : Nat) -&gt; Type where
+    FZ : Fin (S k)
+    FS : Fin k -&gt; Fin (S k)
+</code></pre>
+<p>At first glance so a simple and similar to <code>Nat</code>, yet it so much more. Like <code>Nat</code>, this is a recursive type with a base case <code>FZ</code> and a recursive case <code>FS</code>. Also notice that unlike <code>Nat</code>, this is a dependent type.</p>
+<p><code>Fin _</code> requires a <code>n : Nat</code> in order to construct a type. In the <code>FZ</code> case that <code>Nat</code> must be be <code>S k</code>, that is to say it must be greater then zero. In the recursive case <code>FS</code>, we provide a <code>Fin k</code> and yield a <code>Fin (S k)</code>, a <code>Fin _</code> larger by one.</p>
+<p>Edwin Brady describes <code>Fin _</code> as the type of <em>Finite Sets</em>. That is not to say that <code>Fin _</code> is a container, but rather that it represents the canonical set of unnamed elements.</p>
+<pre class="idris2"><code>λΠ&gt; the (Fin 1) FZ
+FZ
+
+λΠ&gt; :t the (Fin 1) FZ
+the (Fin 1) FZ : Fin 1
+</code></pre>
+<p>Here we have <code>FZ</code> as the zero element of the one element set. <code>FZ</code> requires a <code>S k</code> so this is the smallest possible finite set we can represent. We can represent the zeroth element of larger set by simply declaring it so:</p>
+<pre class="idris2"><code>λΠ&gt; the (Fin 12) FZ
+FZ
+
+λΠ&gt; :t the (Fin 12) FZ
+the (Fin 12) FZ : Fin 12
+</code></pre>
+<p>We use <code>FS</code> to construct subsequent elements of our finite set. For example, the second element of the two element set would be:</p>
+<pre class="idris2"><code>λΠ&gt; the (Fin 2) (FS FZ)
+FS FZ : Fin 2
+
+λΠ&gt; :t the (Fin 2) (FS FZ)
+the (Fin 2) (FS FZ) : Fin 2
+</code></pre>
+<p><code>FZ</code> must be of type <code>Fin (S k)</code> and <code>FS</code> is <code>Fin n -&gt; Fin (S
+n)</code>. Thus <code>FS FZ</code> produces type <code>Fin (S (S k))</code> and <code>k</code> must be <code>Z</code> in order to match our ascribed type <code>Fin 2</code>.</p>
+<p>Let's try to produce an element larger then the ascribed set:</p>
+<pre class="idris2"><code>λΠ&gt; the (Fin 1) (FS FZ)
+(interactive):1:14--1:19:When unifying Fin (S (S ?k)) and Fin 1
+Mismatch between:
+  S ?k
+and
+  0
+at:
+1 the (Fin 1) (FS FZ)
+               ^^^^^
+</code></pre>
+<p>Here we tried to produce a second element of the one element set. Idris is telling us that the only way to construct <code>FS FZ : Fin
+1</code> would be to have <code>FZ : Fin 0</code>. This would allow <code>FS</code> to type check correctly as <code>Fin 1</code>, however by the definition of <code>Fin _</code>, <code>FZ : Fin 0</code> is impossible as <code>FZ</code> must have type <code>S k</code>.</p>
+<h2 id="fin-and-vect">Fin And Vect</h2>
+<p>One natural use case for <code>Fin _</code> is type safe indexing into <code>Vect</code>:</p>
+<pre class="idris2"><code>index : Fin len -&gt; Vect len elem -&gt; elem
+index FZ     (x::xs) = x
+index (FS k) (x::xs) = index k xs
+</code></pre>
+<p><code>Fin _</code> and <code>Vect</code> are parameterized by <code>len : Nat</code>. This means that we cannot construct <code>Fin</code> values which are out of bounds for our <code>Vect</code>. Out of bounds indices are literally unrepresentable. In my last blog post we took advantage of this property to create a <code>Representable Functor</code>.</p>
+<pre class="idris2"><code>λΠ&gt; index 2 (the (Vect 3 String) [&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;])
+&quot;baz&quot;
+
+λΠ&gt; index 3 (the (Vect 3 String) [&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;])
+(interactive):1:7--1:8:Can&#39;t find an implementation for IsJust (integerToFin 3 3) at:
+1 index 3 (the (Vect 3 String) [&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;])
+        ^
+</code></pre>
+<p>The error messaging in Idris2 is a lot less clear then Idris1, but this is saying that there is not a valid way to convert a <code>3 : Nat</code> into a <code>Fin 3</code>.</p>
+<h2 id="modular-arithmetic">Modular Arithmetic</h2>
+<p>Another interesting use case for <code>Fin _</code>, and the main topic of this blog post, is Modular Arithmetic where the <code>Fin _</code> upper bound is the <strong>modulus</strong>.</p>
+<p>The basic idea is that we perform addition using recursion similiar to <code>Nat</code> arithmetic, however when we hit the upperbound we continue the operation from <code>FZ</code>.</p>
+<p>We might be tempted start our <code>add</code> function like this:</p>
+<pre class="idris2"><code>add : Fin n -&gt; Fin n -&gt; Fin n
+add FZ y = y
+add (FS x) y = FS (add ?hole1 ?hole2)
+</code></pre>
+<p>This leaves us with two typeholes:</p>
+<pre class="idris2"><code>- + Fin.hole1 [P]
+ `--          x : Fin k
+              y : Fin (S k)
+            0 n : Nat
+     -----------------------
+      Fin.hole1 : Fin k
+
+- + Fin.hole2 [P]
+ `--          x : Fin k
+              y : Fin (S k)
+            0 n : Nat
+     -----------------------
+      Fin.hole2 : Fin k
+</code></pre>
+<p><code>add</code> requires two <code>Fin (S k)</code> terms. We have pattern matched on the first argument and peeled off an <code>FS</code>, leaving us with <code>x : Fin k</code> and <code>y : Fin (S k)</code>.</p>
+<p>What we <em>want</em> to do here is make a recursive call on <code>add x y</code> applied to <code>FS</code>. This will recurse through the first argument and accumulate <code>FS</code> constructors until you hit the base case just like <code>Nat</code> addition.</p>
+<p><code>Fin n = Fin (S k)</code> but because we wrapped our recursive call in an <code>FS</code>, we only need to fill the holes with a <code>Fin k</code>. <code>x : Fin k</code> fits perfectly as is, however <code>y : Fin (S k)</code> has too weak of bounds. We need to <em>strengthen</em> (reduce in size) the bounds by one so that it fits the hole.</p>
+<p>Strengthening the bounds means reducing the upper limit on a <code>Fin (S
+k)</code> to <code>Fin k</code>. This is only possible if the actual value is not the upper bound of the set.</p>
+<p>Since this is modular addition, what we want to do is strengthen the bound on <code>y</code> if possible and if it is not possible then we are at the modulus and must replace <code>y</code> with <code>FZ</code>.</p>
+<pre class="idris2"><code>add : Fin n -&gt; Fin n -&gt; Fin n
+add FZ y = y
+add (FS x) y =
+  case ?strengthen y of
+    Left _ =&gt; ?weaken x
+    Right y&#39; =&gt; FS (add x y&#39;)
+</code></pre>
+<p>In the case where we wrap around the modulus, we must <em>weaken</em> the constraint on <code>x : Fin k</code> to account for the fact that we removed an <code>FS</code> from <code>x</code> in the pattern match but aren't wrapping an additional <code>FS</code> in the result.</p>
+<pre class="idris2"><code>- + Fin.strengthen [P]
+ `--               x : Fin k
+                   y : Fin (S k)
+                 0 n : Nat
+     -------------------------------------------------
+      Fin.strengthen : Fin (S k) -&gt; Either ?_ (Fin k)
+
+- + Fin.weaken [P]
+ `--           x : Fin k
+               y : Fin (S k)
+             0 n : Nat
+     ---------------------------------
+      Fin.weaken : Fin k -&gt; Fin (S k)
+</code></pre>
+<h2 id="strength-and-weakness">Strength and Weakness</h2>
+<p>If we have a way to <em>strengthen</em> and <em>weaken</em> our upper bounds along with a way to detect if we are at the max bound of our <code>Fin _</code> then we can implement our <code>add</code> function.</p>
+<pre class="idris2"><code>weaken : {n : Nat} -&gt; Fin n -&gt; Fin (S n)
+strengthen : {n : Nat} -&gt; Fin (S n) -&gt; Either (Fin (S n)) (Fin n)
+</code></pre>
+<p><code>weaken</code> takes any <code>Fin _</code> and increases its upper bound. This operation is valid for any <code>Fin _</code> value.</p>
+<p><code>strengthen</code> takes a <code>Fin (S n)</code> and reduces the upper bound if possible. If our term <code>x</code> <em>is</em> the upper bound for <code>Fin (S n)</code> then we cannot reduce it. To get around this we return an <code>Either</code> where the <code>Left</code> case returns the original bound. This allows us to use <code>strengthen</code> for manipulating our bounds and detecting when we need to wrap around the modulus.</p>
+<pre class="idris2"><code>weaken : {n : Nat} -&gt; Fin n -&gt; Fin (S n)
+weaken FZ     = FZ
+weaken (FS k) = FS (weaken k)
+</code></pre>
+<p>For <code>weaken</code> we recurse through the <code>Fin</code> structure and rebuild it with the weakend bounds.</p>
+<pre class="idris2"><code>strengthen : {n : Nat} -&gt; Fin (S n) -&gt; Either (Fin (S n)) (Fin n)
+strengthen {n = Z} FZ = Left FZ
+strengthen {n = (S k)} FZ = Right FZ
+strengthen {n = Z} (FS _) impossible
+strengthen {n = (S k)} (FS x) = case strengthen x of
+  Left l =&gt; Left (FS&#39; l)
+  Right r =&gt; Right (FS&#39; r)
+</code></pre>
+<p><code>strengthen</code> is a bit more complex and requires us to use the implicit <code>Nat</code> value from the type signature. Lets go through the cases one at a time:</p>
+<ol>
+<li><code>{n = Z} FZ</code>: We have pattern matched on the zeroeth element of the <code>Fin (S Z)</code> set which means we cannot strengthen and must return <code>FZ : Fin (S Z)</code>.</li>
+<li><code>{n = (S k)} FZ</code>: We have pattern matched on the zeroeth element of the <code>Fin (S k)</code> set. <code>k</code> cannot be <code>Z</code> due to the previous pattern match so the set must be size 2 or greater allowing us to strengthen.</li>
+<li><code>{n = Z} (FS _)</code>: This case is impossible to reach because <code>FS _</code> by definition cannot have type <code>Fin n</code>.</li>
+<li><code>{n = (S k)} (FS x)</code>: Here we have pattern matched on a <code>FS</code> with a valid <code>Fin n</code> type. We want to recurse through the <code>Fin</code>'s structure until we hit <code>FZ</code> to determine if we can strengthen.</li>
+</ol>
+<h2 id="modular-addition-continued">Modular Addition Continued</h2>
+<p>We now have the tools we need to finish <code>add</code>:</p>
+<pre class="idris2"><code>total
+add : Fin n -&gt; Fin n -&gt; Fin n
+add FZ y = y
+add (FS x) y =
+  case strengthen y of
+    Left _ =&gt; weaken x
+    Right y&#39; =&gt; FS (add x y&#39;)
+</code></pre>
+<p>Here you can see <code>(2 + 3) mod 10 = 5</code> and <code>(2 + 9) mod 10 = 1</code>:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode idris"><code class="sourceCode idris"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> add (the (<span class="dt">Fin</span> <span class="dv">10</span>) <span class="dv">2</span>) (the (<span class="dt">Fin</span> <span class="dv">10</span>) <span class="dv">3</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="dt">FS</span> (<span class="dt">FS</span> (<span class="dt">FS</span> (<span class="dt">FS</span> (<span class="dt">FS</span> <span class="dt">FZ</span>)))) <span class="ot">:</span> <span class="dt">Fin</span> <span class="dv">10</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> add (the (<span class="dt">Fin</span> <span class="dv">10</span>) <span class="dv">2</span>) (the (<span class="dt">Fin</span> <span class="dv">10</span>) <span class="dv">9</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="dt">FS</span> <span class="dt">FZ</span> <span class="ot">:</span> <span class="dt">Fin</span> <span class="dv">10</span></span></code></pre></div>
+<p>This implementation works but lets take this opportunity to generalize our recursion a bit. This will make it easier to implement the rest of our modular arithmetic api.</p>
+<h2 id="recursion-principles">Recursion Principles</h2>
+<p>We can tease apart the recursion from the addition by identify the Recursion Principle at play in our recursive data type and introducing an eliminator function for it. This will allow us to write simple non recursive functions which we can apply to the recursion principle to deconstruct our <code>Fin _</code> values and produce some result.</p>
+<p>The Recursion Principle for a recursive type is a function <code>(t : Type)
+-&gt; r</code> which deconstructs a value of <code>t : Type</code> into some <code>r</code>. The Recursion Principle captures the essence of a recursive function on <code>t</code> and will recursively call itself on every layer of <code>t</code> inside of <code>t</code>.</p>
+<p>This allows us to traverse through the structure of <code>t</code> and use some other non-recursive function(s) to accumulate <code>r</code>. The shape of these non-recursive functions is based on the constructors for <code>t</code> and their signatures can be derived mechanically.</p>
+<p>We do this by replacing all recursive references to <code>t</code> in the constructor definitions with <code>r</code> and then for each constructor write a function from its modified parameters to <code>r</code>.</p>
+<p>Lets use <code>foldr : (a -&gt; r -&gt; r) -&gt; r -&gt; List a -&gt; r</code> as an example. Looking at the definition of <code>List a</code>:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode idris"><code class="sourceCode idris"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">List</span> a <span class="fu">=</span> <span class="dt">Cons</span> a (<span class="dt">List</span> a) <span class="fu">|</span> <span class="dt">Nil</span></span></code></pre></div>
+<p>We can start with <code>Nil</code> and say that in order to eliminate <code>Nil</code> we need a function <code>() -&gt; r</code>. Since this is isomorphic to <code>r</code>, we can simply call this <code>r</code>.</p>
+<p>For <code>Cons</code> we have a pair of <code>a</code> and <code>List a</code>. We replace all recursive instances with <code>r</code> leaving us with <code>(a, r) -&gt; r</code>, or <code>a -&gt; r
+-&gt; r</code> in curried form.</p>
+<p>Now we pass in those two functions as parameters to our recursive function returning <code>r</code> and we get <code>foldr : (a -&gt; r -&gt; r) -&gt; r -&gt; List
+a -&gt; r</code>!</p>
+<p>We can also write the Recursion Principles for <code>Nat</code> and <code>Fin</code>:</p>
+<pre class="idris2"><code>data Nat = Z | S Nat
+
+total
+nat_rec : (r -&gt; r) -&gt; r -&gt; Nat -&gt; r
+nat_rec f r Z = r
+nat_rec f r (S k) = nat_rec f (f r) k
+
+data Fin : (n : Nat) -&gt; Type where
+    FZ : Fin (S k)
+    FS : Fin k -&gt; Fin (S k)
+
+total
+fin_rec : {n : Nat} -&gt; (r -&gt; r) -&gt; r -&gt; Fin r -&gt; a
+fin_rec {n = Z} f x y impossible
+fin_rec {n = (S k)} f x FZ = x
+fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
+</code></pre>
+<p>Notice how if you partially apply <code>Nat</code> (or <code>Fin</code>) they look like church numerals. In some sense you can say that the Recursion Principle for a type is equivalent to that type.</p>
+<p>Also notice that <code>fin_rec</code> and <code>nat_rec</code> are total. Since they take non-recursive functions as parameters this means that whatever functions we implement with our Recursion Principles will also be total.</p>
+<p>The basic idea of how to use <code>fin_rec</code> is that it will recursively call the <code>r -&gt; r</code> function on the <code>r</code> value as it traverses through the <code>Fin</code> constructors. eg., if we have <code>Fin 7</code> then <code>r -&gt; r</code> will be applied 7 times.</p>
+<h2 id="addition-with-recursion-principles">Addition with Recursion Principles</h2>
+<p>Armed with <code>fin_rec</code> we now have the ability to recurse over <code>Fin _</code> values in a way we know will terminate.</p>
+<p>For modular addition we want to specialize <code>r</code> to <code>Fin n</code> and use a function <code>Fin n -&gt; Fin n</code> which increments our intial <code>Fin n</code> value by one and which accounts for the modulus.</p>
+<pre class="idris2"><code>total
+inc : {n : Nat} -&gt; Fin n -&gt; Fin n
+inc {n = Z} x impossible
+inc {n = (S k)} x = case strengthen x of
+  Left l =&gt; FZ
+  Right r =&gt; FS r
+</code></pre>
+<p>Then we kick off our <code>fin_rec</code> call with the second <code>Fin n</code> as the initial value and we are done!</p>
+<pre class="idris2"><code>total
+add : {n : Nat} -&gt; Fin n -&gt; Fin n -&gt; Fin n
+add x y = fin_rec inc y x
+</code></pre>
+<p>This function will add 1 to <code>y</code> <code>x</code> many times!</p>
+<h2 id="multiplication">Multiplication</h2>
+<p>Just as with <code>Nat</code>, multiplication is defined in terms of addition. We use <code>fin_rec</code> with a partially applied <code>add y</code> to add <code>y</code> to <code>FZ</code> <code>x</code> times.</p>
+<pre class="idris2"><code>total
+mul : {n : Nat} -&gt; Fin n -&gt; Fin n -&gt; Fin n
+mul {n = Z} x y impossible
+mul {n = (S k)} x y = fin_rec (add y) FZ x
+</code></pre>
+<p>We have to pattern match on the implicit value here to prove that the <code>n = 0</code> case is impossible because of the explicit <code>FZ</code> value.</p>
+<h2 id="inversion">Inversion</h2>
+<p>In ordinary arithmetic inversion means to find <code>x</code> for some <code>y</code> such that <code>y + x = 0</code>. For example, <code>2 + (-2) = 0</code>. It works the same way in modular arithmetic but the results can be a little confusing.</p>
+<p>Suppose are working with modulus 5 and we want the inversion of 2. This would be <code>2 + 3 = 0 (mod 5)</code>, making the inversion of 2 to be 3!</p>
+<p>A simple way of calculating this is to count down from the modulus value until you hit the number to be inverted. The count will be the inversion.</p>
+<p>If we had a function <code>decr : {n : Nat} -&gt; Fin n -&gt; Fin n</code> that behaved exactly like <code>inc</code> but it decremented by 1 then we could use <code>fin_rec</code> to decrement down from the modulus <code>x</code> times where <code>x</code> is the number we wish to invert.</p>
+<pre class="idris2"><code>-- return the largest element in a Fin
+total
+last : Fin (S n)
+last {n = Z} = FZ
+last {n = (S k)} = FS last
+
+decr : {n : Nat} -&gt; Fin n -&gt; Fin n
+decr {n = 0} x impossible
+decr {n = (S k)} FZ = last
+decr {n = (S k)} (FS x) = weaken x
+
+total
+inv : {n : Nat} -&gt; Fin n -&gt; Fin n
+inv {n = 0} x impossible
+inv {n = (S k)} x = fin_rec decr FZ x
+</code></pre>
+<pre class="idris2"><code>λΠ&gt; inv (the (Fin 5) 2)
+FS (FS (FS FZ))
+</code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>And there we have it. Our modular arithmetic library:</p>
+<pre class="idris2"><code>total
+inc : {n : Nat} -&gt; Fin n -&gt; Fin n
+inc {n = Z} x impossible
+inc {n = (S k)} x = case strengthen x of
+  Left l =&gt; FZ
+  Right r =&gt; FS r
+
+decr : {n : Nat} -&gt; Fin n -&gt; Fin n
+decr {n = 0} x impossible
+decr {n = (S k)} FZ = last
+decr {n = (S k)} (FS x) = weaken x
+
+total
+fin_rec : {n : Nat} -&gt; {a : Type} -&gt; (a -&gt; a) -&gt; a -&gt; Fin n -&gt; a
+fin_rec {n = Z} f x y impossible
+fin_rec {n = (S k)} f x FZ = x
+fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
+
+total
+add : {n : Nat} -&gt; Fin n -&gt; Fin n -&gt; Fin n
+add x y = fin_rec inc y x
+
+total
+mul : {n : Nat} -&gt; Fin n -&gt; Fin n -&gt; Fin n
+mul {n = Z} x y impossible
+mul {n = (S k)} x y = fin_rec (add y) FZ x
+
+total
+inv : {n : Nat} -&gt; Fin n -&gt; Fin n
+inv {n = 0} x impossible
+inv {n = (S k)} x = fin_rec decr FZ x
+</code></pre>
+<p>Writing proofs for associativity, commutivity, etc of modular arithmetic is rather complex and will have to be explored another day.</p>
+</body>
+</html>

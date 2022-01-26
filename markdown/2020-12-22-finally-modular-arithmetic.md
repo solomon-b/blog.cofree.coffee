@@ -1,0 +1,488 @@
+---
+author: Solomon Bothwell
+description: Modular Arithmetic with finite sets
+title: Finally Modular Arithmetic
+---
+
+`Fin _` is one of those data types that makes you take a step back and
+question how much you really understand typed functional programming.
+
+``` idris2
+data Fin : (n : Nat) -> Type where
+    FZ : Fin (S k)
+    FS : Fin k -> Fin (S k)
+```
+
+At first glance so a simple and similar to `Nat`, yet it so much more.
+Like `Nat`, this is a recursive type with a base case `FZ` and a
+recursive case `FS`. Also notice that unlike `Nat`, this is a dependent
+type.
+
+`Fin _` requires a `n : Nat` in order to construct a type. In the `FZ`
+case that `Nat` must be be `S k`, that is to say it must be greater then
+zero. In the recursive case `FS`, we provide a `Fin k` and yield a
+`Fin (S k)`, a `Fin _` larger by one.
+
+Edwin Brady describes `Fin _` as the type of *Finite Sets*. That is not
+to say that `Fin _` is a container, but rather that it represents the
+canonical set of unnamed elements.
+
+``` idris2
+λΠ> the (Fin 1) FZ
+FZ
+
+λΠ> :t the (Fin 1) FZ
+the (Fin 1) FZ : Fin 1
+```
+
+Here we have `FZ` as the zero element of the one element set. `FZ`
+requires a `S k` so this is the smallest possible finite set we can
+represent. We can represent the zeroth element of larger set by simply
+declaring it so:
+
+``` idris2
+λΠ> the (Fin 12) FZ
+FZ
+
+λΠ> :t the (Fin 12) FZ
+the (Fin 12) FZ : Fin 12
+```
+
+We use `FS` to construct subsequent elements of our finite set. For
+example, the second element of the two element set would be:
+
+``` idris2
+λΠ> the (Fin 2) (FS FZ)
+FS FZ : Fin 2
+
+λΠ> :t the (Fin 2) (FS FZ)
+the (Fin 2) (FS FZ) : Fin 2
+```
+
+`FZ` must be of type `Fin (S k)` and `FS` is `Fin n -> Fin (S
+n)`. Thus `FS FZ` produces type `Fin (S (S k))` and `k` must be `Z` in
+order to match our ascribed type `Fin 2`.
+
+Let\'s try to produce an element larger then the ascribed set:
+
+``` idris2
+λΠ> the (Fin 1) (FS FZ)
+(interactive):1:14--1:19:When unifying Fin (S (S ?k)) and Fin 1
+Mismatch between:
+  S ?k
+and
+  0
+at:
+1 the (Fin 1) (FS FZ)
+               ^^^^^
+```
+
+Here we tried to produce a second element of the one element set. Idris
+is telling us that the only way to construct `FS FZ : Fin
+1` would be to have `FZ : Fin 0`. This would allow `FS` to type check
+correctly as `Fin 1`, however by the definition of `Fin _`, `FZ : Fin 0`
+is impossible as `FZ` must have type `S k`.
+
+## Fin And Vect
+
+One natural use case for `Fin _` is type safe indexing into `Vect`:
+
+``` idris2
+index : Fin len -> Vect len elem -> elem
+index FZ     (x::xs) = x
+index (FS k) (x::xs) = index k xs
+```
+
+`Fin _` and `Vect` are parameterized by `len : Nat`. This means that we
+cannot construct `Fin` values which are out of bounds for our `Vect`.
+Out of bounds indices are literally unrepresentable. In my last blog
+post we took advantage of this property to create a
+`Representable Functor`.
+
+``` idris2
+λΠ> index 2 (the (Vect 3 String) ["foo", "bar", "baz"])
+"baz"
+
+λΠ> index 3 (the (Vect 3 String) ["foo", "bar", "baz"])
+(interactive):1:7--1:8:Can't find an implementation for IsJust (integerToFin 3 3) at:
+1 index 3 (the (Vect 3 String) ["foo", "bar", "baz"])
+        ^
+```
+
+The error messaging in Idris2 is a lot less clear then Idris1, but this
+is saying that there is not a valid way to convert a `3 : Nat` into a
+`Fin 3`.
+
+## Modular Arithmetic
+
+Another interesting use case for `Fin _`, and the main topic of this
+blog post, is Modular Arithmetic where the `Fin _` upper bound is the
+**modulus**.
+
+The basic idea is that we perform addition using recursion similiar to
+`Nat` arithmetic, however when we hit the upperbound we continue the
+operation from `FZ`.
+
+We might be tempted start our `add` function like this:
+
+``` idris2
+add : Fin n -> Fin n -> Fin n
+add FZ y = y
+add (FS x) y = FS (add ?hole1 ?hole2)
+```
+
+This leaves us with two typeholes:
+
+``` idris2
+- + Fin.hole1 [P]
+ `--          x : Fin k
+              y : Fin (S k)
+            0 n : Nat
+     -----------------------
+      Fin.hole1 : Fin k
+
+- + Fin.hole2 [P]
+ `--          x : Fin k
+              y : Fin (S k)
+            0 n : Nat
+     -----------------------
+      Fin.hole2 : Fin k
+```
+
+`add` requires two `Fin (S k)` terms. We have pattern matched on the
+first argument and peeled off an `FS`, leaving us with `x : Fin k` and
+`y : Fin (S k)`.
+
+What we *want* to do here is make a recursive call on `add x y` applied
+to `FS`. This will recurse through the first argument and accumulate
+`FS` constructors until you hit the base case just like `Nat` addition.
+
+`Fin n = Fin (S k)` but because we wrapped our recursive call in an
+`FS`, we only need to fill the holes with a `Fin k`. `x : Fin k` fits
+perfectly as is, however `y : Fin (S k)` has too weak of bounds. We need
+to *strengthen* (reduce in size) the bounds by one so that it fits the
+hole.
+
+Strengthening the bounds means reducing the upper limit on a `Fin (S
+k)` to `Fin k`. This is only possible if the actual value is not the
+upper bound of the set.
+
+Since this is modular addition, what we want to do is strengthen the
+bound on `y` if possible and if it is not possible then we are at the
+modulus and must replace `y` with `FZ`.
+
+``` idris2
+add : Fin n -> Fin n -> Fin n
+add FZ y = y
+add (FS x) y =
+  case ?strengthen y of
+    Left _ => ?weaken x
+    Right y' => FS (add x y')
+```
+
+In the case where we wrap around the modulus, we must *weaken* the
+constraint on `x : Fin k` to account for the fact that we removed an
+`FS` from `x` in the pattern match but aren\'t wrapping an additional
+`FS` in the result.
+
+``` idris2
+- + Fin.strengthen [P]
+ `--               x : Fin k
+                   y : Fin (S k)
+                 0 n : Nat
+     -------------------------------------------------
+      Fin.strengthen : Fin (S k) -> Either ?_ (Fin k)
+
+- + Fin.weaken [P]
+ `--           x : Fin k
+               y : Fin (S k)
+             0 n : Nat
+     ---------------------------------
+      Fin.weaken : Fin k -> Fin (S k)
+```
+
+## Strength and Weakness
+
+If we have a way to *strengthen* and *weaken* our upper bounds along
+with a way to detect if we are at the max bound of our `Fin _` then we
+can implement our `add` function.
+
+``` idris2
+weaken : {n : Nat} -> Fin n -> Fin (S n)
+strengthen : {n : Nat} -> Fin (S n) -> Either (Fin (S n)) (Fin n)
+```
+
+`weaken` takes any `Fin _` and increases its upper bound. This operation
+is valid for any `Fin _` value.
+
+`strengthen` takes a `Fin (S n)` and reduces the upper bound if
+possible. If our term `x` *is* the upper bound for `Fin (S n)` then we
+cannot reduce it. To get around this we return an `Either` where the
+`Left` case returns the original bound. This allows us to use
+`strengthen` for manipulating our bounds and detecting when we need to
+wrap around the modulus.
+
+``` idris2
+weaken : {n : Nat} -> Fin n -> Fin (S n)
+weaken FZ     = FZ
+weaken (FS k) = FS (weaken k)
+```
+
+For `weaken` we recurse through the `Fin` structure and rebuild it with
+the weakend bounds.
+
+``` idris2
+strengthen : {n : Nat} -> Fin (S n) -> Either (Fin (S n)) (Fin n)
+strengthen {n = Z} FZ = Left FZ
+strengthen {n = (S k)} FZ = Right FZ
+strengthen {n = Z} (FS _) impossible
+strengthen {n = (S k)} (FS x) = case strengthen x of
+  Left l => Left (FS' l)
+  Right r => Right (FS' r)
+```
+
+`strengthen` is a bit more complex and requires us to use the implicit
+`Nat` value from the type signature. Lets go through the cases one at a
+time:
+
+1.  `{n = Z} FZ`: We have pattern matched on the zeroeth element of the
+    `Fin (S Z)` set which means we cannot strengthen and must return
+    `FZ : Fin (S Z)`.
+2.  `{n = (S k)} FZ`: We have pattern matched on the zeroeth element of
+    the `Fin (S k)` set. `k` cannot be `Z` due to the previous pattern
+    match so the set must be size 2 or greater allowing us to
+    strengthen.
+3.  `{n = Z} (FS _)`: This case is impossible to reach because `FS _` by
+    definition cannot have type `Fin n`.
+4.  `{n = (S k)} (FS x)`: Here we have pattern matched on a `FS` with a
+    valid `Fin n` type. We want to recurse through the `Fin`\'s
+    structure until we hit `FZ` to determine if we can strengthen.
+
+## Modular Addition Continued
+
+We now have the tools we need to finish `add`:
+
+``` idris2
+total
+add : Fin n -> Fin n -> Fin n
+add FZ y = y
+add (FS x) y =
+  case strengthen y of
+    Left _ => weaken x
+    Right y' => FS (add x y')
+```
+
+Here you can see `(2 + 3) mod 10 = 5` and `(2 + 9) mod 10 = 1`:
+
+``` idris
+λΠ> add (the (Fin 10) 2) (the (Fin 10) 3)
+FS (FS (FS (FS (FS FZ)))) : Fin 10
+λΠ> add (the (Fin 10) 2) (the (Fin 10) 9)
+FS FZ : Fin 10
+```
+
+This implementation works but lets take this opportunity to generalize
+our recursion a bit. This will make it easier to implement the rest of
+our modular arithmetic api.
+
+## Recursion Principles
+
+We can tease apart the recursion from the addition by identify the
+Recursion Principle at play in our recursive data type and introducing
+an eliminator function for it. This will allow us to write simple non
+recursive functions which we can apply to the recursion principle to
+deconstruct our `Fin _` values and produce some result.
+
+The Recursion Principle for a recursive type is a function `(t : Type)
+-> r` which deconstructs a value of `t : Type` into some `r`. The
+Recursion Principle captures the essence of a recursive function on `t`
+and will recursively call itself on every layer of `t` inside of `t`.
+
+This allows us to traverse through the structure of `t` and use some
+other non-recursive function(s) to accumulate `r`. The shape of these
+non-recursive functions is based on the constructors for `t` and their
+signatures can be derived mechanically.
+
+We do this by replacing all recursive references to `t` in the
+constructor definitions with `r` and then for each constructor write a
+function from its modified parameters to `r`.
+
+Lets use `foldr : (a -> r -> r) -> r -> List a -> r` as an example.
+Looking at the definition of `List a`:
+
+``` idris
+data List a = Cons a (List a) | Nil
+```
+
+We can start with `Nil` and say that in order to eliminate `Nil` we need
+a function `() -> r`. Since this is isomorphic to `r`, we can simply
+call this `r`.
+
+For `Cons` we have a pair of `a` and `List a`. We replace all recursive
+instances with `r` leaving us with `(a, r) -> r`, or `a -> r
+-> r` in curried form.
+
+Now we pass in those two functions as parameters to our recursive
+function returning `r` and we get `foldr : (a -> r -> r) -> r -> List
+a -> r`!
+
+We can also write the Recursion Principles for `Nat` and `Fin`:
+
+``` idris2
+data Nat = Z | S Nat
+
+total
+nat_rec : (r -> r) -> r -> Nat -> r
+nat_rec f r Z = r
+nat_rec f r (S k) = nat_rec f (f r) k
+
+data Fin : (n : Nat) -> Type where
+    FZ : Fin (S k)
+    FS : Fin k -> Fin (S k)
+
+total
+fin_rec : {n : Nat} -> (r -> r) -> r -> Fin r -> a
+fin_rec {n = Z} f x y impossible
+fin_rec {n = (S k)} f x FZ = x
+fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
+```
+
+Notice how if you partially apply `Nat` (or `Fin`) they look like church
+numerals. In some sense you can say that the Recursion Principle for a
+type is equivalent to that type.
+
+Also notice that `fin_rec` and `nat_rec` are total. Since they take
+non-recursive functions as parameters this means that whatever functions
+we implement with our Recursion Principles will also be total.
+
+The basic idea of how to use `fin_rec` is that it will recursively call
+the `r -> r` function on the `r` value as it traverses through the `Fin`
+constructors. eg., if we have `Fin 7` then `r -> r` will be applied 7
+times.
+
+## Addition with Recursion Principles
+
+Armed with `fin_rec` we now have the ability to recurse over `Fin _`
+values in a way we know will terminate.
+
+For modular addition we want to specialize `r` to `Fin n` and use a
+function `Fin n -> Fin n` which increments our intial `Fin n` value by
+one and which accounts for the modulus.
+
+``` idris2
+total
+inc : {n : Nat} -> Fin n -> Fin n
+inc {n = Z} x impossible
+inc {n = (S k)} x = case strengthen x of
+  Left l => FZ
+  Right r => FS r
+```
+
+Then we kick off our `fin_rec` call with the second `Fin n` as the
+initial value and we are done!
+
+``` idris2
+total
+add : {n : Nat} -> Fin n -> Fin n -> Fin n
+add x y = fin_rec inc y x
+```
+
+This function will add 1 to `y` `x` many times!
+
+## Multiplication
+
+Just as with `Nat`, multiplication is defined in terms of addition. We
+use `fin_rec` with a partially applied `add y` to add `y` to `FZ` `x`
+times.
+
+``` idris2
+total
+mul : {n : Nat} -> Fin n -> Fin n -> Fin n
+mul {n = Z} x y impossible
+mul {n = (S k)} x y = fin_rec (add y) FZ x
+```
+
+We have to pattern match on the implicit value here to prove that the
+`n = 0` case is impossible because of the explicit `FZ` value.
+
+## Inversion
+
+In ordinary arithmetic inversion means to find `x` for some `y` such
+that `y + x = 0`. For example, `2 + (-2) = 0`. It works the same way in
+modular arithmetic but the results can be a little confusing.
+
+Suppose are working with modulus 5 and we want the inversion of 2. This
+would be `2 + 3 = 0 (mod 5)`, making the inversion of 2 to be 3!
+
+A simple way of calculating this is to count down from the modulus value
+until you hit the number to be inverted. The count will be the
+inversion.
+
+If we had a function `decr : {n : Nat} -> Fin n -> Fin n` that behaved
+exactly like `inc` but it decremented by 1 then we could use `fin_rec`
+to decrement down from the modulus `x` times where `x` is the number we
+wish to invert.
+
+``` idris2
+-- return the largest element in a Fin
+total
+last : Fin (S n)
+last {n = Z} = FZ
+last {n = (S k)} = FS last
+
+decr : {n : Nat} -> Fin n -> Fin n
+decr {n = 0} x impossible
+decr {n = (S k)} FZ = last
+decr {n = (S k)} (FS x) = weaken x
+
+total
+inv : {n : Nat} -> Fin n -> Fin n
+inv {n = 0} x impossible
+inv {n = (S k)} x = fin_rec decr FZ x
+```
+
+``` idris2
+λΠ> inv (the (Fin 5) 2)
+FS (FS (FS FZ))
+```
+
+## Conclusion
+
+And there we have it. Our modular arithmetic library:
+
+``` idris2
+total
+inc : {n : Nat} -> Fin n -> Fin n
+inc {n = Z} x impossible
+inc {n = (S k)} x = case strengthen x of
+  Left l => FZ
+  Right r => FS r
+
+decr : {n : Nat} -> Fin n -> Fin n
+decr {n = 0} x impossible
+decr {n = (S k)} FZ = last
+decr {n = (S k)} (FS x) = weaken x
+
+total
+fin_rec : {n : Nat} -> {a : Type} -> (a -> a) -> a -> Fin n -> a
+fin_rec {n = Z} f x y impossible
+fin_rec {n = (S k)} f x FZ = x
+fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
+
+total
+add : {n : Nat} -> Fin n -> Fin n -> Fin n
+add x y = fin_rec inc y x
+
+total
+mul : {n : Nat} -> Fin n -> Fin n -> Fin n
+mul {n = Z} x y impossible
+mul {n = (S k)} x y = fin_rec (add y) FZ x
+
+total
+inv : {n : Nat} -> Fin n -> Fin n
+inv {n = 0} x impossible
+inv {n = (S k)} x = fin_rec decr FZ x
+```
+
+Writing proofs for associativity, commutivity, etc of modular arithmetic
+is rather complex and will have to be explored another day.
