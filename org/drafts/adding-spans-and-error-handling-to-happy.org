@@ -1,0 +1,297 @@
+#+AUTHOR: Solomon Bothwell
+#+DATE: 2021-11-15
+#+TITLE: Adding Spans To Alex and Happy
+
+In the [[https://blog.cofree.coffee/2021-11-08-happy-and-alex-mvp/][last post]] we wrote a simple parser for untyped lambda
+calculus. We deferred tracking source positions (spans) and proper
+error handling. In this post we
+
+We are going to start off by rewriting the lexer without the ~basic~ wrapper, then we
+will add source positions, and lastly we will rewrite the parser to
+includ spans in the final AST.
+
+Alex actually comes with a wrapper which adds source positions out of
+the box. However, I want to show how to write a lexer without any
+wrappers so you can see that there really isn't any magick going
+on. This should give you a good understanding of how Alex works and
+how you might extend it in other bespoke ways.
+
+* Alex With No Wrappers
+The ~basic~ wrapper provided us with 1 type alias and 4 functions:
+
+1. ~type AlexInput = (Char, [Word8], String)~ - A triple representing
+   the current state of the lexer. The first value is the last consumed
+   ~Char~, the second value is the remaining bytes in the current
+   ~Char~, and the third is the remaining input ~String~.
+2. ~alexScanTokens :: String -> [token]~ - The entrypoint to our lexer.
+3. ~alexGetByte :: AlexInput -> Maybe (Word8, AlexInput)~ - A helper
+   function for extracting the next byte of the current ~Char~ in the
+   ~AlexInput~. This is used internally by Alex for scanning our input
+   ~String~.
+4. ~alexInputPrevChar :: AlexInput -> Char~ - A helper function to
+   grab the last consumed ~Char~ from the ~AlexInput~.
+5. ~utf8encode' :: Char -> (Word8, [Word8])~ - A helper function to
+   encode a single Haskell Char to a non-empty list of Word8 values,
+   in UTF8 format. This could be replaced by [[https://hackage.haskell.org/package/utf8-string-1.0.2/docs/Codec-Binary-UTF8-String.html#v:encodeChar][encodeChar]].
+
+
+The last 3 functions are used internally by the Alex scanner when
+consuming characters. We will only be /directly/ calling ~alexScanTokens~:
+#+begin_src haskell
+  alexScanTokens :: String -> [Token]
+  alexScanTokens str = go ('\n',[],str)
+    where
+      go inp__@(_,_bs,s) =
+	case alexScan inp__ 0 of
+	  AlexEOF -> []
+	  AlexError _ -> error "lexical error"
+	  AlexSkip  inp__' _ln     -> go inp__'
+	  AlexToken inp__' len act -> act (take len s) : go inp__'
+#+end_src
+
+~alexScanTokens~ recursively calls ~alexScan~, the entrypoint into the
+actual Alex scanner subroutine defined in the [[https://github.com/simonmar/alex/blob/ab87af1803a5e2f2c09b09eb024dc6ec9f44b0e3/src/Scan.hs#L297][Scan
+module]]. ~alexScan~'s type is ~AlexInput -> StartCode -> AlexReturn a~
+and in broad strokes it peels off ~Chars~ from the input ~String~ and
+uses them to a construct a token in the ~AlexReturn~ sum type.
+
+#+begin_src haskell
+  data AlexReturn a
+    = AlexEOF
+    | AlexError  !AlexInput
+    | AlexSkip   !AlexInput !Int
+    | AlexToken  !AlexInput !Int a
+
+  alexScan :: AlexInput -> StartCode -> AlexReturn a
+#+end_src
+
+Every call to ~alexScan~ in ~alexScanTokens~ will attempt to consume
+characters from the ~String~ in the ~AlexInput~ triple and produces a
+~AlexReturn~ value. If characters are consumed then it returns an
+updated ~AlexInput~ and a count of the number of characters
+consumed.
+
+Notice how in the ~AlexToken~ case it also produces some value of type
+~a~.  Now look at how that ~a~ (bound as ~act~) is is used in
+~alexScanTokens~:
+
+#+begin_src haskell
+  go inp__@(_,_bs,s) =
+    case alexScan inp__ 0 of
+      ...
+      AlexToken inp__' len act -> act (take len s) : go inp__'
+#+end_src
+
+~act~ is actually a function which takes a string of characters peeled
+off the remaining ~String~ input from the ~AlexInput~ triple and
+returns a token. The length of that ~String~ is the number of
+characters consumed by ~alexScan~.
+
+~act~ is thus ~String -> Token~ and is in fact the Haskell function we
+defined in our Alex grammar rules for whichever regex matched. We can
+verify that by changing the call site of ~act~ into a type hole:
+
+#+begin_src haskell
+  • Found hole: _act :: [Char] -> a
+    Where: ‘a’ is a rigid type variable bound by
+	     the inferred type of go :: AlexInput -> [a]
+	     at app/basic-no-wrapper/Lexer.x:(62,9)-(67,73)
+    Or perhaps ‘_act’ is mis-spelled, or not in scope
+  • Relevant bindings include
+      act :: String -> Token
+	(bound at app/basic-no-wrapper/Lexer.x:67:38)
+#+end_src
+
+Now we can see that ~alexScanTokens~ works by recursively attempting
+to regex match the remainder of the input string using the regexes we
+provided in our grammar rules. If a match succeeds then the matching
+characters are passed into the corresponding Haskell function to
+produce a lexeme token and then we recurse on the remainder of the
+~String~ building up our ~[Token]~.
+
+* Source Positions
+Now that we have a better sense of what is Alex is doing, we can start
+to think about to add support for source positions.
+
+The first thing we want to do is create a source position type and add
+it to ~AlexInput~:
+
+#+begin_src haskell
+  data AlexSourcePos = AlexSourcePos { line :: !Int , col :: !Int }
+
+  data AlexInput = AlexInput
+    { currentPos :: AlexSourcePos
+    , prevChar   :: Char
+    , pendingBytes :: [Word8]
+    -- ^ pending bytes on current char
+    , inputString :: String
+    -- ^ current input string
+    }
+#+end_src
+
+I went ahead and changed ~AlexInput~ into a record type at the same
+time. Now every time we produce a new ~AlexInput~ we will want to
+update the ~currentPos~ based on the characters we consumed. For that
+we will want a helper function:
+
+#+begin_src haskell
+  alexMove :: AlexSourcePos -> Char -> AlexSourcePos
+  alexMove (AlexSourcePos l c) '\t' = AlexSourcePos l (c+alex_tab_size-((c-1) `mod` alex_tab_size))
+  alexMove (AlexSourcePos l _) '\n' = AlexSourcePos (l+1) 1
+  alexMove (AlexSourcePos l c) _    = AlexSourcePos l (c+1)
+
+  alexStartPos :: AlexSourcePos
+  alexStartPos = AlexSourcePos 1 1
+#+end_src
+
+~alexMove~ increments by preconfigured number of columns when
+encountering a tab, increments by a row when encountering a newline,
+and otherwise increments the column by 1. ~alexStartPos~ is a
+convenience function to produce our starting source position.
+
+We now need to update ~alexGetByte~ to use our new ~AlexInput~ record
+and to use ~AlexMove~ to construct the ~currentPos~ when we fetch the
+next byte.
+
+#+begin_src haskell
+  alexGetByte :: AlexInput -> Maybe (Word8, AlexInput)
+  alexGetByte (AlexInput p c (b:bs) s) = Just (b, AlexInput p c bs s)
+  alexGetByte (AlexInput _ _ [] []) = Nothing
+  alexGetByte (AlexInput p _ [] (c:s))  =
+    let p' = alexMove p c
+    in case utf8Encode' c of
+      (b, bs) -> p' `seq` Just (b, AlexInput p' c bs s)
+#+end_src
+
+When ~alexGetByte~ is fetching the /first/ the first byte of a ~Char~
+we update the ~currentPos~ for the entire ~Char~, otherwise we carry
+on shuffling bytes.
+
+Now we update ~alexScanTokens~ to use the new record type and we have
+access to the current source position as we consume characters:
+
+#+begin_src haskell
+  alexScanTokens :: String -> [Token]
+  alexScanTokens str = go (AlexInput alexStartPos '\n' [] str)
+    where go inp@(AlexInput __ _ _ str) =
+	    case alexScan inp 0 of
+	      AlexEOF -> []
+	      AlexError (AlexInput (AlexSourcePos line column) _ _ _) -> error $ "lexical error at " ++ (show line) ++ " line, " ++ (show column) ++ " column"
+	      AlexSkip  inp' len     -> go inp'
+	      AlexToken inp' len act -> act (take len str) : go inp'
+#+end_src
+
+Since our ~Token~ type doesn't hold source positions we are throwing
+them away as we scan and the only place they end up being useful is
+when throwing lex errors.
+
+However, we can easily wrap our ~Token~ type with a record that also
+holds source positions and pass that information along to our parser:
+
+#+begin_src haskell
+  data TokenExt = TokenExt { token :: Token, sourcePos :: AlexSourcePos }
+    deriving Show
+#+end_src
+
+To use ~TokenExt~ we need to update our grammar rules and
+~alexScanTokens~:
+
+#+begin_src haskell
+  (λ|\\)                        { \pos _ -> TokenExt Lambda pos }
+  \.                            { \pos _ -> TokenExt Dot pos }
+  \(                            { \pos _ -> TokenExt OpenParen pos }
+  \)                            { \pos _ -> TokenExt CloseParen pos }
+  $alpha [$alpha $digit \_ \-]* { \pos s -> TokenExt (Identifier s) pos }
+#+end_src
+
+#+begin_src haskell
+  alexScanTokens :: String -> [TokenExt]
+  alexScanTokens str = go (AlexInput alexStartPos '\n' [] str)
+    where go inp@(AlexInput pos _ _ str) =
+	    case alexScan inp 0 of
+	      ...
+	      AlexToken inp' len act -> act pos (take len str) : go inp'
+#+end_src
+
+We rewrite our grammar rules to apply a function ~AlexSourcePos ->
+String -> TokenExt~ and then update the ~AlexToken~ case of ~alexScan~
+to apply the current source position to ~act~ along without the
+matched characters from the ~String~.
+
+And now we can carry on our source positions into the parser.
+
+* Updating The Parser
+Now we update the parser. We do this by updating the ~%tokentype~
+directive, the production rules, and our ~%error~ function:
+
+#+begin_src haskell
+  ...
+  %tokentype { L.TokenExt }
+  ...
+  ident  { L.TokenExt (L.Identifier $$) _ }
+  lambda { L.TokenExt L.Lambda _}
+  '.'    { L.TokenExt L.Dot _ }
+  '('    { L.TokenExt L.OpenParen _ }
+  ')'    { L.TokenExt L.CloseParen _ }
+  ...
+  parseError :: [L.TokenExt] -> a
+  parseError [] = error  "ParseError: Empty token stream."
+  parseError ((L.TokenExt tok pos):_) =
+    error $ "ParseError: Unexpected token '" <> show tok <> "' at line " <> show (L.line pos) <> ", column " <> show (L.col pos) <> "."
+#+end_src
+
+Now we are logging the source position where we hit an unexpected
+token. However, what we really want to do is embed starting and ending
+positions (spans) inside all of our AST terms so that our hypothetical
+interpreter could provide nice error messages.
+
+* Adding Spans To Our AST
+
+Lets define a ~Span~ type and add it to the AST:
+
+#+begin_src haskell
+  data Span = Span { start :: L.AlexSourcePos, end :: L.AlexSourcePos }
+
+  data Term =
+      Var Span String
+    | Abs Span String Term
+    | Ap  Span Term   Term
+#+end_src
+
+Now we need to update our terminal symbols in the ~%tokentype~
+directive slightly:
+
+#+begin_src haskell
+ident  { L.TokenExt (L.Identifier _) _ }
+lambda { L.TokenExt L.Lambda _}
+'.'    { L.TokenExt L.Dot _ }
+'('    { L.TokenExt L.OpenParen _ }
+')'    { L.TokenExt L.CloseParen _ }
+#+end_src
+
+We removed the ~$$~ on the String value in ~L.Identifer~. ~$$~ maps
+the terminal symbol to a subfield of our token constructor. By
+removing it, the ~ident~ lexeme now maps to the full ~L.Tokenext
+(L.Identifier xs) sp~ value.
+
+Now we can use the full ~L.TokenExt~ in our non-terminal production
+rules. Note, we already could do that for all terms but ~L.Identifier _~,
+we just needed to update that one case.
+
+If we throw a typehole in our production rule for ~Var~:
+#+begin_src haskell
+  | ident { _ $1 }
+#+end_src
+
+We get:
+#+begin_src haskell
+  • Found hole: _ :: L.TokenExt -> t3
+#+end_src
+
+Because we are matching on the ~ident~ terminal symbol we know that
+the ~L.TokenExt~ must contain ~L.Identifier~ and it is /ok/ to write a
+partial function.
+
+The last move is to update our production rules for ~Var~, ~Abs~, and
+~Ap~ to generate spans, but before that we need a little API for
+working with spans.

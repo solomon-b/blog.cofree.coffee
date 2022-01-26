@@ -1,0 +1,26 @@
+#+AUTHOR: Solomon Bothwell
+#+TITLE: From Free to Freer
+
+In my last post I introduced the ~Free~ monad and described how it can
+be used to create an extensible effects system. I ended with an
+example system that allowed you to compose monadic effects from two
+~Functors~. I mentioned two directions we can go to improve our
+effects system:
+
+1. By using the ~Freer Monad~ we can eliminate the ~Functor~
+   requirement on our effects.
+2. Instead of packing  our effects in a ~Sum~ and executing the
+   simultaneously, we can use an Open Variant to include an arbitrary
+   number of effects.
+
+This blog post will give a light introduction to ~Freer~ and then
+demonstrate an expanded effect system following both of the above
+points.
+
+* The Freer Monad
+
+~Free~ relies on a ~Functor~ instance being defined for your type. It
+then equips your ~Functor~ with a ~Monad~ instance by threading ~fmap~
+through the syntactic structure of the ~Free~ AST.
+
+This ~Functor~ constraint limits your interpretationto 

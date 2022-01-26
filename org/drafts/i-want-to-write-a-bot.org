@@ -1,0 +1,82 @@
+#+AUTHOR: Solomon Bothwell
+#+TITLE: I Want To Write A Bot
+#+DATE: 2022-01-04
+
+I want to write a Matrix Bot. What is a Bot?
+
+A bot interprets input. A bot uses that interpretation to update an
+internal state.
+
+#+begin_src haskell
+interp :: Input -> State -> State
+interp = _
+#+end_src
+
+A bot produces output. A bot responds to an input, correlated against
+its state, to produce its output.
+
+#+begin_src haskell
+respond :: State -> Input -> Output
+respond = undefined
+#+end_src
+
+A bot statefully interprets responds to messages. Lets encode these
+two actions into a single type.
+
+#+begin_src haskell
+newtype Bot s = Bot { runBot :: s -> Input -> (Output, s) }
+#+end_src
+
+But maybe our bot isn't so pure. Our bot will need to talk to
+someone. So lets make it monadic.
+
+#+begin_src haskell
+newtype Bot m s = Bot { runBot :: s -> Input -> m (Output, s) }
+#+end_src
+
+And maybe we want our bot to operate over arbitrary inputs and
+outputs.
+
+#+begin_src haskell
+newtype Bot m s i o = Bot { runBot :: s -> i -> m (o, s) }
+#+end_src
+
+Now we're talking. A bot recieves an ~s~ and an ~i~ and it provides an
+~m~ of an ~o~ and an ~s~. This makes it /contravariant/ on ~i~,
+/covariant/ on ~o~, and /invariant/ on ~s~. And /that/ means we have a
+~Profunctor~ on our hands.
+
+#+begin_src haskell
+instance Functor f => Profunctor (Bot f s) where
+  dimap :: (i' -> i) -> (o -> o') -> Bot m s i o -> Bot m s i' o'
+  dimap f g (Bot bot) = Bot $ \a -> fmap (fmap g) . bot (f a)
+#+end_src
+
+We can use ~dimap~ to transform both the input and output of our
+bot. In other words, we can compositionally expand or contract the
+domain and codomain of our bot.
+
+For example, in [[https://matrix.org/][Matrix]] our input and output are some record type
+called ~Event~. We can describe a bot that operates on ~Events~ with a
+type alias:
+
+#+begin_src haskell
+type MatrixBot m s = Bot m s Event Event
+#+end_src
+
+Now in order to construct a ~MatrixBot~ directly, our bot would have
+to be aware of whatever is going on inside the ~Event~ record. This
+might actually have way more data then we really care about. Instead,
+we can define another alias:
+
+#+begin_src haskell
+type TextBot m s = Bot m s Text Text
+#+end_src
+
+A ~TextBot m s~ recieves and produces ~Text~. Now all we need is a an
+~Iso Text Event~:
+
+#+begin_src haskell
+liftTextBot :: (Event -> Text) -> (Text -> Event) -> TextBot m s -> MatrixBot m s
+liftTextBot to from = dimap to (fmap from)
+#+end_src
