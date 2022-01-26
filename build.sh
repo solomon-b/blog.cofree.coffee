@@ -12,6 +12,6 @@ for i in *.org ; do
      
     if [[ ! -d ../html/$name ]]; then
       mkdir ../html/$name
-      pandoc -s $i -t html -o ../html/$name/index.html ;
+      pandoc --template=../template.html -s $i -t html -o ../html/$name/index.html ;
     fi
 done
