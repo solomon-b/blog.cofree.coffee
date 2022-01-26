@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Solomon Bothwell" />
+    <title>From Free to Freer</title>
+  <link rel="stylesheet" href="/style.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div id="runner1">SOLOMON'S BLOG</div>
+<div id="runner1b">functional programming, permaculture, math</div>
+<header id="title-block-header">
+<h1 class="title">From Free to Freer</h1>
+</header>
+<p>In my last post I introduced the <code>Free</code> monad and described how it can be used to create an extensible effects system. I ended with an example system that allowed you to compose monadic effects from two <code>Functors</code>. I mentioned two directions we can go to improve our effects system:</p>
+<ol>
+<li>By using the <code>Freer Monad</code> we can eliminate the <code>Functor</code> requirement on our effects.</li>
+<li>Instead of packing our effects in a <code>Sum</code> and executing the simultaneously, we can use an Open Variant to include an arbitrary number of effects.</li>
+</ol>
+<p>This blog post will give a light introduction to <code>Freer</code> and then demonstrate an expanded effect system following both of the above points.</p>
+<h1 id="the-freer-monad">The Freer Monad</h1>
+<p><code>Free</code> relies on a <code>Functor</code> instance being defined for your type. It then equips your <code>Functor</code> with a <code>Monad</code> instance by threading <code>fmap</code> through the syntactic structure of the <code>Free</code> AST.</p>
+<p>This <code>Functor</code> constraint limits your interpretationto</p>
+</body>
+</html>
