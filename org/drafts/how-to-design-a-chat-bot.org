@@ -15,12 +15,12 @@ abstraction.
 
 A chat bot is some persistant application that reads and produces
 messages over a messaging protocol. Bots can optionally hold internal
-state which it updates via incoming messages and which it uses to
+state which they update via incoming messages and which they use to
 produce outgoing messages.
 
 Bots can also optionally perform side effects out of band from the
 chat protocol. For example, a bot might execute an HTTP request and
-then return the results through the chat protocol.
+then return the result in band through the chat protocol.
 
 So a chat bot holds state, sends and receives messages over a chat
 protocol, and can potentially perform out of band effects.
@@ -44,10 +44,10 @@ this explicit state passing somehow in our actual implementation.
 We leave a typehole to represent the particular subroutine for this
 bot.
 
-~receive~ describes the act of updating the an internal state from an
+~receive~ describes the act of updating the internal state from an
 input and ~respond~ describes producing an output. We are still
 missing the ability to perform out of band effects. We can describe
-this by inscribing our output with an ~m~:
+this by inscribing our outputs with an ~m~:
 
 #+begin_src haskell
   receive :: input -> state -> m state
@@ -58,7 +58,7 @@ this by inscribing our output with an ~m~:
 #+end_src
 
 Now we have two precise, simple, and compelling /denotations/ of what
-it means to react and what it means to respond.
+it means to receive and what it means to respond.
 
 Our next task is take these independent denotations and compose them
 together into a single larger denotation for what it means to /be a bot/.
@@ -76,7 +76,7 @@ First we combine our denotations using ~&&&~, ~uncurry~, and
 
 Now we have a specification for a bot in the form of the signature for
 ~bot~. We have built this specification up from our smaller
-denotations using well specified standard abstractions. Nice!
+denotations using well specified standard combinators. Nice!
 
 Our last move is take this specification and throw it in a newtype
 wrapper for use in our actual program:
@@ -86,7 +86,7 @@ wrapper for use in our actual program:
 #+end_src
 
 * Exploring Our Specification
-Now they we have our bot specification, lets explore it a bit. We can
+Now that we have our bot specification, lets explore it a bit. We can
 see that it /receives/ an ~i~ and an ~s~ and it /produces/ an ~s~ and
 an ~o~. This means that it is ~Contravariant~ over ~i~, ~Covariant~
 over ~o~, and ~Invariant~ over ~s~. This tells us that our ~Bot~ is a
@@ -107,7 +107,7 @@ then a ~Profunctor~.
 #+end_src
 
 The order of type parameters doesn't allow the actual ~Invariant~
-typeclass, but we can define ~invMap~:
+typeclass, but we can define ~invmap~:
 
 #+begin_src haskell
   invmap :: Functor m => (s -> s') -> (s' -> s) -> Bot m s i o -> Bot m s' i o
@@ -148,7 +148,7 @@ It turns out ~Bot~ satisifies both:
 One last structure we might try is ~Category~:
 
 #+begin_src haskell
-  instance Monad m => C.Category (Bot m s) where
+  instance Monad m => Category (Bot m s) where
     id :: Bot m s i i
     id = Bot $ \i s -> pure (s, i)
 
@@ -158,16 +158,25 @@ One last structure we might try is ~Category~:
       bot1 b s'
 #+end_src
 
+The fact that we have ~Strong~ and ~Category~ means we also have
+~Arrow~:
+
+#+begin_src haskell
+  instance Monad m => Arrow (Bot m s) where
+    arr f = fmap f id
+    first = first'
+#+end_src
+
 We will try to sort out the use of some of these structures later
-on. For now, it is a great sign that our spec fits all so many
-standard structures.
+on. For now, it is a great sign that our spec fits so many
+well defined structures.
 
 * Constructing Bots
 Lets move on to building some bots. As we go along, we might discover
 interesting uses for the structures defined previously.
 
 We start with the simplest bot. Eg., one which receives and produces
-~Text~ and operate with no state or monadic effects:
+~Text~ and operates with no state or monadic effects:
 
 #+begin_src haskell
   simplestBot :: Bot Identity () Text Text
@@ -176,8 +185,8 @@ We start with the simplest bot. Eg., one which receives and produces
 
 This bot will respond to all messages with a fixed response.
 
-We can simplify the construction of other pure, stateless bot with a
-helper function:
+We can simplify the construction of other pure, stateless bots with a
+new combinator:
 
 #+begin_src haskell
   pureStatelessBot :: Applicative m => (i -> o) -> Bot m s i o
@@ -186,7 +195,7 @@ helper function:
 
 We can leave the state and monad polymorphic because we simply thread
 them through the bot. This allows a pure, stateless bot to be
-used an impure or stateful context.
+used in an impure or stateful context.
 
 We can also construct bots which perform monadic effects such as
 random number generation in ~IO~:
@@ -215,12 +224,12 @@ Notice that all of these bots /must/ return a response regardless of
 the input. This is something we will need to address shortly.
 
 * Interpretation
-Now that we have a few bots, we need write some way to run them. 
+Now that we have a few bots, we need some way to run them. 
 
-For this post, lets write a simple REPL-like bot interpreter. This
-will be a function which receives a ~Bot IO s Text Text~ and produces
-a long lived ~IO~ action that listens to STDIN as input to bot and
-prints the output to STDOUT.
+We can write a simple REPL-like bot interpreter. This will be a
+function which receives a ~Bot IO s Text Text~ and produces a long
+lived ~IO~ action that listens to STDIN as input to bot and prints the
+output to STDOUT.
 
 #+begin_src haskell
   runReplBot :: forall s. Bot IO s Text Text -> s -> IO ()
@@ -238,15 +247,20 @@ prints the output to STDOUT.
 	    putStrLn $ T.unpack output
 	    go nextState
 #+end_src
+Note: This interpreter will only work with ~Bots~ polymorphic on ~m~
+or where ~m ~ IO~. A more general ~replBot~ would have the signature:
+~forall m s. (MonadCatch m, MonadIO m) => Bot m s Text Text -> s -> m
+()~
 
 We use ~try~ to capture exceptions as an ~Either~ value which we
 ignore when recursing. This will make more sense later on.
 
 Interpreters for arbitrary network protocols can be be written in the
-same fashion, by choosing appropriate input and output types for
-resolving calls to your protocol of choice's API.
+same fashion. Choose appropriate input and output types for
+resolving calls to your protocol of choice's API and then call out to
+your API from an IO block.
 
-With ~runReplBot~, we can run ~simplestBot~ bot from ~GHCI~:
+We can use ~runReplBot~ to test out ~simplestBot~:
 
 #+begin_src bash
   ghci> runReplBot simplestBot ()
@@ -254,23 +268,12 @@ With ~runReplBot~, we can run ~simplestBot~ bot from ~GHCI~:
   Hello, World
 #+end_src
 
-However, we still cannot run ~coinFlipBot~:
+However, we still cannot run ~coinFlipBot~. We require a ~Bot IO s
+Text Text~ and ~coinFlipBot~ is ~Bot IO s () Bool~.
 
-#+begin_src bash
-  ghci> runReplBot coinFlipBot  ()
-
-  <interactive>:5:12: error:
-      • Couldn't match type ‘()’ with ‘Data.Text.Internal.Text’
-	Expected type: Bot
-			 IO () Data.Text.Internal.Text Data.Text.Internal.Text
-#+end_src
-
-Since we require a ~Bot IO s Text Text~ we will also need a way to
-specialize our bots inputs and outputs to ~Text~.
-
-~coinFlipBot~ is ~Bot IO s () Bool~. To match it up with ~runReplBot~,
-we need a way to map ~Text -> ()~ for the input and ~Bool -> Text~ for
-the output. It turns out this is precisely what ~Profunctor~ gives us!
+To match it up with ~runReplBot~, we need a way to map ~Text -> ()~
+for the input and ~Bool -> Text~ for the output. It turns out this is
+precisely what ~Profunctor~ gives us!
 
 #+begin_src haskell
   coinFlipBot' :: Bot IO () Text Text
@@ -278,9 +281,8 @@ the output. It turns out this is precisely what ~Profunctor~ gives us!
 #+end_src
 
 One way to look at the behavior of ~coinFlipBot'~ is that it focuses
-on a smaller input (~()~) inside of a larger structure (~Text~) and
-then embeds a smaller output (~Bool~) inside a much larger structure
-(~Text~).
+on a smaller input ~()~ inside of a larger structure ~Text~ and then
+embeds a smaller output (~Bool~) inside a larger structure ~Text~.
 
 Another way to say that is we have /parsed/ out of ~Text~ to pick a
 ~()~ and /pretty printed/ into ~Text~ to embed a ~Bool~.
@@ -289,7 +291,7 @@ Our work identifying algebraic structures is already paying off.
 
 * Conditional Responses
 Now we have defined a few simple bots and demonstrated how to
-interpret them in a REPL-like environment. Well also noted an unsolved
+interpret them in a REPL-like environment. We still have an unsolved
 problem, these bots are rather talkative. They must responsd to /all/
 input they receieve. We need to sort out a way for bots to
 conditionally produce output.
@@ -314,8 +316,7 @@ already included in ~runReplBot~. Bots which don't specify a Monad
 will get interpreted into ~IO~ and throw an exception when called from
 ~runReplBot~.
 
-We will need to do some work to make it work with a concerete Monad in
-our ~Bot~, but lets see how this would work in the easy case first:
+Lets see how this would work with ~coinFlipBot~:
 
 #+begin_src haskell
   coinFlipBot' :: Bot IO () Text Text
@@ -326,10 +327,11 @@ our ~Bot~, but lets see how this would work in the easy case first:
 #+end_src
 
 We can no longer use ~dimap~ because our /focus/ operation is not pure
-thanks to our use of ~empty~.
+due to our use of ~empty~.
 
-We can define a new combinator ~lmapMaybe~ to generalize over the
-optionality we just introduced and peel it out of ~coinFlipBot'~:
+We can, however, define a new combinator ~lmapMaybe~ to generalize
+over the optionality we just introduced and peel it out of
+~coinFlipBot'~:
 
 #+begin_src haskell
   lmapMaybe :: Alternative m => (i' -> Maybe i) -> Bot m s i o -> Bot m s i' o
@@ -352,7 +354,7 @@ variation of ~lmap~ which leverages ~Alternative~ to produce optional
 outputs.
 
 * Composition
-Our goal here is to take two bots and compose them together in
+Our goal now is to take two bots and compose them together in
 parallel as if they are a single bot with both behaviors. We
 essentially have two ways to do this: we can either take the product
 of their inputs and outputs or we can take their sum.
@@ -430,14 +432,14 @@ If we look at the kind of ~Bot~ we see:
 
 Now, imagine something with kind ~KBot -> KBot~. This would represent
 something that recieves a ~Bot~ and produces some other ~Bot~. I like
-to call these ~Bot Transformers~. They off another interesting way to
-extend the behaviors of our bots.
+to call these ~Bot Transformers~. They offer another interesting way
+to extend the behaviors of our bots.
 
 For example, imagine we want to take one of our bots, such as
 ~coinFlipBot~, and run it on some protocol with distinct chat
 rooms. We want our ~coinFlipBot~ to be able to receive messages
 annotated with their source room and then produce messages annotated
-with that same room.
+with the target room.
 
 We can define a ~Bot Transformer~ type to describe extending a bot
 with this notion of 'room awareness':
@@ -447,9 +449,9 @@ with this notion of 'room awareness':
   type RoomAware bot m s i o = bot m s (RoomID, i) (RoomID, o)
 #+end_src
 
-Now we need a function to inhabit this type. We need some operation
-that descibes the act of threading a type through our ~Bot~ via the
-product structure ~(,)~.
+Now we need a function to inhabit this type. We are looking for
+something that descibes the act of threading a type through our ~Bot~
+via the product structure ~(,)~.
 
 It just so happens that we already have that! This is precisely the
 behavior of the ~Strong~ typeclass we implemented earlier:
@@ -470,16 +472,14 @@ appliction of ~second'~:
 
 Another interesting bot transformation is adding session
 state. Earlier we defined a ~todoBot~ which allowed a user to
-construct a todo list. We want to allow multiple users to store their
-own todo lists. We could redesign the ~todoBot~ to support this
+construct a todo list. We might want to allow multiple users to store
+their own todo lists. We could redesign the ~todoBot~ to support this
 explicitly, but we want to be able to define precise bots with narrow
 scopes which we can then extend through composition.
 
-To accomplish this we will need some special types:
-
-If we define some special session types then use a bot transformer to
-transform our calculator bot with these types, then we can take our
-session unaware but and magically make it session aware:
+What we really want is a bot transformer that 'sessionizes' a
+bot. This will involve transforming the bot's ~s~ state parameter in
+addition to its input and output.
 
 #+begin_src haskell
   newtype SessionState s = SessionState { sessions :: Map.Map Int s }
@@ -495,13 +495,13 @@ session unaware but and magically make it session aware:
     | SessionStarted Int
     | SessionEnded Int
     | InvalidSession Int
+
+  type Sessionized bot m s i o = Bot m (SessionState s) (SessionInput i) (SessionOutput o)
 #+end_src
 
-Then we define an alias for sessionized bots, a function
-for sessionizing bots, and a function to map session inputs/outputs
-to ~Text~:
+Now we need a function for sessionizing bots and a function to map
+session inputs/outputs to ~Text~:
 #+begin_src haskell
-  type Sessionized bot m s i o = Bot m (SessionState s) (SessionInput i) (SessionOutput o)
 
   sessionize
     :: Monad m
@@ -520,14 +520,14 @@ to ~Text~:
   simplifySessionBot = _
 #+end_src
 
-The definition of ~sessionize~ and ~simplifySessionBot~ can be found
-in the ~Cofree-Bot~ repo (or derived by the reader). The sessionized
-bot tracks a ~Map~ of session states for your embedded bot and runs
-the ~Bot~ with the session requested by the user.
+Definitions for ~sessionize~ and ~simplifySessionBot~ can be found in
+the ~Cofree-Bot~ repo (or derived by the reader). The sessionized bot
+tracks a ~Map~ of session states for your embedded bot and runs the
+~Bot~ with the session requested by the user.
 
 * Conclussion
 We have demonstrated the core bot architecture as well as
 constructing, interpreting, composing, and extending bots in various
-dimensions. A more thorough example with many more bot behaviors, a
-proper stream type for bot output, and a working Matrix Protocol
-interpreter can be found [[https://github.com/cofree-coffee/cofree-bot][here]].
+dimensions. More so then explaining how to build a chat bot, I hope
+this post inspires you to think more denotationally when designing
+your own projects.
