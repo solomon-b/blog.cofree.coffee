@@ -531,3 +531,5 @@ constructing, interpreting, composing, and extending bots in various
 dimensions. More so then explaining how to build a chat bot, I hope
 this post inspires you to think more denotationally when designing
 your own projects.
+
+Special thanks to [[https://github.com/masaeedu][@masaeedu]], [[https://github.com/conjunctive][@iris]], and everyone else in the [[https://github.com/cofree-coffee/][Cofree-Coffee Org]].
