@@ -346,7 +346,7 @@ Text Text</code> and <code>coinFlipBot</code> is <code>Bot IO s () Bool</code>.<
 <span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">-&gt;</span> <span class="dt">Sessionized</span> m s i o</span>
 <span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>sessionize <span class="ot">=</span> _</span></code></pre></div>
 <p>A 'sessionized' bot would receive <code>SessionInput</code> input and dispatch the wrapped <code>i</code> term along with the appropriate state <code>s</code> term to the embedded bot. This idea isn't fully developed, but I hope it gives you an idea of what kinds of transformations are possible with this architecture.</p>
-<h1 id="conclussion">Conclussion</h1>
+<h1 id="conclusion">Conclusion</h1>
 <p>We have demonstrated the core bot architecture as well as constructing, interpreting, composing, and extending bots in various dimensions. More so then explaining how to build a chat bot, I hope this post inspires you to think more algebraically about your program architectures and to leverage more of the powerful abstractions available to us with Haskell.</p>
 <p>Special thanks to <a href="https://github.com/masaeedu"><span class="citation" data-cites="masaeedu">@masaeedu</span></a>, <a href="https://github.com/conjunctive"><span class="citation" data-cites="iris">@iris</span></a>, and everyone else in the <a href="https://github.com/cofree-coffee/">Cofree-Coffee Org</a>.</p>
 </body>

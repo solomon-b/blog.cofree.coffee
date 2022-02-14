@@ -553,7 +553,7 @@ embedded bot. This idea isn't fully developed, but I hope it gives you
 an idea of what kinds of transformations are possible with this
 architecture.
 
-* Conclussion
+* Conclusion
 We have demonstrated the core bot architecture as well as
 constructing, interpreting, composing, and extending bots in various
 dimensions. More so then explaining how to build a chat bot, I hope
