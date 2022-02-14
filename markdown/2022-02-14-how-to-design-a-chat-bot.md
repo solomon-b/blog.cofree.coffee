@@ -30,21 +30,14 @@ protocol, and can potentially perform out of band effects.
 
 Now lets try to describe these actions more formally. We know the bot
 must receieve input to produce an output and, if it is stateful, produce
-a new state. We can describe these behaviors using lambdas:
+a new state. We can describe this with a record of functions:
 
 ``` haskell
-receive :: input -> state -> state
-receive = \input state -> _
-
-respond :: input -> state -> output
-respond = \input state -> _
+data Bot state input output = Bot
+  { receive :: input -> state -> state
+  , respond :: input -> state -> output
+  }
 ```
-
-Note: we pass in the old state to the lambda explicitly, but we might
-hide this explicit state passing somehow in our actual implementation.
-
-We leave a typed hole to represent the particular subroutine for a
-particular bot.
 
 `receive` describes the act of updating the internal state from an input
 and `respond` describes producing an output. We are still missing the
@@ -52,24 +45,15 @@ ability to perform out of band effects. We can describe this by
 inscribing our outputs with an `m`:
 
 ``` haskell
-receive :: input -> state -> m state
-receive = \input state -> _
-
-respond :: input -> state -> m output
-respond = \input state -> _
+data Bot m state input output = Bot
+  { receive :: input -> state -> m state
+  , respond :: input -> state -> m output
+  }
 ```
 
-Lets see if we can compose `receive` and `respond` to create a complete
-bot subroutine.
-
-``` haskell
-react :: state -> input -> (m state, m output)
-react = curry $ uncurry receive &&& uncurry respond
-```
-
-At first blush this looks promising. We have composed together our two
-subroutines cleanly. Does this operation fully describe the behavior of
-a bot?
+At first blush this looks promising. We have the ability to update an
+internal state, to emit responses, and to perform out of band effects.
+However, does this fully describe the behavior of a bot?
 
 We can update our state and we can produce output, but can we use our
 updated state to produce the output? Sadly the answer is no.
@@ -77,19 +61,11 @@ updated state to produce the output? Sadly the answer is no.
 Lets try again:
 
 ``` haskell
-bot :: Applicative m => state -> input -> m (state, output)
-bot = \state input -> _
-```
-
-Now we have a function which can update state and produce an output *in
-a single operation*. This gives us what we want.
-
-Our last move is take this specification and throw it in a newtype
-wrapper for use in our actual program:
-
-``` haskell
 newtype Bot m s i o = Bot { runBot :: i -> s -> m (s, o) }
 ```
+
+Now we have a single function which can update state and produce an
+output *in a single operation*. This gives us what we want.
 
 # Exploring Our Specification
 
@@ -210,8 +186,8 @@ pureStatelessBot' :: Monad m => (i -> o) -> Bot m s i o
 pureStatelessBot' = arr
 ```
 
-We can also construct effectful bots, such as one one which performs
-random number generation in `IO`:
+We can also construct effectful bots, such as one which performs random
+number generation in `IO`:
 
 ``` haskell
 coinFlipBot :: Bot IO () () Bool
@@ -227,10 +203,10 @@ And of course, we could build a stateful bot:
 todoBot :: Applicative m => Bot m [T.Text] T.Text T.Text
 todoBot = Bot $ \i s ->
   case T.uncons i of
-  Just ('>', todo) -> pure (todo:s, "Recorded todo!")
-  Just ('<', _) | length s == 0 -> pure (s, "No more todos!")
-  Just ('<', _) -> pure (tail s, head s)
-  _ -> pure (s, "I didn't understand that.")
+    Just ('>', todo) -> pure (todo:s, "Recorded todo!")
+    Just ('<', _) | length s == 0 -> pure (s, "No more todos!")
+    Just ('<', _) -> pure (tail s, head s)
+    _ -> pure (s, "I didn't understand that.")
 ```
 
 Notice that all of these bots *must* return a response regardless of the
