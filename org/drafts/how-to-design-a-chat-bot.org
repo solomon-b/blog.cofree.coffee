@@ -1,6 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: How To Design A Chat Bot
-#+DATE: 2022-02-12
+#+DATE: 2022-02-14
 
 I'm working on a [[https://github.com/cofree-coffee/cofree-bot][library]] for designing highly composable protocol
 agnostic chat bots. The design is based on mealy machines and heavily
@@ -25,7 +25,7 @@ then return the result in band through the chat protocol.
 So a chat bot holds state, sends and receives messages over a chat
 protocol, and can potentially perform out of band effects.
 
-Now lets try to describe these actions more formally. We know that bot
+Now lets try to describe these actions more formally. We know the bot
 must receieve input to produce an output and, if it is stateful,
 produce a new state. We can describe these behaviors using lambdas:
 
@@ -37,12 +37,11 @@ produce a new state. We can describe these behaviors using lambdas:
   respond = \input state -> _
 #+end_src
 
-Note: we pass in the old state to the lambda explicitly because we are
-trying to develop explicit denotations of our behavior. We might hide
-this explicit state passing somehow in our actual implementation.
+Note: we pass in the old state to the lambda explicitly, but we might
+hide this explicit state passing somehow in our actual implementation.
 
-We leave a typed hole to represent the particular subroutine for this
-bot.
+We leave a typed hole to represent the particular subroutine for a
+particular bot.
 
 ~receive~ describes the act of updating the internal state from an
 input and ~respond~ describes producing an output. We are still
@@ -58,7 +57,7 @@ this by inscribing our outputs with an ~m~:
 #+end_src
 
 Lets see if we can compose ~receive~ and ~respond~ to create a
-bot subroutine.
+complete bot subroutine.
 
 #+begin_src haskell
   react :: state -> input -> (m state, m output)
@@ -66,8 +65,8 @@ bot subroutine.
 #+end_src
 
 At first blush this looks promising. We have composed together our two
-subroutines cleanly. Yet, does this operation really describe the
-behavior of a bot?
+subroutines cleanly. Does this operation fully describe the behavior
+of a bot?
 
 We can update our state and we can produce output, but can we use our
 updated state to produce the output? Sadly the answer is no. 
@@ -80,7 +79,7 @@ Lets try again:
 #+end_src
 
 Now we have a function which can update state and produce an
-output /in a single operation/.
+output /in a single operation/. This gives us what we want.
 
 Our last move is take this specification and throw it in a newtype
 wrapper for use in our actual program:
@@ -149,7 +148,7 @@ It turns out ~Bot~ satisifies both:
       Right c -> pure (s, Right c)
 #+end_src
 
-One last structure we might try is ~Category~:
+Another structure we might try is ~Category~:
 
 #+begin_src haskell
   instance Monad m => Category (Bot m s) where
@@ -197,11 +196,15 @@ new combinator:
   pureStatelessBot f = Bot $ \i s -> pure (s, f i)
 #+end_src
 
-We can leave the state and monad polymorphic because we simply thread
-them through the bot. This allows a pure, stateless bot to be
-used in an impure or stateful context.
+Given a ~Monad~ constraint on ~m~ (arising from our ~Category~
+instance), then ~pureStatelessBot~ is ~arr~ from ~Arrow~:
 
-We can also construct bots which perform monadic effects such as
+#+begin_src haskell
+  pureStatelessBot' :: Monad m => (i -> o) -> Bot m s i o
+  pureStatelessBot' = arr
+#+end_src
+
+We can also construct effectful bots, such as one one which performs
 random number generation in ~IO~:
 
 #+begin_src haskell
@@ -232,8 +235,8 @@ Now that we have a few bots, we need some way to run them.
 
 We can write a simple REPL-like bot interpreter. This will be a
 function which receives a ~Bot IO s Text Text~ and produces a long
-lived ~IO~ action that listens to STDIN as input to bot and prints the
-output to STDOUT.
+lived ~IO~ action that applies STDIN as input to the ~Bot~ and prints
+the ~Bot~'s output to STDOUT.
 
 #+begin_src haskell
   runReplBot :: forall s. Bot IO s Text Text -> s -> IO ()
@@ -254,7 +257,7 @@ output to STDOUT.
 Note: This interpreter will only work with ~Bots~ polymorphic on ~m~
 or where ~m ~ IO~. A more general ~replBot~ would have the signature:
 ~forall m s. (MonadCatch m, MonadIO m) => Bot m s Text Text -> s -> m
-()~
+()~.
 
 We use ~try~ to capture exceptions as an ~Either~ value which we
 ignore when recursing. This will make more sense later on.
@@ -315,8 +318,8 @@ post. The solution we have chosen for expediance here is to leverage
 ~Alternative~.
 
 With ~IO~'s ~Alternative~, we can use ~empty~ to throw an exception
-which we can catch in our interpreter. The exception handling is
-already included in ~runReplBot~. Bots which don't specify a Monad
+which we catch in our interpreter. The exception handling is already
+included in ~runReplBot~. Bots which don't specify a concrete Monad
 will get interpreted into ~IO~ and throw an exception when called from
 ~runReplBot~.
 
@@ -396,11 +399,11 @@ We call this combinator ~\/~:
   (\/) :: Bot m s i o -> Bot m s' i' o' -> Bot m (s, s') (Either i i') (Either o o')
 #+end_src
 
-By equiping a ~Functor~, or in our case a form of ~Trifunctor~, a
-binary associative type constructor(s) we are constructing what is called
-a ~Monoidal Functor~. We can leverage the ~Semigroupal~ typeclass from
-the [[https://hackage.haskell.org/package/monoidal-functors-0.1.1.0/docs/Data-Trifunctor-Monoidal.html#v:combine][monoidal-functors]] library to implement ~(\/)~ and the other related
-combinators I just described.
+By equiping a ~Functor~, or in our case a form of ~Trifunctor~, with a
+binary associative type constructor(s) we are constructing what is
+called a ~Monoidal Functor~. We can leverage the ~Semigroupal~
+typeclass from the [[https://hackage.haskell.org/package/monoidal-functors-0.1.1.0/docs/Data-Trifunctor-Monoidal.html#v:combine][monoidal-functors]] library to implement ~(\/)~ and
+the other related combinators I just described.
 
 We have 3 type constructors we wish to monoidally combine (~s~, ~i~,
 and ~o~) so we choose the ~Data.Trifunctor.Monoidal.Semigroupal~ class
@@ -481,8 +484,8 @@ If we look at the kind of ~Bot~ we see:
 Now, imagine something with kind ~KBot -> KBot~. This would represent
 something that recieves a ~Bot~ and produces some other ~Bot~. This is
 an overally powerful kind signature and allows for /any/
-transformation on a bot. For this reason we won't actually use it, but
-it gives a good intuition for what it means to transform a bot.
+transformation on a bot. For this reason its not very descriptive, but
+it gives an intuition for what it means to transform a bot.
 
 For a first example, imagine we want to take one of our bots, such as
 ~coinFlipBot~, and run it on some protocol with distinct chat
@@ -550,8 +553,7 @@ idea is to define the following types:
 #+end_src
 
 These types describe a language for interacting with a sessionized
-bot. Now we need a function for sessionizing bots and a function to map
-session inputs/outputs to ~Text~:
+bot. Now we need a function for sessionizing bots:
 
 #+begin_src haskell
 
@@ -575,6 +577,6 @@ constructing, interpreting, composing, and extending bots in various
 dimensions. More so then explaining how to build a chat bot, I hope
 this post inspires you to think more algebraically about your program
 architectures and to leverage more of the powerful abstractions
-available to us in with Haskell.
+available to us with Haskell.
 
 Special thanks to [[https://github.com/masaeedu][@masaeedu]], [[https://github.com/conjunctive][@iris]], and everyone else in the [[https://github.com/cofree-coffee/][Cofree-Coffee Org]].
