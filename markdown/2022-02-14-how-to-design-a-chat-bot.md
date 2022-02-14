@@ -67,15 +67,14 @@ newtype Bot m s i o = Bot { runBot :: i -> s -> m (s, o) }
 Now we have a single function which can update state and produce an
 output *in a single operation*. This gives us what we want.
 
-# Exploring Our Specification
+# Exploring Our Type
 
-Now that we have our bot specification, lets explore it a bit. We can
-see that it *receives* an `i` and an `s` and it *produces* an `s` and an
-`o`. This means that it is `Contravariant` over `i`, `Covariant` over
-`o`, and `Invariant` over `s`. This tells us that our `Bot` is a
-`Functor`, a `Profunctor`, and an `Invariant Functor`. If it were
-`Covariant` on both `i` and `o` then it would be a `Bifunctor` rather
-then a `Profunctor`.
+Now that we have our bot type, lets explore it a bit. We can see that it
+*receives* an `i` and an `s` and it *produces* an `s` and an `o`. This
+means that it is `Contravariant` over `i`, `Covariant` over `o`, and
+`Invariant` over `s`. This tells us that our `Bot` is a `Functor`, a
+`Profunctor`, and an `Invariant Functor`. If it were `Covariant` on both
+`i` and `o` then it would be a `Bifunctor` rather then a `Profunctor`.
 
 ``` haskell
 instance Functor m => Functor (Bot m s i) where
