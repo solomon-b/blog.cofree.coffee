@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Solomon Bothwell" />
+  <meta name="dcterms.date" content="2022-02-14" />
+    <title>How To Design A Chat Bot</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div id="runner1">SOLOMON'S BLOG</div>
+<div id="runner1b">functional programming, permaculture, math</div>
+<header id="title-block-header">
+<h1 class="title">How To Design A Chat Bot</h1>
+<p class="date">2022-02-14</p>
+</header>
+<p>I'm working on a <a href="https://github.com/cofree-coffee/cofree-bot">library</a> for designing highly composable protocol agnostic chat bots. The design is based on mealy machines and heavily leverages Haskell's profunctor machinery. I want to walk through the early stages of the design process and how you might arrive at such an architecture.</p>
+<h1 id="what-is-a-chat-bot">What is a Chat Bot?</h1>
+<p>Lets start by describing what we mean by a chat bot, then lets factor out as much as possible until we arrive at a precise, elegant abstraction.</p>
+<p>A chat bot is some persistant application that reads and produces messages over a messaging protocol. Bots can optionally hold internal state which they update via incoming messages and which they use to produce outgoing messages.</p>
+<p>Bots can also optionally perform side effects out of band from the chat protocol. For example, a bot might execute an HTTP request and then return the result in band through the chat protocol.</p>
+<p>So a chat bot holds state, sends and receives messages over a chat protocol, and can potentially perform out of band effects.</p>
+<p>Now lets try to describe these actions more formally. We know the bot must receieve input to produce an output and, if it is stateful, produce a new state. We can describe these behaviors using lambdas:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ot">receive ::</span> input <span class="ot">-&gt;</span> state <span class="ot">-&gt;</span> state</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>receive <span class="ot">=</span> \input state <span class="ot">-&gt;</span> _</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ot">respond ::</span> input <span class="ot">-&gt;</span> state <span class="ot">-&gt;</span> output</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>respond <span class="ot">=</span> \input state <span class="ot">-&gt;</span> _</span></code></pre></div>
+<p>Note: we pass in the old state to the lambda explicitly, but we might hide this explicit state passing somehow in our actual implementation.</p>
+<p>We leave a typed hole to represent the particular subroutine for a particular bot.</p>
+<p><code>receive</code> describes the act of updating the internal state from an input and <code>respond</code> describes producing an output. We are still missing the ability to perform out of band effects. We can describe this by inscribing our outputs with an <code>m</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ot">receive ::</span> input <span class="ot">-&gt;</span> state <span class="ot">-&gt;</span> m state</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>receive <span class="ot">=</span> \input state <span class="ot">-&gt;</span> _</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ot">respond ::</span> input <span class="ot">-&gt;</span> state <span class="ot">-&gt;</span> m output</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>respond <span class="ot">=</span> \input state <span class="ot">-&gt;</span> _</span></code></pre></div>
+<p>Lets see if we can compose <code>receive</code> and <code>respond</code> to create a complete bot subroutine.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ot">react ::</span> state <span class="ot">-&gt;</span> input <span class="ot">-&gt;</span> (m state, m output)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>react <span class="ot">=</span> <span class="fu">curry</span> <span class="op">$</span> <span class="fu">uncurry</span> receive <span class="op">&amp;&amp;&amp;</span> <span class="fu">uncurry</span> respond</span></code></pre></div>
+<p>At first blush this looks promising. We have composed together our two subroutines cleanly. Does this operation fully describe the behavior of a bot?</p>
+<p>We can update our state and we can produce output, but can we use our updated state to produce the output? Sadly the answer is no.</p>
+<p>Lets try again:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">bot ::</span> <span class="dt">Applicative</span> m <span class="ot">=&gt;</span> state <span class="ot">-&gt;</span> input <span class="ot">-&gt;</span> m (state, output)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>bot <span class="ot">=</span> \state input <span class="ot">-&gt;</span> _</span></code></pre></div>
+<p>Now we have a function which can update state and produce an output <em>in a single operation</em>. This gives us what we want.</p>
+<p>Our last move is take this specification and throw it in a newtype wrapper for use in our actual program:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bot</span> m s i o <span class="ot">=</span> <span class="dt">Bot</span> {<span class="ot"> runBot ::</span> i <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> m (s, o) }</span></code></pre></div>
+<h1 id="exploring-our-specification">Exploring Our Specification</h1>
+<p>Now that we have our bot specification, lets explore it a bit. We can see that it <em>receives</em> an <code>i</code> and an <code>s</code> and it <em>produces</em> an <code>s</code> and an <code>o</code>. This means that it is <code>Contravariant</code> over <code>i</code>, <code>Covariant</code> over <code>o</code>, and <code>Invariant</code> over <code>s</code>. This tells us that our <code>Bot</code> is a <code>Functor</code>, a <code>Profunctor</code>, and an <code>Invariant Functor</code>. If it were <code>Covariant</code> on both <code>i</code> and <code>o</code> then it would be a <code>Bifunctor</code> rather then a <code>Profunctor</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Functor</span> (<span class="dt">Bot</span> m s i) <span class="kw">where</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  fmap ::</span> (o <span class="ot">-&gt;</span> o&#39;) <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o&#39;</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmap</span> f (<span class="dt">Bot</span> bot) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span> <span class="fu">fmap</span> (<span class="fu">fmap</span> f) <span class="op">$</span> bot i s</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Profunctor</span> (<span class="dt">Bot</span> m s) <span class="kw">where</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  dimap ::</span> (i&#39; <span class="ot">-&gt;</span> i) <span class="ot">-&gt;</span> (o <span class="ot">-&gt;</span> o&#39;) <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i&#39; o&#39;</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  dimap f g (<span class="dt">Bot</span> bot) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \a <span class="ot">-&gt;</span> <span class="fu">fmap</span> (<span class="fu">fmap</span> g) <span class="op">.</span> bot (f a)</span></code></pre></div>
+<p>The order of type parameters doesn't allow the actual <code>Invariant</code> typeclass, but we can define <code>invmap</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">invmap ::</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> (s <span class="ot">-&gt;</span> s&#39;) <span class="ot">-&gt;</span> (s&#39; <span class="ot">-&gt;</span> s) <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i o</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>invmap f g (<span class="dt">Bot</span> b) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span> (b i (g s)) <span class="op">&lt;&amp;&gt;</span> bimap f <span class="fu">id</span></span></code></pre></div>
+<p>Since <code>Bot</code> is a <code>Profunctor</code>, lets take look at some other related structures:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Profunctor</span> p <span class="ot">=&gt;</span> <span class="dt">Strong</span> p <span class="kw">where</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  first&#39; ::</span> p a b  <span class="ot">-&gt;</span> p (a, c) (b, c)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  second&#39; ::</span> p a b <span class="ot">-&gt;</span> p (c, a) (c, b)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Profunctor</span> p <span class="ot">=&gt;</span> <span class="dt">Choice</span> p <span class="kw">where</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="ot">  left&#39; ::</span> p a b  <span class="ot">-&gt;</span> p (<span class="dt">Either</span> a c) (<span class="dt">Either</span> b c)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="ot">  right&#39; ::</span> p a b <span class="ot">-&gt;</span> p (<span class="dt">Either</span> c a) (<span class="dt">Either</span> c b)</span></code></pre></div>
+<p><code>Strong</code> describes a <code>Profunctor</code> where you can use a product to 'thread' an additional parameter through the <code>Profunctor</code>. <code>Choice</code> describes the same property with respect to co-products.</p>
+<p>It turns out <code>Bot</code> satisifies both:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Strong</span> (<span class="dt">Bot</span> m s) <span class="kw">where</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  first&#39; ::</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s (i, c) (o, c)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  first&#39; (<span class="dt">Bot</span> bot) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \(a, c) <span class="ot">-&gt;</span> <span class="fu">fmap</span> (<span class="fu">fmap</span> (, c)) <span class="op">.</span> bot a</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Applicative</span> m <span class="ot">=&gt;</span> <span class="dt">Choice</span> (<span class="dt">Bot</span> m s) <span class="kw">where</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="ot">  left&#39; ::</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s (<span class="dt">Either</span> i x) (<span class="dt">Either</span> o x)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  left&#39; (<span class="dt">Bot</span> bot) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">case</span> i <span class="kw">of</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> a <span class="ot">-&gt;</span> <span class="fu">fmap</span> (<span class="fu">fmap</span> <span class="dt">Left</span>) <span class="op">$</span> bot a s</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> c <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="dt">Right</span> c)</span></code></pre></div>
+<p>Another structure we might try is <code>Category</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Category</span> (<span class="dt">Bot</span> m s) <span class="kw">where</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  id ::</span> <span class="dt">Bot</span> m s i i</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">id</span> <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, i)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ot">  (.) ::</span> <span class="dt">Bot</span> m s b c <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s a b <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s a c</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  (<span class="op">.</span>) (<span class="dt">Bot</span> bot1) (<span class="dt">Bot</span> bot2) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \a s <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    (s&#39;, b) <span class="ot">&lt;-</span> bot2 a s</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    bot1 b s&#39;</span></code></pre></div>
+<p>The fact that we have <code>Strong</code> and <code>Category</code> means we also have <code>Arrow</code>:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Arrow</span> (<span class="dt">Bot</span> m s) <span class="kw">where</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  arr f <span class="ot">=</span> <span class="fu">fmap</span> f <span class="fu">id</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  first <span class="ot">=</span> first&#39;</span></code></pre></div>
+<p>We will try to sort out the use of some of these structures later on. For now, it is a great sign that our spec fits so many well defined structures.</p>
+<h1 id="constructing-bots">Constructing Bots</h1>
+<p>Lets move on to building some bots. As we go along, we might discover interesting uses for the structures defined previously.</p>
+<p>We start with the simplest bot. Eg., one which receives and produces <code>Text</code> and operates with no state or monadic effects:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ot">simplestBot ::</span> <span class="dt">Bot</span> <span class="dt">Identity</span> () <span class="dt">Text</span> <span class="dt">Text</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>simplestBot <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="st">&quot;Hello, &quot;</span> <span class="op">&lt;&gt;</span> i)</span></code></pre></div>
+<p>This bot will respond to all messages with a fixed response.</p>
+<p>We can simplify the construction of other pure, stateless bots with a new combinator:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ot">pureStatelessBot ::</span> <span class="dt">Applicative</span> m <span class="ot">=&gt;</span> (i <span class="ot">-&gt;</span> o) <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>pureStatelessBot f <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, f i)</span></code></pre></div>
+<p>Given a <code>Monad</code> constraint on <code>m</code> (arising from our <code>Category</code> instance), then <code>pureStatelessBot</code> is <code>arr</code> from <code>Arrow</code>:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ot">pureStatelessBot&#39; ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> (i <span class="ot">-&gt;</span> o) <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>pureStatelessBot&#39; <span class="ot">=</span> arr</span></code></pre></div>
+<p>We can also construct effectful bots, such as one one which performs random number generation in <code>IO</code>:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">coinFlipBot ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> () () <span class="dt">Bool</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>coinFlipBot <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \_ s <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  gen <span class="ot">&lt;-</span> newStdGen</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> (result, _) <span class="ot">=</span> random <span class="op">@</span><span class="dt">Bool</span> gen</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (s, result)</span></code></pre></div>
+<p>And of course, we could build a stateful bot:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ot">todoBot ::</span> <span class="dt">Applicative</span> m <span class="ot">=&gt;</span> <span class="dt">Bot</span> m [<span class="dt">T.Text</span>] <span class="dt">T.Text</span> <span class="dt">T.Text</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>todoBot <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> T.uncons i <span class="kw">of</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> (<span class="ch">&#39;&gt;&#39;</span>, todo) <span class="ot">-&gt;</span> <span class="fu">pure</span> (todo<span class="op">:</span>s, <span class="st">&quot;Recorded todo!&quot;</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> (<span class="ch">&#39;&lt;&#39;</span>, _) <span class="op">|</span> <span class="fu">length</span> s <span class="op">==</span> <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="st">&quot;No more todos!&quot;</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> (<span class="ch">&#39;&lt;&#39;</span>, _) <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="fu">tail</span> s, <span class="fu">head</span> s)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  _ <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="st">&quot;I didn&#39;t understand that.&quot;</span>)</span></code></pre></div>
+<p>Notice that all of these bots <em>must</em> return a response regardless of the input. This is something we will need to address shortly.</p>
+<h1 id="interpretation">Interpretation</h1>
+<p>Now that we have a few bots, we need some way to run them.</p>
+<p>We can write a simple REPL-like bot interpreter. This will be a function which receives a <code>Bot IO s Text Text</code> and produces a long lived <code>IO</code> action that applies STDIN as input to the <code>Bot</code> and prints the <code>Bot</code>'s output to STDOUT.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ot">runReplBot ::</span> <span class="kw">forall</span> s<span class="op">.</span> <span class="dt">Bot</span> <span class="dt">IO</span> s <span class="dt">Text</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>runReplBot bot <span class="ot">=</span> go</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="ot">    go ::</span> s <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    go state <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStr</span> <span class="st">&quot;&gt; &quot;</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  hFlush stdout</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  input <span class="ot">&lt;-</span> <span class="fu">fmap</span> T.pack <span class="op">$</span> <span class="fu">getLine</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> try <span class="op">@</span><span class="dt">SomeException</span> <span class="op">$</span> runBot bot input state</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> result <span class="kw">of</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> _ <span class="ot">-&gt;</span> go state</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> (nextState, output) <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">putStrLn</span> <span class="op">$</span> T.unpack output</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>      go nextState</span></code></pre></div>
+<p>Note: This interpreter will only work with <code>Bots</code> polymorphic on <code>m</code> or where <code>m ~ IO</code>. A more general <code>replBot</code> would have the signature: <code>forall m s. (MonadCatch m, MonadIO m) =&gt; Bot m s Text Text -&gt; s -&gt; m
+()</code>.</p>
+<p>We use <code>try</code> to capture exceptions as an <code>Either</code> value which we ignore when recursing. This will make more sense later on.</p>
+<p>Interpreters for arbitrary network protocols can be be written in the same fashion. Choose appropriate input and output types for resolving calls to your protocol of choice's API and then call out to your API from an IO block.</p>
+<p>We can use <code>runReplBot</code> to test out <code>simplestBot</code>:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ghci</span><span class="op">&gt;</span> runReplBot simplestBot <span class="er">(</span><span class="kw">)</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> World</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Hello,</span> World</span></code></pre></div>
+<p>However, we still cannot run <code>coinFlipBot</code>. We require a <code>Bot IO s
+Text Text</code> and <code>coinFlipBot</code> is <code>Bot IO s () Bool</code>.</p>
+<p>To match it up with <code>runReplBot</code>, we need a way to map <code>Text -&gt; ()</code> for the input and <code>Bool -&gt; Text</code> for the output. It turns out this is precisely what <code>Profunctor</code> gives us!</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ot">coinFlipBot&#39; ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> () <span class="dt">Text</span> <span class="dt">Text</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>coinFlipBot&#39; <span class="ot">=</span> dimap (<span class="fu">const</span> ()) (T.pack <span class="op">.</span> <span class="fu">show</span>) coinFlipBot</span></code></pre></div>
+<p>One way to look at the behavior of <code>coinFlipBot'</code> is that it focuses on a smaller input <code>()</code> inside of a larger structure <code>Text</code> and then embeds a smaller output (<code>Bool</code>) inside a larger structure <code>Text</code>.</p>
+<p>Another way to say that is we have <em>parsed</em> out of <code>Text</code> to pick a <code>()</code> and <em>pretty printed</em> into <code>Text</code> to embed a <code>Bool</code>.</p>
+<p>Our work identifying algebraic structures is already paying off.</p>
+<h1 id="conditional-responses">Conditional Responses</h1>
+<p>Now we have defined a few simple bots and demonstrated how to interpret them in a REPL-like environment. We still have an unsolved problem, these bots are rather talkative. They must responsd to <em>all</em> input they receieve. We need to sort out a way for bots to conditionally produce output.</p>
+<p>Our first thought might be to change our <code>Bot</code> type to either of:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bot</span> m s i o <span class="ot">=</span> <span class="dt">Bot</span> {<span class="ot"> runBot ::</span> i <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> m (<span class="dt">Maybe</span> (s, o)) }</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bot</span> m s i o <span class="ot">=</span> <span class="dt">Bot</span> {<span class="ot"> runBot ::</span> i <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> m [(s, o)] }</span></code></pre></div>
+<p>However, both of those can break some desirable composition behavior. Another option could be <code>ListT</code> from <code>MTL</code>, but it has some <a href="https://wiki.haskell.org/ListT_done_right">problems</a>. The correct solution would be to use a Streaming library–which is what we do in <a href="https://github.com/cofree-coffee/cofree-bot">the library</a> that inspired this blog post. The solution we have chosen for expediance here is to leverage <code>Alternative</code>.</p>
+<p>With <code>IO</code>'s <code>Alternative</code>, we can use <code>empty</code> to throw an exception which we catch in our interpreter. The exception handling is already included in <code>runReplBot</code>. Bots which don't specify a concrete Monad will get interpreted into <code>IO</code> and throw an exception when called from <code>runReplBot</code>.</p>
+<p>Lets see how this would work with <code>coinFlipBot</code>:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">coinFlipBot&#39; ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> () <span class="dt">Text</span> <span class="dt">Text</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>coinFlipBot&#39; <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> i <span class="op">==</span> <span class="st">&quot;flip a coin&quot;</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">then</span> <span class="fu">fmap</span> (<span class="fu">fmap</span> (T.pack <span class="op">.</span> <span class="fu">show</span>)) <span class="op">$</span> (runBot coinFlipBot) () s </span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span> empty</span></code></pre></div>
+<p>We can no longer use <code>dimap</code> because our <em>focus</em> operation is not pure due to our use of <code>empty</code>.</p>
+<p>We can, however, define a new combinator <code>lmapMaybe</code> to generalize over the optionality we just introduced and peel it out of <code>coinFlipBot'</code>:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ot">lmapMaybe ::</span> <span class="dt">Alternative</span> m <span class="ot">=&gt;</span> (i&#39; <span class="ot">-&gt;</span> <span class="dt">Maybe</span> i) <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i&#39; o</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>lmapMaybe f (<span class="dt">Bot</span> bot) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i&#39; s <span class="ot">-&gt;</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> f i&#39; <span class="kw">of</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> empty</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Just</span> i <span class="ot">-&gt;</span> bot i s</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="ot">coinFlipBot&#39; ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> () <span class="dt">Text</span> <span class="dt">Text</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>coinFlipBot&#39; <span class="ot">=</span> lmapMaybe parse <span class="op">$</span> <span class="fu">fmap</span> prettyPrint coinFlipBot</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    parse i <span class="ot">=</span> <span class="kw">if</span> i <span class="op">==</span> <span class="st">&quot;flip a coin&quot;</span> <span class="kw">then</span> <span class="dt">Just</span> () <span class="kw">else</span> <span class="dt">Nothing</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    prettyPrint <span class="ot">=</span> (T.pack <span class="op">.</span> <span class="fu">show</span>)</span></code></pre></div>
+<p>What we are seeing in <code>coinFlipBot'</code> is contravariant and covariant mappings of our input and output to <em>focus</em> and <em>embed</em> structures respectively. In the contravariant case we are using a special variation of <code>lmap</code> which leverages <code>Alternative</code> to produce optional outputs.</p>
+<h1 id="composition">Composition</h1>
+<p>Our goal now is to take two bots and compose them together in parallel as if they are a single bot with both behaviors. At the type level, what this looks like is combining the three type parameters of our <code>Bots</code> with a binary associative type constructor. For example, we could use <code>(,)</code> in all three positions:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ot">_ ::</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) (i, i&#39;) (o, o&#39;)</span></code></pre></div>
+<p>This would give us a single bot which given a combined input <code>(i, i')</code> will perform the behaviors of both our original bots and give a combined output <code>(o, o')</code>.</p>
+<p>We could use <code>Either</code>, <code>These</code>, or any of the types from the excellent <a href="https://hackage.haskell.org/package/smash">smash library</a>. We can also mix and match your binary type constructors however we desire.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ot">_ ::</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (<span class="dt">Either</span> s s&#39;) (<span class="dt">Either</span> i i&#39;) (<span class="dt">Either</span> o o&#39;)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="ot">_ ::</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (<span class="dt">These</span> s s&#39;) (<span class="dt">These</span> i i&#39;) (<span class="dt">These</span> o o&#39;)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="ot">_ ::</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (<span class="dt">Wedge</span> s s&#39;) (<span class="dt">Wedge</span> i i&#39;) (<span class="dt">Wedge</span> o o&#39;)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="ot">_ ::</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (<span class="dt">Wedge</span> s s&#39;) (i, i&#39;) (<span class="dt">Either</span> o o&#39;)</span></code></pre></div>
+<p>In our particular case what we want is a way to conditional run <em>either</em> of the two bots based on the input we receive. This indicates that we want to use <code>Either</code> for <code>i</code> and <code>o</code>. However, we don't want to use <code>Either</code> for our state <code>s</code>. Instead we should use <code>(,)</code> to ensure that regardless of which bot we choose to execute, we have it's required state available.</p>
+<p>We call this combinator <code>\/</code>:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">infixr</span> \<span class="op">/</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>(\<span class="op">/</span>)<span class="ot"> ::</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) (<span class="dt">Either</span> i i&#39;) (<span class="dt">Either</span> o o&#39;)</span></code></pre></div>
+<p>By equiping a <code>Functor</code>, or in our case a form of <code>Trifunctor</code>, with a binary associative type constructor(s) we are constructing what is called a <code>Monoidal Functor</code>. We can leverage the <code>Semigroupal</code> typeclass from the <a href="https://hackage.haskell.org/package/monoidal-functors-0.1.1.0/docs/Data-Trifunctor-Monoidal.html#v:combine">monoidal-functors</a> library to implement <code>(\/)</code> and the other related combinators I just described.</p>
+<p>We have 3 type constructors we wish to monoidally combine (<code>s</code>, <code>i</code>, and <code>o</code>) so we choose the <code>Data.Trifunctor.Monoidal.Semigroupal</code> class and then we can write instances parameterized with whatever binary associative type constructors we wish to equip onto <code>Bot</code>.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Semigroupal</span> (<span class="ot">-&gt;</span>) (,) <span class="dt">Either</span> <span class="dt">Either</span> (,) (<span class="dt">Bot</span> m) <span class="kw">where</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  combine ::</span> (<span class="dt">Bot</span> m s i o, <span class="dt">Bot</span> m s&#39; i&#39; o&#39;) <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) (<span class="dt">Either</span> i i&#39;) (<span class="dt">Either</span> o o&#39;)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  combine (<span class="dt">Bot</span> bot, <span class="dt">Bot</span> bot&#39;) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \ei (s, s&#39;) <span class="ot">-&gt;</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">case</span> ei <span class="kw">of</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> i <span class="ot">-&gt;</span> <span class="fu">fmap</span> (bimap (,s&#39;) <span class="dt">Left</span>) <span class="op">$</span> bot i s</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> i&#39; <span class="ot">-&gt;</span> <span class="fu">fmap</span> (bimap (s,) <span class="dt">Right</span>) <span class="op">$</span> bot&#39; i&#39; s&#39;</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="kw">infixr</span> \<span class="op">/</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>(\<span class="op">/</span>)<span class="ot"> ::</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) (<span class="dt">Either</span> i i&#39;) (<span class="dt">Either</span> o o&#39;)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>(\<span class="op">/</span>) <span class="ot">=</span> <span class="fu">curry</span> combine</span></code></pre></div>
+<p>Now we can use <code>\/</code> to compose a few bots:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="ot">coinFlipBot ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> () () <span class="dt">Bool</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>coinFlipBot <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \_ s <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> randomIO</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (s, result)</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="ot">diceRollBot ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> () () <span class="dt">Int</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>diceRollBot <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> randomRIO (<span class="dv">1</span>, <span class="dv">6</span>)</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (s, result)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="ot">sumBot ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> ((), ()) (<span class="dt">Either</span> () ()) (<span class="dt">Either</span> <span class="dt">Int</span> <span class="dt">Bool</span>)</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>sumBot <span class="ot">=</span> diceRollBot \<span class="op">/</span> coinFlipBot</span></code></pre></div>
+<p><code>sumBot</code> will execute a dice roll if it receives a <code>Left ()</code> or a coin flip if it receives a <code>Right ()</code>. We can then use <code>lmapMaybe</code> and a few other tools to produce an approprate parser and pretty printer:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ot">sumBot&#39; ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> ((), ()) <span class="dt">Text</span> <span class="dt">Text</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>sumBot&#39; <span class="ot">=</span> (lmapMaybe parse) <span class="op">$</span> <span class="fu">fmap</span> prettyPrint sumBot</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="ot">    parse ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Either</span> () ())</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    parse <span class="st">&quot;roll a die&quot;</span> <span class="ot">=</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">Left</span> ()</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    parse <span class="st">&quot;flip a coin&quot;</span> <span class="ot">=</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">Right</span> ()</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    parse _ <span class="ot">=</span> empty</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="ot">    prettyPrint ::</span> <span class="dt">Either</span> <span class="dt">Int</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">Text</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>    prettyPrint <span class="ot">=</span> indistinct <span class="op">.</span> bimap (T.pack <span class="op">.</span> <span class="fu">show</span>) (T.pack <span class="op">.</span><span class="fu">show</span>)</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="ot">    indistinct ::</span> <span class="dt">Either</span> a a <span class="ot">-&gt;</span> a</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>    indistinct <span class="ot">=</span> <span class="fu">either</span> <span class="fu">id</span> <span class="fu">id</span></span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ghci</span><span class="op">&gt;</span> runReplBot sumBot<span class="st">&#39; ((), ())</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="st">&gt; flip a coin</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="st">True</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="st">&gt; roll a die</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="st">4</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="st">&gt; x</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="st">&gt; </span></span></code></pre></div>
+<h1 id="transformations">Transformations</h1>
+<p>At this point we can build bot behaviors around arbitrary inputs and outputs, combine behaviors to produce composite bots, and interpret them in arbitrary protocols. Lets explore a few other interesting ways of transforming a <code>Bot</code>.</p>
+<p>If we look at the kind of <code>Bot</code> we see:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="bu">type</span> KBot = <span class="er">(</span><span class="ex">Type</span> <span class="at">-</span><span class="op">&gt;</span> Type<span class="kw">)</span> <span class="ex">-</span><span class="op">&gt;</span> Type <span class="at">-</span><span class="op">&gt;</span> Type <span class="at">-</span><span class="op">&gt;</span> Type <span class="at">-</span><span class="op">&gt;</span> Type</span></code></pre></div>
+<p>Now, imagine something with kind <code>KBot -&gt; KBot</code>. This would represent something that recieves a <code>Bot</code> and produces some other <code>Bot</code>. This is an overally powerful kind signature and allows for <em>any</em> transformation on a bot. For this reason its not very descriptive, but it gives an intuition for what it means to transform a bot.</p>
+<p>For a first example, imagine we want to take one of our bots, such as <code>coinFlipBot</code>, and run it on some protocol with distinct chat rooms. We want our <code>coinFlipBot</code> to be able to receive messages annotated with their source room and then produce messages annotated with the target room.</p>
+<p>We can describe this with a type alias that annotates a bot's input and output with 'room awareness':</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">RoomAware</span> bot m s i o <span class="ot">=</span> bot m s (<span class="dt">RoomID</span>, i) (<span class="dt">RoomID</span>, o)</span></code></pre></div>
+<p>Now we need a function to inhabit this type. We are looking for something that descibes the act of threading a type through our <code>Bot</code> via the product structure <code>(,)</code>.</p>
+<p>It just so happens that we already have that! This is precisely the behavior of the <code>Strong</code> typeclass we implemented earlier:</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Profunctor</span> p <span class="ot">=&gt;</span> <span class="dt">Strong</span> p <span class="kw">where</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  first&#39; ::</span> p a b  <span class="ot">-&gt;</span> p (a, c) (b, c)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  second&#39; ::</span> p a b <span class="ot">-&gt;</span> p (c, a) (c, b)</span></code></pre></div>
+<p>This means we can make our <code>coinFlipBot</code> room aware through the appliction of <code>second'</code>:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="ot">roomAwareBot ::</span> <span class="dt">RoomAware</span> <span class="dt">Bot</span> <span class="dt">IO</span> () () <span class="dt">Bool</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>roomAwareBot <span class="ot">=</span> second&#39; coinFlipBot</span></code></pre></div>
+<p>Another interesting bot transformation is adding session state. Earlier we defined a <code>todoBot</code> which allowed a user to construct a todo list. We might want to allow multiple users to store their own todo lists. We could redesign the <code>todoBot</code> to support this explicitly, but we want to be able to define precise bots with narrow scopes which we can then extend through composition.</p>
+<p>What we really want is a way 'sessionize' a bot. This will involve transforming the bot's <code>s</code> state parameter in addition to its input and output. This is still a rough sketch of an idea and I hope to write a follow up post going into greater detail, but the the core idea is to define the following types:</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">SessionState</span> s <span class="ot">=</span> <span class="dt">SessionState</span> {<span class="ot"> sessions ::</span> <span class="dt">Map.Map</span> <span class="dt">Int</span> s }</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Semigroup</span>, <span class="dt">Monoid</span>)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SessionInput</span> i <span class="ot">=</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">InteractWithSession</span> <span class="dt">Int</span> i</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">StartSession</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">EndSession</span> <span class="dt">Int</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SessionOutput</span> o <span class="ot">=</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">SessionOutput</span> <span class="dt">Int</span> o</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">SessionStarted</span> <span class="dt">Int</span></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">SessionEnded</span> <span class="dt">Int</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">InvalidSession</span> <span class="dt">Int</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Sessionized</span> bot m s i o <span class="ot">=</span> <span class="dt">Bot</span> m (<span class="dt">SessionState</span> s) (<span class="dt">SessionInput</span> i) (<span class="dt">SessionOutput</span> o)</span></code></pre></div>
+<p>These types describe a language for interacting with a sessionized bot. Now we need a function for sessionizing bots:</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>sessionize</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  ::</span> <span class="dt">Monad</span> m</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=&gt;</span> s</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">-&gt;</span> <span class="dt">Sessionized</span> m s i o</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>sessionize <span class="ot">=</span> _</span></code></pre></div>
+<p>A 'sessionized' bot would receive <code>SessionInput</code> input and dispatch the wrapped <code>i</code> term along with the appropriate state <code>s</code> term to the embedded bot. This idea isn't fully developed, but I hope it gives you an idea of what kinds of transformations are possible with this architecture.</p>
+<h1 id="conclussion">Conclussion</h1>
+<p>We have demonstrated the core bot architecture as well as constructing, interpreting, composing, and extending bots in various dimensions. More so then explaining how to build a chat bot, I hope this post inspires you to think more algebraically about your program architectures and to leverage more of the powerful abstractions available to us with Haskell.</p>
+<p>Special thanks to <a href="https://github.com/masaeedu"><span class="citation" data-cites="masaeedu">@masaeedu</span></a>, <a href="https://github.com/conjunctive"><span class="citation" data-cites="iris">@iris</span></a>, and everyone else in the <a href="https://github.com/cofree-coffee/">Cofree-Coffee Org</a>.</p>
+</body>
+</html>
