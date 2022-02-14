@@ -84,10 +84,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h1 class="title">How To Design A Chat Bot</h1>
 <p class="date">2022-02-14</p>
 </header>
-<p>I'm working on a <a href="https://github.com/cofree-coffee/cofree-bot">library</a> for designing highly composable protocol agnostic chat bots. The design is based on mealy machines and heavily leverages Haskell's profunctor machinery. I want to walk through the early stages of the design process and how you might arrive at such an architecture.</p>
+<p>I'm working on a <a href="https://github.com/cofree-coffee/cofree-bot">library</a> for designing highly composable protocol agnostic chat bots. The design is based on Mealy machines and heavily leverages Haskell's profunctor machinery. I want to walk through the early stages of the design process and how you might arrive at such an architecture.</p>
 <h1 id="what-is-a-chat-bot">What is a Chat Bot?</h1>
 <p>Lets start by describing what we mean by a chat bot, then lets factor out as much as possible until we arrive at a precise, elegant abstraction.</p>
-<p>A chat bot is some persistant application that reads and produces messages over a messaging protocol. Bots can optionally hold internal state which they update via incoming messages and which they use to produce outgoing messages.</p>
+<p>A chat bot is some persistent application that reads and produces messages over a messaging protocol. Bots can optionally hold internal state which they update via incoming messages and which they use to produce outgoing messages.</p>
 <p>Bots can also optionally perform side effects out of band from the chat protocol. For example, a bot might execute an HTTP request and then return the result in band through the chat protocol.</p>
 <p>So a chat bot holds state, sends and receives messages over a chat protocol, and can potentially perform out of band effects.</p>
 <p>Now lets try to describe these actions more formally. We know the bot must receieve input to produce an output and, if it is stateful, produce a new state. We can describe these behaviors using lambdas:</p>

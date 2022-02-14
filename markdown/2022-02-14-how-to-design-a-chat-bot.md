@@ -6,7 +6,7 @@ title: How To Design A Chat Bot
 
 I\'m working on a [library](https://github.com/cofree-coffee/cofree-bot)
 for designing highly composable protocol agnostic chat bots. The design
-is based on mealy machines and heavily leverages Haskell\'s profunctor
+is based on Mealy machines and heavily leverages Haskell\'s profunctor
 machinery. I want to walk through the early stages of the design process
 and how you might arrive at such an architecture.
 
@@ -16,7 +16,7 @@ Lets start by describing what we mean by a chat bot, then lets factor
 out as much as possible until we arrive at a precise, elegant
 abstraction.
 
-A chat bot is some persistant application that reads and produces
+A chat bot is some persistent application that reads and produces
 messages over a messaging protocol. Bots can optionally hold internal
 state which they update via incoming messages and which they use to
 produce outgoing messages.
