@@ -361,11 +361,16 @@ variation of ~lmap~ which leverages ~Alternative~ to produce optional
 outputs.
 
 * Composition
-Our goal now is to take two bots and compose them together in
-parallel as if they are a single bot with both behaviors. At the type
-level, what this looks like is combining the three type parameters of our
-~Bots~ with a binary associative type constructor. For example, we
-could use ~(,)~ in all three positions:
+Our goal now is to take two bots and 'laterally' compose them together
+to combine their behaviors. At the type level, what this looks like is
+combining each of the three type parameters of our ~Bots~ with some
+binary associative type constructors:
+
+#+begin_src haskell
+  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (t1 s s') (t2 i i') (t3 o o')
+#+end_src
+
+For example, we could use ~(,)~ in all three positions:
 
 #+begin_src haskell
   _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (s, s') (i, i') (o, o')
@@ -375,40 +380,41 @@ This would give us a single bot which given a combined input ~(i, i')~
 will perform the behaviors of both our original bots and give a
 combined output ~(o, o')~.
 
-We could use ~Either~, ~These~, or any of the types from the excellent
-[[https://hackage.haskell.org/package/smash][smash library]]. We can also mix and match your binary type constructors
-however we desire.
-
-#+begin_src haskell
-  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (Either s s') (Either i i') (Either o o')
-  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (These s s') (These i i') (These o o')
-  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (Wedge s s') (Wedge i i') (Wedge o o')
-  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (Wedge s s') (i, i') (Either o o')
-#+end_src
-
-In our particular case what we want is a way to conditional run
-/either/ of the two bots based on the input we receive. This indicates
-that we want to use ~Either~ for ~i~ and ~o~. However, we don't want
-to use ~Either~ for our state ~s~. Instead we should use ~(,)~ to
-ensure that regardless of which bot we choose to execute, we have it's
-required state available.
+What we want is a way to conditionally run /either/ of the two bots
+based on the input we receive. This indicates that we want to use
+~Either~ for ~i~ and ~o~. However, we don't want to use ~Either~ for
+our state ~s~. Instead we should use ~(,)~ to ensure that regardless
+of which bot we choose to execute, we have it's required state
+available.
 
 We call this combinator ~\/~:
+
 #+begin_src haskell
   infixr \/
   (\/) :: Bot m s i o -> Bot m s' i' o' -> Bot m (s, s') (Either i i') (Either o o')
 #+end_src
 
-By equiping a ~Functor~, or in our case a form of ~Trifunctor~, with a
-binary associative type constructor(s) we are constructing what is
-called a ~Monoidal Functor~. We can leverage the ~Semigroupal~
-typeclass from the [[https://hackage.haskell.org/package/monoidal-functors-0.1.1.0/docs/Data-Trifunctor-Monoidal.html#v:combine][monoidal-functors]] library to implement ~(\/)~ and
-the other related combinators I just described.
+As one might expect from a 'lateral composition' operator, it is
+associative up to reshufflings of the binary type constructors. ~\/~
+(in uncurried form) is described by the ~Semigroupal~ typeclass from
+the [[https://hackage.haskell.org/package/monoidal-functors-0.1.1.0/docs/Data-Trifunctor-Monoidal.html#v:combine][monoidal-functors]] library.
+
+#+begin_src haskell
+  -- Data.Functor.Monoidal
+  class (Associative t1 cat, Associative t0 cat) => Semigroupal cat t1 t0 f where
+    combine :: (f x `t0` f x') `cat` f (x `t1` x') 
+
+  -- Data.Bifunctor.Monoidal
+  class (Associative t1 cat, Associative t2 cat, Associative to cat) => Semigroupal cat t1 t2 to f where
+    combine :: cat (to (f x y) (f x' y')) (f (t1 x x') (t2 y y')) 
+
+  -- Data.Trifunctor.Monoidal
+  class (Associative t1 cat, Associative t2 cat, Associative t3 cat, Associative to cat) => Semigroupal cat t1 t2 t3 to f where
+    combine :: to (f x y z) (f x' y' z') `cat` f (t1 x x') (t2 y y') (t3 z z') 
+#+end_src
 
 We have 3 type constructors we wish to monoidally combine (~s~, ~i~,
-and ~o~) so we choose the ~Data.Trifunctor.Monoidal.Semigroupal~ class
-and then we can write instances parameterized with whatever binary
-associative type constructors we wish to equip onto ~Bot~.
+and ~o~) so we choose the ~Data.Trifunctor.Monoidal.Semigroupal~ class:
 
 #+begin_src haskell
   instance Functor m => Semigroupal (->) (,) Either Either (,) (Bot m) where
