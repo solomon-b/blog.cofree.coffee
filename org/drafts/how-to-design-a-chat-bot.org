@@ -41,7 +41,7 @@ Note: we pass in the old state to the lambda explicitly because we are
 trying to develop explicit denotations of our behavior. We might hide
 this explicit state passing somehow in our actual implementation.
 
-We leave a typehole to represent the particular subroutine for this
+We leave a typed hole to represent the particular subroutine for this
 bot.
 
 ~receive~ describes the act of updating the internal state from an
@@ -57,26 +57,30 @@ this by inscribing our outputs with an ~m~:
   respond = \input state -> _
 #+end_src
 
-Now we have two precise, simple, and compelling /denotations/ of what
-it means to receive and what it means to respond.
-
-Our next task is take these independent denotations and compose them
-together into a single larger denotation for what it means to /be a bot/.
+Lets see if we can compose ~receive~ and ~respond~ to create a
+bot subroutine.
 
 #+begin_src haskell
   react :: state -> input -> (m state, m output)
   react = curry $ uncurry receive &&& uncurry respond
-
-  bot :: Applicative m => state -> input -> m (state, output)
-  bot = \state -> bisequence . react state
 #+end_src
 
-First we combine our denotations using ~&&&~, ~uncurry~, and
-~curry~ as ~react~. Next we ~bisequence~ the result of ~react~.
+At first blush this looks promising. We have composed together our two
+subroutines cleanly. Yet, does this operation really describe the
+behavior of a bot?
 
-Now we have a specification for a bot in the form of the signature for
-~bot~. We have built this specification up from our smaller
-denotations using well specified standard combinators. Nice!
+We can update our state and we can produce output, but can we use our
+updated state to produce the output? Sadly the answer is no. 
+
+Lets try again:
+  
+#+begin_src haskell
+  bot :: Applicative m => state -> input -> m (state, output)
+  bot = \state input -> _
+#+end_src
+
+Now we have a function which can update state and produce an
+output /in a single operation/.
 
 Our last move is take this specification and throw it in a newtype
 wrapper for use in our actual program:
@@ -355,36 +359,80 @@ outputs.
 
 * Composition
 Our goal now is to take two bots and compose them together in
-parallel as if they are a single bot with both behaviors. We
-essentially have two ways to do this: we can either take the product
-of their inputs and outputs or we can take their sum.
-
-Both examples are interesting, but for this post lets stick with the
-sum of two bots:
+parallel as if they are a single bot with both behaviors. At the type
+level, what this looks like is combining the three type parameters of our
+~Bots~ with a binary associative type constructor. For example, we
+could use ~(,)~ in all three positions:
 
 #+begin_src haskell
-  infixr \/
-  (\/) :: Functor m => Bot m s i o -> Bot m s i' o' -> Bot m s (Either i i') (Either o o')
-  (\/) (Bot b1) (Bot b2) =
-      Bot $ either ((fmap . fmap . fmap) Left . b1)
-		   ((fmap . fmap . fmap) Right . b2)
+  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (s, s') (i, i') (o, o')
 #+end_src
 
-We can use ~\/~ to compose a few bots:
+This would give us a single bot which given a combined input ~(i, i')~
+will perform the behaviors of both our original bots and give a
+combined output ~(o, o')~.
+
+We could use ~Either~, ~These~, or any of the types from the excellent
+[[https://hackage.haskell.org/package/smash][smash library]]. We can also mix and match your binary type constructors
+however we desire.
+
+#+begin_src haskell
+  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (Either s s') (Either i i') (Either o o')
+  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (These s s') (These i i') (These o o')
+  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (Wedge s s') (Wedge i i') (Wedge o o')
+  _ :: Bot m s i o -> Bot m s' i' o' -> Bot m (Wedge s s') (i, i') (Either o o')
+#+end_src
+
+In our particular case what we want is a way to conditional run
+/either/ of the two bots based on the input we receive. This indicates
+that we want to use ~Either~ for ~i~ and ~o~. However, we don't want
+to use ~Either~ for our state ~s~. Instead we should use ~(,)~ to
+ensure that regardless of which bot we choose to execute, we have it's
+required state available.
+
+We call this combinator ~\/~:
+#+begin_src haskell
+  infixr \/
+  (\/) :: Bot m s i o -> Bot m s' i' o' -> Bot m (s, s') (Either i i') (Either o o')
+#+end_src
+
+By equiping a ~Functor~, or in our case a form of ~Trifunctor~, a
+binary associative type constructor(s) we are constructing what is called
+a ~Monoidal Functor~. We can leverage the ~Semigroupal~ typeclass from
+the [[https://hackage.haskell.org/package/monoidal-functors-0.1.1.0/docs/Data-Trifunctor-Monoidal.html#v:combine][monoidal-functors]] library to implement ~(\/)~ and the other related
+combinators I just described.
+
+We have 3 type constructors we wish to monoidally combine (~s~, ~i~,
+and ~o~) so we choose the ~Data.Trifunctor.Monoidal.Semigroupal~ class
+and then we can write instances parameterized with whatever binary
+associative type constructors we wish to equip onto ~Bot~.
+
+#+begin_src haskell
+  instance Functor m => Semigroupal (->) (,) Either Either (,) (Bot m) where
+    combine :: (Bot m s i o, Bot m s' i' o') -> Bot m (s, s') (Either i i') (Either o o')
+    combine (Bot bot, Bot bot') = Bot $ \ei (s, s') ->
+      case ei of
+      Left i -> fmap (bimap (,s') Left) $ bot i s
+      Right i' -> fmap (bimap (s,) Right) $ bot' i' s'
+
+  infixr \/
+  (\/) :: Functor m => Bot m s i o -> Bot m s' i' o' -> Bot m (s, s') (Either i i') (Either o o')
+  (\/) = curry combine
+#+end_src
+
+Now we can use ~\/~ to compose a few bots:
 #+begin_src haskell
   coinFlipBot :: Bot IO () () Bool
   coinFlipBot = Bot $ \_ s -> do
-    gen <- newStdGen
-    let (result, _) = random @Bool gen
+    result <- randomIO
     pure (s, result)
 
   diceRollBot :: Bot IO () () Int
   diceRollBot = Bot $ \i s -> do
-    gen <- newStdGen
-    let (result, _) = randomR @Int (1, 6) gen
+    result <- randomRIO (1, 6)
     pure (s, result)
 
-  sumBot :: Bot IO () (Either () ()) (Either Int Bool)
+  sumBot :: Bot IO ((), ()) (Either () ()) (Either Int Bool)
   sumBot = diceRollBot \/ coinFlipBot
 #+end_src
 
@@ -393,7 +441,7 @@ flip if it receives a ~Right ()~. We can then use ~lmapMaybe~ and a
 few other tools to produce an approprate parser and pretty printer:
 
 #+begin_src haskell
-  sumBot' :: Bot IO () Text Text
+  sumBot' :: Bot IO ((), ()) Text Text
   sumBot' = (lmapMaybe parse) $ fmap prettyPrint sumBot
     where
       parse :: Text -> Maybe (Either () ())
@@ -409,7 +457,7 @@ few other tools to produce an approprate parser and pretty printer:
 #+end_src
 
 #+begin_src bash
-  ghci> runReplBot sumBot' ()
+  ghci> runReplBot sumBot' ((), ())
   > flip a coin
   True
   > roll a die
@@ -421,8 +469,8 @@ few other tools to produce an approprate parser and pretty printer:
 * Transformations
 At this point we can build bot behaviors around arbitrary inputs and
 outputs, combine behaviors to produce composite bots, and interpret
-them in arbitrary protocols. The last thing I want to explore in this
-blog post is bot "transformations."
+them in arbitrary protocols. Lets explore a few other interesting ways
+of transforming a ~Bot~.
 
 If we look at the kind of ~Bot~ we see:
 
@@ -431,21 +479,21 @@ If we look at the kind of ~Bot~ we see:
 #+end_src
 
 Now, imagine something with kind ~KBot -> KBot~. This would represent
-something that recieves a ~Bot~ and produces some other ~Bot~. I like
-to call these ~Bot Transformers~. They offer another interesting way
-to extend the behaviors of our bots.
+something that recieves a ~Bot~ and produces some other ~Bot~. This is
+an overally powerful kind signature and allows for /any/
+transformation on a bot. For this reason we won't actually use it, but
+it gives a good intuition for what it means to transform a bot.
 
-For example, imagine we want to take one of our bots, such as
+For a first example, imagine we want to take one of our bots, such as
 ~coinFlipBot~, and run it on some protocol with distinct chat
 rooms. We want our ~coinFlipBot~ to be able to receive messages
 annotated with their source room and then produce messages annotated
 with the target room.
 
-We can define a ~Bot Transformer~ type to describe extending a bot
-with this notion of 'room awareness':
+We can describe this with a type alias that annotates a bot's input
+and output with 'room awareness':
 
 #+begin_src haskell
-  type RoomAware :: KBot -> KBot
   type RoomAware bot m s i o = bot m s (RoomID, i) (RoomID, o)
 #+end_src
 
@@ -477,9 +525,11 @@ their own todo lists. We could redesign the ~todoBot~ to support this
 explicitly, but we want to be able to define precise bots with narrow
 scopes which we can then extend through composition.
 
-What we really want is a bot transformer that 'sessionizes' a
-bot. This will involve transforming the bot's ~s~ state parameter in
-addition to its input and output.
+What we really want is a way 'sessionize' a bot. This will involve
+transforming the bot's ~s~ state parameter in addition to its input
+and output. This is still a rough sketch of an idea and I hope to
+write a follow up post going into greater detail, but the the core
+idea is to define the following types:
 
 #+begin_src haskell
   newtype SessionState s = SessionState { sessions :: Map.Map Int s }
@@ -499,8 +549,10 @@ addition to its input and output.
   type Sessionized bot m s i o = Bot m (SessionState s) (SessionInput i) (SessionOutput o)
 #+end_src
 
-Now we need a function for sessionizing bots and a function to map
+These types describe a language for interacting with a sessionized
+bot. Now we need a function for sessionizing bots and a function to map
 session inputs/outputs to ~Text~:
+
 #+begin_src haskell
 
   sessionize
@@ -509,27 +561,20 @@ session inputs/outputs to ~Text~:
     -> Bot m s i o
     -> Sessionized m s i o
   sessionize = _
-
-  simplifySessionBot
-    :: forall m s i o
-     . (Show s, Applicative m)
-    => (o -> T.Text)
-    -> (T.Text -> i)
-    -> Bot m s (SessionInput i) (SessionOutput o)
-    -> Bot m s Text Text
-  simplifySessionBot = _
 #+end_src
 
-Definitions for ~sessionize~ and ~simplifySessionBot~ can be found in
-the ~Cofree-Bot~ repo (or derived by the reader). The sessionized bot
-tracks a ~Map~ of session states for your embedded bot and runs the
-~Bot~ with the session requested by the user.
+A 'sessionized' bot would receive ~SessionInput~ input and dispatch
+the wrapped ~i~ term along with the appropriate state ~s~ term to the
+embedded bot. This idea isn't fully developed, but I hope it gives you
+an idea of what kinds of transformations are possible with this
+architecture.
 
 * Conclussion
 We have demonstrated the core bot architecture as well as
 constructing, interpreting, composing, and extending bots in various
 dimensions. More so then explaining how to build a chat bot, I hope
-this post inspires you to think more denotationally when designing
-your own projects.
+this post inspires you to think more algebraically about your program
+architectures and to leverage more of the powerful abstractions
+available to us in with Haskell.
 
 Special thanks to [[https://github.com/masaeedu][@masaeedu]], [[https://github.com/conjunctive][@iris]], and everyone else in the [[https://github.com/cofree-coffee/][Cofree-Coffee Org]].
