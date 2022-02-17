@@ -107,7 +107,7 @@ of ~StateContent~ it is possible to construct.
 
 NOTE: Be sure to keep enabling pragma's until GHC stops yelling at you. :)
 
-~EventType~ is our promoted data type. Notice that there is a 1:1
+~EventType~ is our promoted data type. Notice that there is a 1:1:1
 correspondance between constructors of all three types and that the
 promoted type is referenced in both GADTs.
 
