@@ -7,24 +7,23 @@ data is consistent then it is easy enough to write ~FromJSON~ and
 is not so consistent. 
 
 I am working on a library for the [[https://spec.matrix.org/latest/][Matrix Client-Server API]]. The Matrix
-Protocol is very interesting. Individual rooms contain a Key/Value
-store called the Room State in which you can store arbitrary JSON
-data. This allows for all sorts of interesting applications to be
+Protocol has some interesting design decisions. Individual rooms
+contain a Key/Value store called the Room State in which you can store
+arbitrary JSON data. This allows for all sorts of applications to be
 build ontop of Matrix.
 
 I wanted to write a function for querying the Room State using [[https://spec.matrix.org/v1.2/client-server-api/#get_matrixclientv3roomsroomidstateeventtypestatekey][this]]
 HTTP endpoint. The endpoint takes a ~RoomID~, an ~EventType~, and a
-~StateKey~. The Room State keys are a product of ~EventType~ and
-~StateKey~.
+~StateKey~. Keys in the Room State Key/Value Store are a product
+of ~EventType~ and ~StateKey~.
 
 Any arbitrary data can be stored in the Room State, but there is also
-a number of ~EventTypes~ defined in the Matrix spec with included
-schemas. For example ~m.room.topic~, ~m.room.name~, and
-~m.room_power_levels~. 
+a number of ~EventTypes~ defined in the Matrix spec with their own
+included schemas. For example event types ~m.room.topic~,
+~m.room.name~, and ~m.room_power_levels~.
 
-NOTE: In the interest of brevity and given that this post really isn't
-about Matrix am I going to drop ~StateKey~ going forward and treat the
-API as using just the ~EventType~ as the key.
+NOTE: In the interest of brevity I am going to drop ~StateKey~ going
+forward and treat the API as using just the ~EventType~ as the key.
 
 We want to write a Haskell function for fetching Room State. We know
 the schemas for the official Matrix Event Types so we can define a Sum
@@ -44,7 +43,7 @@ Type for those with a catchall for unknown event types:
     | ScOther Value
 #+end_src
 
-We factor out the content of construct into a bunch of record types.
+We factor out the contents of each construct into a bunch of record types.
 
 now we can write our api call:
 #+begin_src haskell
@@ -58,15 +57,15 @@ This totally works. However it kinda sucks.
 
 Every time we pattern match on ~StateContent~ we will have to handle
 every one of its cases. When we make the call to ~getRoomStateContent~
-we provide the ~EventType~ and ~StateKey~, therefore we can know
-exactly which response schema to expect. If we can convince GHC of
-what we already know, then we can eliminate all of the unneeded cases.
+we provide the ~EventType~, therefore we know exactly which response
+schema to expect. If we can convince GHC of what we already know, then
+we can eliminate all of the case matching.
 
-Our trick is to define ~StateContent~ and ~EventType~ as GADTs which
+Our trick is to define ~StateContent~ and ~EventTypeTag~ as GADTs which
 are both parameterized by a promoted type representing the key. The
-~EventType~ GADT is essentially a term level representation of our
-promoted ~EventType~ which allows us to tell the compiler what field
-of ~StateContent~ is possible to construct.
+~EventTypeTag~ GADT is essentially a term level representation of our
+promoted ~EventType~ which we will use to tell the compiler what field
+of ~StateContent~ it is possible to construct.
 
 #+begin_src haskell
   data EventType
@@ -106,11 +105,16 @@ of ~StateContent~ is possible to construct.
     OtherType             :: T.Text -> EventTypeTag 'Other
 #+end_src
 
-~EventType~ is our promoted data type. Notice that each GADT, there is
-only a single constructor for each ~EventType~ constructor. This means
-that for any given specialization of ~et~ in either ~EventTypeTag~ or
-~StateContent~, there is only one possible data constructor that can
-be produced and it is the one specified by the concrete type for ~et~!
+NOTE: Be sure to keep enabling pragma's until GHC stops yelling at you. :)
+
+~EventType~ is our promoted data type. Notice that there is a 1:1
+correspondance between constructors of all three types and that the
+promoted type is referenced in both GADTs.
+
+This means that for any given specialization of ~et~ in either
+~EventTypeTag~ or ~StateContent~, there is only one possible data
+constructor that can be produced and it is the one specified by the
+promoted ~EventType~ chosen for ~et~!
 
 All we have to do now is rewrite ~getRoomStateContent~ to take
 ~EventTypeTag et~ and return ~StateContent et~:
@@ -120,22 +124,19 @@ All we have to do now is rewrite ~getRoomStateContent~ to take
 #+end_src
 
 Note that we needed to add a ~FromJSON~ constraint. This is because
-~et~ is polymorphic. Unfortunately we will also have to write seperate
-~FromJSON~ instances for each constructor of ~StateContent~:
+~et~ is polymorphic. Unfortunately this also means we will also have
+to write seperate ~FromJSON~ instances for each constructor of
+~StateContent~:
 
 #+begin_src haskell
   instance J.FromJSON (StateContent Name) where
     parseJSON = ScRoomName <$> J.parseJSON
 
   instance J.FromJSON (StateContent Topic) where
-    parseJSON = J.withObject "RoomTopic" $ \o -> do
-      name <- o J..: "topic"
-      pure $ ScTopic name
+    parseJSON = ScTopic <$> J.parseJSON
 
   instance J.FromJSON (StateContent Other) where
-    parseJSON = J.withObject "Other" $ \o -> do
-      name <- o J..: "other"
-      pure $ ScOther name
+    parseJSON = ScOther <$> J.Parsejson
 
   -- And so on...
 #+end_src
