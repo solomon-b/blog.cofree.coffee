@@ -1,0 +1,172 @@
+#+AUTHOR: Solomon Bothwell
+#+TITLE: Polynomials For Fun and Profit
+
+I've been working on projects related to [[https://topos.site/poly-book.pdf][Polynomial Functors]] recently
+and I wanted to share a little bit of that work and why I find it so
+exciting.
+
+~Poly~ is the category of polynomials where objects are polynomials
+and morphisms are dependent lenses. It turns out that this category
+has a tremendous amount of power.
+
+We can use ~Poly~ describe algebraic data types, finite state
+machines, neural networks, user interfaces, game interactions, wiring
+diagrams, and any kind of general dynamical system.
+
+~Poly~ also has seven tensor products which allow for a huge range of
+compositional opportunities.
+
+~Poly~ has inherent dependencies which require to encode it in a
+dependently typed programming language. This admittedly limits the
+direct applicability until suitable dependently typed languages become
+more mainstream. Such work is certainely underway and in the mean time
+we can explore incredible potential of ~Poly~ using a proof checker
+such as Agda.
+
+* Objects in ~Poly~
+
+Our objects are literally the polynimals you may remember from gradeschool:
+
+#+begin_src 
+P(y) = y² + 2y + 1
+#+end_src
+
+In our categorification, we encode them as sums of ~Representable
+Functors~. For an explanation (and application!) of ~Representable
+Functors~, see my post on [[https://blog.cofree.coffee/2020-10-17-bounded-space-automata/][Bounded Space Automata]].
+
+The one-liner explanation of ~Representable~ is that some ~Functor~
+~f~ is said to be ~Representable~ by some type ~Rep f~ such that the
+elements of ~Rep f~ completely index the elements of ~f~. In other
+words we can write the following two isomorphic functions:
+
+#+begin_src haskell
+  tabulate :: (Rep f -> a) -> f a
+  index :: f a -> Rep f -> a
+#+end_src
+
+The simplest example would be to say that ~Identity~ is ~Representable~ by ~()~:
+
+#+begin_src haskell
+  tabulate :: (() -> a) -> Identity a
+  tabulate f = Identity (f ())
+  index :: Identity a -> () -> a
+  index (Identity a) () = a
+#+end_src
+
+With ~Fin~, the type of finite sets, we can say that an ~n~ sized
+tuple is representable by ~Fin n~. For example:
+
+#+begin_src agda
+  tabulate : ∀{A : Set} → (Fin 2 → A) → (A × A)
+  tabulate f = (f zero) , (f (suc zero))
+  
+  index : ∀{A : Set} → (A × A) → Fin 2 → A
+  index (a , b) zero = a
+  index (a , b) (suc z) = b
+#+end_src
+
+NOTE: This is the same as saying ~Vec n a~ is ~Representable~ by ~Fin
+n~.
+
+So how does this help us encode a polynomial?
+First, we can do a little manipulation of `P` to simplify the coefficients:
+
+#+begin_src 
+  P(y) = y² + 2y + 1
+  P(y) = y² + y¹ + y¹ + y⁰
+#+end_src
+
+Next we want to focus on those exponents.
+
+The exponent ~aᵇ~ corresponds to a function ~b → a~. By applying that
+knowledge to ~P~ we get:
+
+```
+P(y) = (2 → y) + (1 → y) + (1 → y) + (0 → y)
+```
+
+Lastly, lets interpret those naturals as finite sets:
+
+```
+P(x) = (Fin 2 → x) + (Fin 1 → x) + (Fin 1 → x) + (Fin 0 → x)
+```
+
+And voila! Each summand of ~P~ is a representable corresponding to a
+tuple of of length equal to the exponent.
+
+The polynomial ~P~ is thus a sum of representables.
+
+We can then ~tabulate~ each of our ~Representables~ and to produce a sum of tuples:
+
+#+begin_src 
+P(y) = (y × y) + y + y + 1
+data P y = One (y, y) | Two y | Three y | Four
+#+end_src
+NOTE: ~Two~ and ~Three~ are the one element tuple and ~Four~ is the zero element tuple.
+
+Thus we can also use polynomials to describe algebraic datatypes.
+
+Here are a couple more examples:
+
+#+begin_src haskell
+-- Identity(x) = x
+-- Identity(x) = (Fin 1 -> x)
+data Identity x = Identity x
+#+end_src
+
+#+begin_src haskell
+-- Maybe(x) = x + 1
+-- Maybe(x) = (Fin 1 → x) + 1
+data Maybe x = Just x | Nothing
+#+end_src
+
+* Visualization as Corolla Forests
+A helpful visualization tool is the so called Corolla Forest where we
+draw a forest of trees. We draw one tree per summand the number of
+branches corresponds to the size of the exponent.
+
+Here is the Corolla Forest for our friend ~y² + 2y + 1~:
+
+#+begin_src latex
+\[
+\begin{tikzpicture}[trees]
+  \node[label={[yshift=-1.5em] \textbf{1}}] (1) {$\bullet$}
+    child {}
+    child {};
+  \node[right=.5 of 1, label={[yshift=-1.5em] \textbf{2}}] (2) {$\bullet$} 
+    child {};
+  \node[right=.5 of 2, label={[yshift=-1.5em] \textbf{3}}] (3) {$\bullet$} 
+    child {};
+  \node[right=.5 of 3, label={[yshift=-1.5em] \textbf{4}}] (4) {$\bullet$};
+\end{tikzpicture}
+\]
+#+end_src
+
+* An encoding in Agda
+
+Now that we have a basic intuition for Polynomials as sums of
+~Representables~ we can move on to how we actually encode this in
+Agda. This will reveal the inherently dependent nature of polynomials.
+
+#+begin_src agda
+record Poly : Set where
+  constructor poly
+  field
+    Base : Set
+    Fiber : Base → Set
+#+end_src
+
+~Poly~ is a Sigma Type containing a type called the ~Base~ and a
+function called the ~Fiber~ from ~Base~ to ~Set~.
+
+Our friend ~y² + 2y + 1~ becomes:
+#+begin_src agda
+p : Poly
+p .Tag = Fin 4
+p .Args  = λ where
+  zero →  Fin 2
+  (suc zero) → Fin 1
+  (suc (suc zero)) →  Fin 1
+  (suc (suc (suc zero))) → Fin 0
+#+end_src
