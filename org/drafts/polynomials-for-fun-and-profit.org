@@ -314,5 +314,63 @@ backwards forwards tension of morphisms in ~Poly~ is central to the
 ability to represent dependent lenses and everything built ontop of
 them.
 
-* Store
-* Dependent Lenses
+* Poly Maps are Lenses
+
+Morphisms in ~Poly~ are Dependent Lenses. First off an expository
+definition of lenses:
+
+#+begin_src haskell
+  data Lens s t a b = Lens { get :: s -> a, set :: s -> b -> t }
+#+end_src
+
+This looks oddly similar to our ~Poly~ morphisms.
+
+If we define a little helper function for describing monomials:
+
+#+begin_src agda
+-- | S × Yᵀ
+monomial : Set → Set → Poly
+(monomial S T) .Tag = S
+(monomial S T) .Args  = λ _ → T
+#+end_src
+
+Because a monomial is constant on the exponent (~T~) we say that it is
+non-dependent. Morphisms between these monomials are then
+non-dependent lenses:
+
+#+begin_src agda
+Lens : Set → Set → Set → Set → Set
+Lens S T A B = monomial S T ⇒ monomial A B
+
+lens : ∀{S T A B : Set} → (S → A) → (S → B → T) → Lens S T A B
+(lens get set) .map-base = get
+(lens get set) .map-fiber = set
+
+view : ∀{S T A B : Set} → Lens S T A B → S → A
+view lens s = lens .map-base s
+
+set : ∀{S T A B : Set} → Lens S T A B → B → S → T
+set lens b s = lens .map-fiber s b
+#+end_src
+
+~get~ and ~set~ are literally ~map-base~ and ~map-fiber~!
+
+Since lenses are merely morphisms on ~Poly~ we can demonstrate that
+they compose correctly:
+
+#+begin_src agda
+projₗ : ∀{A B : Set} → Lens (A × B) (A × B) A A
+projₗ = lens proj₁ λ where
+  (fst , snd) → λ a → (a , snd)
+
+projᵣ : ∀{A B : Set} → Lens (A × B) (A × B) B B
+projᵣ = lens proj₂ λ where
+  (fst , snd) → λ b → (fst , b)
+
+example : Bool
+example = view (projₗ ⨟ₚ projᵣ) ((true , false) , false)
+#+end_src
+
+Now what about the Dependent part? For this--along with monoidal
+products, Moore Machines, and Wiring Diagrams--you will have to wait
+for my followup post.
