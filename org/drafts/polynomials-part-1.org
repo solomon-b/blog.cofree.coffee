@@ -1,5 +1,5 @@
 #+AUTHOR: Solomon Bothwell
-#+TITLE: Polynomials For Fun and Profit
+#+TITLE: Polynomials Part 1
 
 I've been working on projects related to [[https://topos.site/poly-book.pdf][Polynomial Functors]] recently
 and I wanted to share a little bit of that work and why I find it so
