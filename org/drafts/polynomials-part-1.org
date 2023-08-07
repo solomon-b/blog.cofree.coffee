@@ -1,46 +1,28 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Polynomials Part 1
 
-I've been working on projects related to [[https://topos.site/poly-book.pdf][Polynomial Functors]] recently
-and I wanted to share a little bit of that work and why I find it so
-exciting.
+I've been working on projects related to [[https://topos.site/poly-book.pdf][Polynomial Functors]] recently and I wanted to share a little bit of that work and why I find it so exciting.
 
-~Poly~ is the ~Category~ of polynomials where objects are polynomials
-,which turn out to be a special class of ~Functors~, making morphisms
-into ~Natural Transformations~ between those ~Functors~. It turns out
-that this category has a tremendous amount of power.
+~Poly~ is the ~Category~ of polynomials where objects are polynomials ,which turn out to be a special class of ~Functors~, making morphisms into ~Natural Transformations~ between those ~Functors~. It turns out that this category has a tremendous amount of power.
 
-We can use ~Poly~ describe algebraic data types, dependent lenses,
-finite state machines, neural networks, user interfaces, game
-interactions, wiring diagrams, and any kind of general dynamical
-system.
+We can use ~Poly~ describe algebraic data types, dependent lenses, finite state machines, neural networks, user interfaces, game interactions, wiring diagrams, and any kind of general dynamical system.
 
-~Poly~ also has seven tensor products which allow for a huge range of
-compositional opportunities.
+~Poly~ also has seven tensor products which allow for a huge range of compositional opportunities.
 
-~Poly~ has inherent dependencies which require to encode it in a
-dependently typed programming language. This admittedly limits the
-direct applicability until suitable dependently typed languages become
-more mainstream. Such work is certainely underway and in the mean time
-we can explore incredible potential of ~Poly~ using a proof checker
-such as Agda.
+~Poly~ has inherent dependencies which require to encode it in a dependently typed programming language. This admittedly limits the direct applicability until suitable dependently typed languages become more mainstream. Such work is certainely underway and in the mean time we can explore incredible potential of ~Poly~ using a proof checker such as Agda.
 
 * Objects in ~Poly~
 
-Our objects are literally the polynimals you may remember from gradeschool:
+Our objects are literally the polynomials you may remember from gradeschool:
 
 #+begin_src 
 P(y) = y² + 2y + 1
 #+end_src
 
-In our categorification, we encode them as sums of ~Representable
-Functors~. For an explanation (and application!) of ~Representable
-Functors~, see my post on [[https://blog.cofree.coffee/2020-10-17-bounded-space-automata/][Bounded Space Automata]].
+** ~Representable~ Refresher
+In our categorification, we encode polynomials as sums of ~Representable Functors~. For an explanation (and application!) of ~Representable Functors~, see my post on [[https://blog.cofree.coffee/2020-10-17-bounded-space-automata/][Bounded Space Automata]].
 
-The one-liner explanation of ~Representable~ is that some ~Functor~
-~f~ is said to be ~Representable~ by some type ~Rep f~ such that the
-elements of ~Rep f~ completely index the elements of ~f~. In other
-words we can write the following two isomorphic functions:
+The one-liner explanation of ~Representable~ is that some ~Functor~ ~f~ is said to be ~Representable~ by some type ~Rep f~ such that the elements of ~Rep f~ completely index the elements of ~f~. In other words we can write the following two isomorphic functions:
 
 #+begin_src haskell
   tabulate :: (Rep f -> a) -> f a
@@ -52,12 +34,12 @@ The simplest example would be to say that ~Identity~ is ~Representable~ by ~()~:
 #+begin_src haskell
   tabulate :: (() -> a) -> Identity a
   tabulate f = Identity (f ())
+
   index :: Identity a -> () -> a
   index (Identity a) () = a
 #+end_src
 
-With ~Fin~, the type of finite sets, we can say that an ~n~ sized
-tuple is representable by ~Fin n~. For example:
+With ~Fin~, the type of finite sets, we can say that an ~n~ sized tuple is representable by ~Fin n~. For example:
 
 #+begin_src agda
   tabulate : ∀{A : Set} → (Fin 2 → A) → (A × A)
@@ -68,88 +50,57 @@ tuple is representable by ~Fin n~. For example:
   index (a , b) (suc z) = b
 #+end_src
 
-NOTE: This is the same as saying ~Vec n a~ is ~Representable~ by ~Fin
-n~.
+NOTE: This is the same as saying ~Vec n a~ is ~Representable~ by ~Fin n~.
 
-So how does this help us encode a polynomial?
-First, we can do a little manipulation of `P` to simplify the coefficients:
+** Polynomials as Sums of ~Representables~
+
+We can go through a series of syntactic manipulations to see how polynomials can represent sums of ~Representables~.
+
+First, we can do a little algebraic manipulation of ~P~ to simplify the coefficients:
 
 #+begin_src 
   P(y) = y² + 2y + 1
   P(y) = y² + y¹ + y¹ + y⁰
 #+end_src
 
-Next we want to focus on those exponents.
+Now we have a sum of monomials of the form ~yⁿ~. Exponents ~aᵇ~ corresponds to a functions ~b → a~. By applying that knowledge to ~P~ we get:
 
-The exponent ~aᵇ~ corresponds to a function ~b → a~. By applying that
-knowledge to ~P~ we get:
-
-```
+#+begin_src 
 P(y) = (2 → y) + (1 → y) + (1 → y) + (0 → y)
-```
+#+end_src
 
-Lastly, lets interpret those naturals as finite sets:
+Lastly, to interpret natural numbers as types we convert them into finite sets:
 
-```
-P(x) = (Fin 2 → x) + (Fin 1 → x) + (Fin 1 → x) + (Fin 0 → x)
-```
+#+begin_src 
+P(y) = (Fin 2 → y) + (Fin 1 → y) + (Fin 1 → y) + (Fin 0 → y)
+#+end_src
 
-And voila! Each summand of ~P~ is a representable corresponding to a
-tuple of of length equal to the exponent.
+And voila! Each summand of ~P~ is of the form ~Fin _ → y~ where the ~Fin~ represents a tupe of size equal to the exponent. This makes  ~P~ a sum of ~Representables~!
 
-The polynomial ~P~ is thus a sum of representables.
-
-We can then ~tabulate~ each of our ~Representables~ and to produce a sum of tuples:
+We can go one step further and ~tabulate~ each of the ~Representables~
+to produce a sum of tuples:
 
 #+begin_src 
 P(y) = (y × y) + y + y + 1
+#+end_src
+
+This sum of tuples can be interpreted as the following Haskell data type:
+#+begin_src 
 data P y = One (y, y) | Two y | Three y | Four
 #+end_src
 NOTE: ~Two~ and ~Three~ are the one element tuple and ~Four~ is the zero element tuple.
 
-Thus we can also use polynomials to describe algebraic datatypes.
-
-Here are a couple more examples:
-
-#+begin_src haskell
--- Identity(x) = x
--- Identity(x) = (Fin 1 -> x)
-data Identity x = Identity x
-#+end_src
-
-#+begin_src haskell
--- Maybe(x) = x + 1
--- Maybe(x) = (Fin 1 → x) + 1
-data Maybe x = Just x | Nothing
-#+end_src
+All polynomials, when interpreted as data types, form ~Functors~. This is why we say the objects in ~Poly~ are Polynomial Functors.
 
 * Visualization as Corolla Forests
-A helpful visualization tool is the so called Corolla Forest where we
-draw a forest of trees. We draw one tree per summand the number of
-branches corresponds to the size of the exponent.
+A helpful visualization tool is the so called Corolla Forest where we draw a forest of trees. We draw one tree per summand the number of branches corresponds to the size of the exponent.
 
 Here is the Corolla Forest for our friend ~y² + 2y + 1~:
-
-#+begin_src latex
-\[
-\begin{tikzpicture}[trees]
-  \node[label={[yshift=-1.5em] \textbf{1}}] (1) {$\bullet$}
-    child {}
-    child {};
-  \node[right=.5 of 1, label={[yshift=-1.5em] \textbf{2}}] (2) {$\bullet$} 
-    child {};
-  \node[right=.5 of 2, label={[yshift=-1.5em] \textbf{3}}] (3) {$\bullet$} 
-    child {};
-  \node[right=.5 of 3, label={[yshift=-1.5em] \textbf{4}}] (4) {$\bullet$};
-\end{tikzpicture}
-\]
-#+end_src
+![y² + 2y + 1](corolla-forest.png)
 
 * An encoding in Agda
 
-Now that we have a basic intuition for Polynomials as sums of
-~Representables~ we can move on to how we actually encode this in
-Agda. This will reveal the inherently dependent nature of polynomials.
+Now that we have a basic intuition for Polynomials as sums of ~Representables~ we can move on to how we actually encode this in Agda. This will reveal the inherently dependent nature of polynomials.
 
 #+begin_src agda
 record Poly : Set where
@@ -173,8 +124,7 @@ p .Fiber  = λ where
   (suc (suc (suc zero))) → Fin 0
 #+end_src
 
-To interpret ~p~ into a ~Functor~, as we showed earlier, we use a Sigma
-type:
+To interpret ~p~ into a ~Functor~, as we showed earlier, we use a Sigma type:
 
 #+begin_src agda
 -- | Interpretation of a Poly as a functor @Set → Set@
@@ -182,15 +132,11 @@ type:
 ⟦ P ⟧ X = Σ[ label ∈ P .Base ] (P .Fiber label → X)
 #+end_src
 
-The Sigma here says that for each label in ~P.Base~ we have a function
-of type ~P.Fiber label → X~, where ~P.Fiber label~ represents the type
-for the ~label~ summaand.
+The Sigma here says that for each label in ~P.Base~ we have a function of type ~P.Fiber label → X~, where ~P.Fiber label~ is the ~Representable~ for the ~label~ summand.
 
 For example, the first summand of ~p~ is interpreted as ~Fin 2 → X~.
 
-One interesting trick here is that if we define all of our functors
-via ~Poly~ then we can define a parametrically polymorphic ~map~
-operation for all functors:
+One interesting trick here is that if we define all of our functors via ~Poly~ then we can define a parametrically polymorphic ~map~ operation for all functors:
 
 #+begin_src agda
 mapₚ : ∀{P : Poly} → ∀{A B : Set} → (A → B) → ⟦ P ⟧ A → ⟦ P ⟧ B
@@ -202,9 +148,7 @@ There is no need to define ad-hoc instances of ~fmap~ when using
 
 * Morphisms in ~Poly~
 
-Since objects in ~Poly~ are ~Functors~, morphisms in ~Poly~ must be
-~Natural Transformations~. We can use this very fast and loose type to
-use Agda to help us compute a definition for our morphisms:
+Since objects in ~Poly~ are ~Functors~, morphisms in ~Poly~ must be ~Natural Transformations~. We can use this very fast and loose type to use Agda to help us compute a definition for our morphisms:
 
 #+begin_src Agda
 ηₚ : ∀ {X : Set} → ∀{P Q : Poly} → ⟦ P ⟧ X → ⟦ Q ⟧ X
@@ -217,18 +161,14 @@ Goal: ⟦ Q ⟧ X
 F : ⟦ P ⟧ X
 #+end_src
 
-First of all, we know that our ~Functors~ are always encoded as Sigma
-Types. This means we can pattern match on the initial ~Functor~ and
-refine our hole with a tuple:
+First of all, we know that our ~Functors~ are always encoded as Sigma Types. This means we can pattern match on the initial ~Functor~ and refine our hole with a tuple:
 
 #+begin_src agda
 ηₚ : ∀ {X : Set} → ∀{P Q : Poly} → ⟦ P ⟧ X → ⟦ Q ⟧ X
 ηₚ (pbase , pfiber) = {!!} , {!!}
 #+end_src
 
-This also means that our morphism is going to be a product of two
-functions, one for the first projection of the Sigma and one for the
-second:
+This also means that our morphism is going to be a product of two functions, one for the first projection of the Sigma and one for the second:
 
 #+begin_src agda
 infixr 0 _⇒_
@@ -247,16 +187,11 @@ pfiber : P .Fiber pbase → X
 pbase  : P .Base
 #+end_src
 
-For our first hole we need to produce ~Q.Base~ which allows us to
-refine our definition ~map-base~ to ~??? → Q .Base~.
+For our first hole we need to produce ~Q.Base~ which allows us to refine our definition ~map-base~ to ~??? → Q .Base~.
 
-In scope we have the two projections of the initial ~Functor~. So
-~map-base~ must receive on or both of these. However we know that ~Q
-.Base~ is not dependent but ~P .Fiber~ is dependent. This means we
-cannot rely on ~P .Fiber~ to produce our ~Q .Base~.
+In scope we have the two projections of the initial ~Functor~. So ~map-base~ must receive on or both of these. However we know that ~Q .Base~ is not dependent but ~P .Fiber~ is dependent. This means we cannot rely on ~P .Fiber~ to produce our ~Q .Base~.
 
-This leaves us with ~pbase : P .Base~ which is not
-dependent. Therefore ~map-base~ /must/ be ~P .Base → Q .Base~.
+This leaves us with ~pbase : P .Base~ which is not dependent. Therefore ~map-base~ /must/ be ~P .Base → Q .Base~.
 
 Second Hole:
 #+begin_src agda
@@ -266,11 +201,7 @@ pfiber : P .Fiber pbase → X
 pbase  : P .Base
 #+end_src
 
-This second hole is a lot more tricky. Recall that we are dealing
-with ~Poly~ objects interpretered via ~⟦_⟧~. ~⟦_⟧~ produces a Sigma
-whose second projection goes from the fiber at the indexing base to
-~X~. The second projection of the ~Poly~ object itself doesn't
-actually produce an ~X~.
+This second hole is a lot more tricky. Recall that we are dealing with ~Poly~ objects interpretered via ~⟦_⟧~. ~⟦_⟧~ produces a Sigma whose second projection goes from the fiber at the indexing base to ~X~. The second projection of the ~Poly~ object itself doesn't actually produce an ~X~.
 
 Since our hole is a function we can refine it further with a lambda:
 
@@ -287,16 +218,11 @@ pfiber : P .Fiber pbase → X
 pbase  : P .Base
 #+end_src
 
-Now we have received a ~Q.Fiber~ and as we are dealing with the
-~Functor~ interpretation of ~Q~ we must be able to produce an ~X~.
+Now we have received a ~Q.Fiber~ and as we are dealing with the ~Functor~ interpretation of ~Q~ we must be able to produce an ~X~.
 
-The only way to do that is via ~pfiber : P .Fiber pbase → X~, which
-unintuitively means that ~map-fiber~ must produce a ~P .Fiber
-pbase~. Since the fiber is depndent our map must also consume the ~P
-.Fiber~.
+The only way to do that is via ~pfiber : P .Fiber pbase → X~, which unintuitively means that ~map-fiber~ must produce a ~P .Fiber pbase~. Since the fiber is depndent our map must also consume the ~P .Fiber~.
 
-The end result of all this confusion is a final type signature of ~(base : P
-.Base) → Q .Fiber (map-base base) → P .Fiber base~.
+The end result of all this confusion is a final type signature of ~(base : P .Base) → Q .Fiber (map-base base) → P .Fiber base~.
 
 Putting it all together we have:
 
@@ -309,15 +235,11 @@ record _⇒_ (P Q : Poly) : Set where
     map-fiber : (base : P .Base ) → Q .Fiber (map-tag base) → P .Fiber base
 #+end_src
 
-~map-base~ is easy to follow, but ~map-fiber~ is.. backwards. This
-backwards forwards tension of morphisms in ~Poly~ is central to the
-ability to represent dependent lenses and everything built ontop of
-them.
+~map-base~ is easy to follow, but ~map-fiber~ is.. backwards. This backwards forwards tension of morphisms in ~Poly~ is central to the ability to represent dependent lenses and everything built ontop of them.
 
 * Poly Maps are Lenses
 
-Morphisms in ~Poly~ are Dependent Lenses. First off an expository
-definition of lenses:
+Morphisms in ~Poly~ are Dependent Lenses. First off an expository definition of lenses:
 
 #+begin_src haskell
   data Lens s t a b = Lens { get :: s -> a, set :: s -> b -> t }
@@ -334,9 +256,7 @@ monomial : Set → Set → Poly
 (monomial S T) .Args  = λ _ → T
 #+end_src
 
-Because a monomial is constant on the exponent (~T~) we say that it is
-non-dependent. Morphisms between these monomials are then
-non-dependent lenses:
+Because a monomial is constant on the exponent (~T~) we say that it is non-dependent. Morphisms between these monomials are then non-dependent lenses:
 
 #+begin_src agda
 Lens : Set → Set → Set → Set → Set
@@ -355,8 +275,7 @@ set lens b s = lens .map-fiber s b
 
 ~get~ and ~set~ are literally ~map-base~ and ~map-fiber~!
 
-Since lenses are merely morphisms on ~Poly~ we can demonstrate that
-they compose correctly:
+Since lenses are merely morphisms on ~Poly~ we can demonstrate that they compose correctly:
 
 #+begin_src agda
 projₗ : ∀{A B : Set} → Lens (A × B) (A × B) A A
@@ -371,6 +290,4 @@ example : Bool
 example = view (projₗ ⨟ₚ projᵣ) ((true , false) , false)
 #+end_src
 
-Now what about the Dependent part? For this--along with monoidal
-products, Moore Machines, and Wiring Diagrams--you will have to wait
-for my followup post.
+Now what about the Dependent part? For this--along with monoidal products, Moore Machines, and Wiring Diagrams--you will have to wait for my followup post.
