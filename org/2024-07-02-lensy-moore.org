@@ -2,7 +2,7 @@
 #+TITLE: Lensy Moore
 
 
-* Morphisms in Poly
+** Morphisms in Poly
 Morphisms in ~Poly~ are dependent lenses:
 
 #+begin_src Agda
@@ -60,7 +60,7 @@ Diagram : Poly → Poly → Set
 Diagram P Q = P ⇒ Q
 #+end_src
 
-* Lensy Moore
+** Lensy Moore
 So how far can we get leveraging the ~lens~ library in Haskell to model Moore
 Machines and Wiring Diagrams?
 
@@ -143,7 +143,7 @@ delay :: Moore Int Int Int
 delay = lens id (\x y -> y)
 #+end_src
 
-* Tensor Product
+** Tensor Product
 This encoding is cute but we can take it a bit further. ~Poly~ has 7 monoidal
 structures, one of which is the parallel product aka ~tensor~ aka ~_⊗_~:
 
@@ -190,7 +190,7 @@ typeclass.
 
 With ~tensor~ we can take two ~Moore~ machines and run them in parallel.
 
-* Wiring Diagrams
+** Wiring Diagrams
 Since ~Poly~ is a ~Category~ it has a composition operation that composes ~P ⇒
 Q~ and ~Q ⇒ R~ into ~P ⇒ R~. We can visualize this using wiring diagrams
 
@@ -235,7 +235,7 @@ we can still do some neat stuff. For example, we can create a Fibonacci
 algorithm constructed out of a couple ~Moore~ machines and a wiring diagram that
 dictates how to plug them together.
 
-* Fibonacci
+** Fibonacci
 Our wiring diagram looks like this:
 #+begin_src 
 --              ┌────────────────────────┐
@@ -300,7 +300,7 @@ If we run this thing we get just what we expected:
 
 Trippy!
 
-* Moore-Mealy Pairings
+** Moore-Mealy Pairings
 As a bonus round here is ~Mealy~:
 
 #+begin_src haskell
