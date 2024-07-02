@@ -148,9 +148,10 @@ delay = lens id (\x y -> y)
 
 ## Tensor Product
 
-This encoding is cute but we can take it a bit further. `Poly` has 7
-monoidal structures, one of which is the parallel product aka `tensor`
-aka `_⊗_`:
+This encoding is cute but we can take it a bit further. `Poly` has
+infinite monoidal structures, and 5 notable ones. Of those five is the
+parallel product aka `tensor` aka `_⊗_` which is particularly useful
+when working with wiring diagrams.
 
 ``` Agda
 infixr 7 _⊗_
