@@ -1,9 +1,49 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Lensy Moore
 
+How far can we get leveraging the ~lens~ library in Haskell to model Moore
+Machines and Wiring Diagrams?
 
 ** Morphisms in Poly
-Morphisms in ~Poly~ are dependent lenses:
+First off we need a rapid pre-amble on the category of polynomials and how it
+can be used to model Moore Machines and Wiring Diagrams.
+
+Objects in ~Poly~ are defined as sums of representable functors and can be
+written in Agda as:
+
+#+begin_src Agda
+record Poly : Set where
+  no-eta-equality
+  field
+    Base : Set
+    Fiber : Base → Set
+
+-- | S × Yᵀ
+monomial : Set → Set → Poly
+(monomial S T) .Base = S
+(monomial S T) .Fiber  = λ _ → T
+
+_y^_ = monomial
+#+end_src
+
+For example, ~2y^2~ becomes:
+
+#+begin_src Agda
+2y^2 : Poly
+Base 2y^2 = Fin 2
+Fiber 2y^2 = λ where
+  zero → Fin 2
+  suc zero → Fin 2
+#+end_src
+
+Objects in ~Poly~ are in fact functors ~Set → Set~:
+
+#+begin_src agda
+⟦_⟧ : ∀ {a b} → Poly → (Set a → Set b)
+⟦ P ⟧ X = Σ[ base ∈ P .Base ] (P .Fiber base → X)
+#+end_src
+
+Morphisms are then natural transformations:
 
 #+begin_src Agda
 record _⇒_ (P Q : Poly) : Set where
@@ -13,11 +53,17 @@ record _⇒_ (P Q : Poly) : Set where
     map-fiber : (tag : P .Base ) → Q .Fiber (map-base tag) → P .Fiber tag
 #+end_src
 
-We can demonstrate non-dependent lenses quite clearly:
+If you squint your eyes you can see that ~map-base~ and ~map-fiber~ have the
+same shape as ~get~ and ~set~ for lenses. This is because ~Poly Maps~ are actually
+dependent lenses.
+
+Since were ultimately going to translate into Haskell we can ignore the
+dependency and just look at how to to build non-dependent lenses with ~Poly
+Maps~:
 
 #+begin_src Agda
 Lens : Set → Set → Set → Set → Set
-Lens S T A B = monomial S T ⇒ monomial A B
+Lens S T A B = S y^ T ⇒ A y^ B
 
 view : ∀{S T A B : Set} → Lens S T A B → S → A
 view lens s = lens .map-base s
@@ -61,9 +107,6 @@ Diagram P Q = P ⇒ Q
 #+end_src
 
 ** Lensy Moore
-So how far can we get leveraging the ~lens~ library in Haskell to model Moore
-Machines and Wiring Diagrams?
-
 First off we need to overload ~view~ and ~set~ to get some more polymorphism:
 
 #+begin_src haskell
@@ -74,7 +117,7 @@ set :: Lens s t a b -> s -> b -> t
 set l s b = runIdentity $ l (\_ -> Identity b) s
 #+end_src
 
-With that out of the way we can define ~Moore~ as a type alias and use ~get~
+With that out of the way we can define ~Moore~ as a type alias and use ~view~
 and ~set~ for our observation and transition functions:
 
 #+begin_src haskell
@@ -144,9 +187,9 @@ delay = lens id (\x y -> y)
 #+end_src
 
 ** Tensor Product
-This encoding is cute but we can take it a bit further. ~Poly~ has infinite monoidal
-structures, and 5 notable ones. Of those five is the parallel product aka
-~tensor~ aka ~_⊗_~ which is particularly useful when working with wiring diagrams.
+~Poly~ has infinite monoidal structures, and five notable ones. Of those five is
+the parallel product aka ~tensor~ aka ~_⊗_~ which is particularly useful when
+working with wiring diagrams.
 
 #+begin_src Agda
 infixr 7 _⊗_
@@ -169,7 +212,7 @@ tensor m n =
 #+end_src
 
 ~tensor~ also happens to be the ~combine~ operation of a 3 parameter monoidal
-functor:
+functor ~(C, (,), ()) → (D, (,), ())~:
 
 #+begin_src haskell
 class Monoidal3 f where
@@ -339,6 +382,6 @@ annihilate (s, t) moore mealy =
 We leveraged this idea in [[https://github.com/cofree-coffee/cofree-bot/blob/main/chat-bots/src/Data/Chat/Server.hs#L91-L100][cofree-bot]] to combine a chat bot with a server
 protocol.
 
-I suspect there could be an interesting way of sequencing effects using this
+There ought to be an interesting way of sequencing effects using this
 concept. For example, a webserver as a ~Mealy~ machine annihilated against a
 ~Moore~ machine representing the real world.
