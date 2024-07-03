@@ -1,6 +1,5 @@
 ---
 author: Solomon Bothwell
-date: 2020-1016
 title: Hello World
 ---
 

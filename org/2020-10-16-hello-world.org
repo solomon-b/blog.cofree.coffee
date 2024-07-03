@@ -1,6 +1,5 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Hello World
-#+DATE: 2020-1016
 
 Its October 2020, COVID-19 has wreaked havoc across the globe, the
 US is deeply divided along partisan lines, the environment is in
