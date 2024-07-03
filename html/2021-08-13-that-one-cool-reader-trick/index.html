@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/style.css" />
   <style>
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -20,7 +20,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -46,7 +46,7 @@ code span.al { color: #ff0000; font-weight: bold; } /* Alert */
 code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
 code span.at { color: #7d9029; } /* Attribute */
 code span.bn { color: #40a070; } /* BaseN */
-code span.bu { } /* BuiltIn */
+code span.bu { color: #008000; } /* BuiltIn */
 code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
 code span.ch { color: #4070a0; } /* Char */
 code span.cn { color: #880000; } /* Constant */
@@ -59,7 +59,7 @@ code span.er { color: #ff0000; font-weight: bold; } /* Error */
 code span.ex { } /* Extension */
 code span.fl { color: #40a070; } /* Float */
 code span.fu { color: #06287e; } /* Function */
-code span.im { } /* Import */
+code span.im { color: #008000; font-weight: bold; } /* Import */
 code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
 code span.kw { color: #007020; font-weight: bold; } /* Keyword */
 code span.op { color: #666666; } /* Operator */
@@ -82,33 +82,57 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <header id="title-block-header">
 <h1 class="title">That One Cool Reader Trick</h1>
 </header>
-<p>If you are writing an interpreter, odds are you will want to bind variables. If you are binding variables, there is a decent chance you will want to locally scope your variables.</p>
-<p>For tracking your bindings, your first thought might be to reach for the <code>State</code> monad. Unfortunately it will get you a global binding context and many tears.</p>
-<p>It sure would be a shame of <code>x</code> in the function <code>f</code> was bound over the globally scoped <code>x</code>:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<p>If you are writing an interpreter, odds are you will want to bind
+variables. If you are binding variables, there is a decent chance you
+will want to locally scope your variables.</p>
+<p>For tracking your bindings, your first thought might be to reach for
+the <code>State</code> monad. Unfortunately it will get you a global
+binding context and many tears.</p>
+<p>It sure would be a shame of <code>x</code> in the function
+<code>f</code> was bound over the globally scoped <code>x</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> f <span class="op">=</span> (x) <span class="kw">=&gt;</span> x <span class="op">+</span> <span class="dv">1</span><span class="op">;</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">f</span>(<span class="dv">5</span>) <span class="op">&gt;</span> x<span class="op">;</span></span></code></pre></div>
-<p>Luckily there is a really neat trick using the <code>Reader</code> monad to get local scoping for free.</p>
+<p>Luckily there is a really neat trick using the <code>Reader</code>
+monad to get local scoping for free.</p>
 <h1 id="typing-the-lambda-calculus">Typing The Lambda Calculus</h1>
-<p>Lets say we want to write a typechecker for a minimal Simply Typed Lambda Calculus. Our Types will look like:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Term</span> <span class="ot">=</span> <span class="dt">Var</span> <span class="dt">String</span></span>
+<p>Lets say we want to write a typechecker for a minimal Simply Typed
+Lambda Calculus. Our Types will look like:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Term</span> <span class="ot">=</span> <span class="dt">Var</span> <span class="dt">String</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>          <span class="op">|</span> <span class="dt">Abs</span> <span class="dt">String</span> <span class="dt">Type</span> <span class="dt">Term</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>          <span class="op">|</span> <span class="dt">App</span> <span class="dt">Term</span> <span class="dt">Term</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Type</span> <span class="ot">=</span> <span class="dt">Type</span> <span class="op">:-&gt;</span> <span class="dt">Type</span> <span class="op">|</span> <span class="dt">UnitT</span> <span class="op">|</span> <span class="dt">BoolT</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> <span class="dt">Eq</span></span></code></pre></div>
-<p><code>Term</code> is our Term AST, <code>Type</code> is our types. In this calculus all we can construct are functions that take functions as arguments.</p>
-<p>Now for our typechecker we want to traverse the AST, collecting all our bindings and their types as we pass over Lambda terms (<code>Abs</code>) and then return the type of the entire expression.</p>
-<p>We will our save our types in the typing context which we call <code>Context</code>:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Context</span> <span class="ot">=</span> [(<span class="dt">String</span>, <span class="dt">Type</span>)]</span></code></pre></div>
-<p><code>Context</code> is a mapping from binder to <code>Type</code>.</p>
-<p>Each time we pass through a Lambda term we must create a new local context with everything above that Lambda term plus the new local binding.</p>
-<h1 id="setting-up-our-transformer-stack">Setting up our transformer stack</h1>
-<p>An ill typed term should terminate the typechecker and throw an error. For this we use <code>ExceptT</code>.</p>
-<p>For managing our <code>Context</code> I already revealed that we will use <code>Reader</code>. This may still seem like an unusual choice, but as we will see, it is in fact the ideal candidate for local state.</p>
+<p><code>Term</code> is our Term AST, <code>Type</code> is our types. In
+this calculus all we can construct are functions that take functions as
+arguments.</p>
+<p>Now for our typechecker we want to traverse the AST, collecting all
+our bindings and their types as we pass over Lambda terms
+(<code>Abs</code>) and then return the type of the entire
+expression.</p>
+<p>We will our save our types in the typing context which we call
+<code>Context</code>:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Context</span> <span class="ot">=</span> [(<span class="dt">String</span>, <span class="dt">Type</span>)]</span></code></pre></div>
+<p><code>Context</code> is a mapping from binder to
+<code>Type</code>.</p>
+<p>Each time we pass through a Lambda term we must create a new local
+context with everything above that Lambda term plus the new local
+binding.</p>
+<h1 id="setting-up-our-transformer-stack">Setting up our transformer
+stack</h1>
+<p>An ill typed term should terminate the typechecker and throw an
+error. For this we use <code>ExceptT</code>.</p>
+<p>For managing our <code>Context</code> I already revealed that we will
+use <code>Reader</code>. This may still seem like an unusual choice, but
+as we will see, it is in fact the ideal candidate for local state.</p>
 <p>Our final Typechecking Monad is thus:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Context</span> <span class="ot">=</span> [(<span class="dt">String</span>, <span class="dt">Type</span>)]</span>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Context</span> <span class="ot">=</span> [(<span class="dt">String</span>, <span class="dt">Type</span>)]</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">TypeErr</span> <span class="ot">=</span> <span class="dt">TypeError</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
@@ -116,18 +140,35 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">TypecheckM</span> a <span class="ot">=</span></span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">TypecheckM</span> {<span class="ot"> unTypecheckM ::</span> <span class="dt">ExceptT</span> <span class="dt">TypeErr</span> (<span class="dt">Reader</span> <span class="dt">Context</span>) a }</span>
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Functor</span>, <span class="dt">Applicative</span>, <span class="dt">Monad</span>, <span class="dt">MonadReader</span> <span class="dt">Context</span>, <span class="dt">MonadError</span> <span class="dt">TypeErr</span>)</span></code></pre></div>
-<h1 id="the-basic-operation-of-our-typechecker">The Basic Operation of our Typechecker</h1>
-<p>In general we know that what we want to do is traverse an AST and build up the type of the expression represnted by the AST. If at any point the type of the AST (or a supexpression of the AST) violates our typing judgements then we have a type error and abort the traversal.</p>
-<p>Our typechecker is a functon <code>Term -&gt; TypecheckM Type</code>. The implementation will amount to a giant case statement with some monadic effects for throwing errors and accumulating the typing context.</p>
-<p>Our minimal calculus conssists soley of Lambda terms (<code>Abs</code>), variables (<code>Var</code>), and function application <code>App</code>.</p>
+<h1 id="the-basic-operation-of-our-typechecker">The Basic Operation of
+our Typechecker</h1>
+<p>In general we know that what we want to do is traverse an AST and
+build up the type of the expression represnted by the AST. If at any
+point the type of the AST (or a supexpression of the AST) violates our
+typing judgements then we have a type error and abort the traversal.</p>
+<p>Our typechecker is a functon <code>Term -&gt; TypecheckM Type</code>.
+The implementation will amount to a giant case statement with some
+monadic effects for throwing errors and accumulating the typing
+context.</p>
+<p>Our minimal calculus conssists soley of Lambda terms
+(<code>Abs</code>), variables (<code>Var</code>), and function
+application <code>App</code>.</p>
 <p>In plain english, our typing rules are as follows:</p>
 <ol>
-<li>Var: Lookup the binder in <code>Context</code> and return it. If the binder does not exist in <code>Context</code> then throw a type error.</li>
-<li>App: Check the types of the two sub terms. The first one must be of type <code>T1 :-&gt; T2</code> where the second sub term is of type <code>T1</code>, then return <code>T2</code>.</li>
-<li>Abs: Create a new local scope for the term <code>T : T1</code> in context, then typecheck the body of the Lambda. The type of the <code>Abs</code> term is <code>T1 :-&gt; T2</code> where the body is of type <code>T2</code>.</li>
+<li>Var: Lookup the binder in <code>Context</code> and return it. If the
+binder does not exist in <code>Context</code> then throw a type
+error.</li>
+<li>App: Check the types of the two sub terms. The first one must be of
+type <code>T1 :-&gt; T2</code> where the second sub term is of type
+<code>T1</code>, then return <code>T2</code>.</li>
+<li>Abs: Create a new local scope for the term <code>T : T1</code> in
+context, then typecheck the body of the Lambda. The type of the
+<code>Abs</code> term is <code>T1 :-&gt; T2</code> where the body is of
+type <code>T2</code>.</li>
 </ol>
 <h1 id="our-typechecker">Our Typechecker</h1>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">typecheck ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">TypecheckM</span> <span class="dt">Type</span></span>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">typecheck ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">TypecheckM</span> <span class="dt">Type</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>typecheck <span class="ot">=</span> \<span class="kw">case</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Var</span> x <span class="ot">-&gt;</span> <span class="kw">do</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    ty <span class="ot">&lt;-</span> asks <span class="op">$</span> <span class="fu">lookup</span> x</span>
@@ -142,8 +183,17 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        ty2 <span class="ot">&lt;-</span> typecheck t2</span>
 <span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> tyA <span class="op">==</span> ty2 <span class="kw">then</span> <span class="fu">pure</span> tyB <span class="kw">else</span> throwError <span class="dt">TypeError</span></span>
 <span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>      _ <span class="ot">-&gt;</span> throwError <span class="dt">TypeError</span></span></code></pre></div>
-<p>The <code>Reader</code> trick happens in the <code>Abs</code> case where we introduce a new binder. Notice the use of <code>local :: MonadReader r m =&gt; (r -&gt; r) -&gt; m a
--&gt; m a</code>. This function allows us to create a new local <code>Reader</code> context using an <code>r -&gt; r</code> function and the current context <code>r</code>.</p>
-<p>In our case <code>r</code> is <code>Context</code> and our <code>r -&gt; r</code> function simply cons's the new binder and its type onto our <code>Context</code>. This little one liner allows us to create a brand new scope every time we recurse through a Lambda term. We don't need to do anything complicated to track the scope of our bindings at all. Pretty neat. :)</p>
+<p>The <code>Reader</code> trick happens in the <code>Abs</code> case
+where we introduce a new binder. Notice the use of
+<code>local :: MonadReader r m =&gt; (r -&gt; r) -&gt; m a
+-&gt; m a</code>. This function allows us to create a new local
+<code>Reader</code> context using an <code>r -&gt; r</code> function and
+the current context <code>r</code>.</p>
+<p>In our case <code>r</code> is <code>Context</code> and our
+<code>r -&gt; r</code> function simply cons's the new binder and its
+type onto our <code>Context</code>. This little one liner allows us to
+create a brand new scope every time we recurse through a Lambda term. We
+don't need to do anything complicated to track the scope of our bindings
+at all. Pretty neat. :)</p>
 </body>
 </html>

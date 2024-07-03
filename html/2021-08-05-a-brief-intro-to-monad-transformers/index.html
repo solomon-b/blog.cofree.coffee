@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/style.css" />
   <style>
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -20,7 +20,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -46,7 +46,7 @@ code span.al { color: #ff0000; font-weight: bold; } /* Alert */
 code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
 code span.at { color: #7d9029; } /* Attribute */
 code span.bn { color: #40a070; } /* BaseN */
-code span.bu { } /* BuiltIn */
+code span.bu { color: #008000; } /* BuiltIn */
 code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
 code span.ch { color: #4070a0; } /* Char */
 code span.cn { color: #880000; } /* Constant */
@@ -59,7 +59,7 @@ code span.er { color: #ff0000; font-weight: bold; } /* Error */
 code span.ex { } /* Extension */
 code span.fl { color: #40a070; } /* Float */
 code span.fu { color: #06287e; } /* Function */
-code span.im { } /* Import */
+code span.im { color: #008000; font-weight: bold; } /* Import */
 code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
 code span.kw { color: #007020; font-weight: bold; } /* Keyword */
 code span.op { color: #666666; } /* Operator */
@@ -82,15 +82,26 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <header id="title-block-header">
 <h1 class="title">A Brief Intro to Monad Transformers</h1>
 </header>
-<p>A few friends have recently asked about literature introducing <code>Monad
-Transformers</code>. The best introduction I have found was in <a href="https://haskellbook.com/">Haskell Programming From First Principles</a>. If you don't have, or want to purchase, this book, then here is a brief explanation with examples.</p>
+<p>A few friends have recently asked about literature introducing
+<code>Monad
+Transformers</code>. The best introduction I have found was in <a
+href="https://haskellbook.com/">Haskell Programming From First
+Principles</a>. If you don't have, or want to purchase, this book, then
+here is a brief explanation with examples.</p>
 <p>Lets start with the problem they solve.</p>
-<h1 id="functors-and-applicatives-compose">Functors and Applicatives Compose</h1>
-<p><code>Functor</code> and <code>Applicative</code> are both closed under composition. If we compose any two <code>Functor</code> or <code>Applicative</code> types then we get a <code>Functor</code> or <code>Applicative</code>.</p>
+<h1 id="functors-and-applicatives-compose">Functors and Applicatives
+Compose</h1>
+<p><code>Functor</code> and <code>Applicative</code> are both closed
+under composition. If we compose any two <code>Functor</code> or
+<code>Applicative</code> types then we get a <code>Functor</code> or
+<code>Applicative</code>.</p>
 <p>We can do this composition with the <code>Compose</code> newtype:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Compose</span> f g a <span class="ot">=</span> <span class="dt">Compose</span> (f (g a))</span></code></pre></div>
-<p>The composition is witnessed by the <code>Functor</code> and <code>Applicative</code> instances for <code>Compose</code>:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> (<span class="dt">Functor</span> f, <span class="dt">Functor</span> g) <span class="ot">=&gt;</span> <span class="dt">Functor</span> (<span class="dt">Compose</span> f g) <span class="kw">where</span></span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Compose</span> f g a <span class="ot">=</span> <span class="dt">Compose</span> (f (g a))</span></code></pre></div>
+<p>The composition is witnessed by the <code>Functor</code> and
+<code>Applicative</code> instances for <code>Compose</code>:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> (<span class="dt">Functor</span> f, <span class="dt">Functor</span> g) <span class="ot">=&gt;</span> <span class="dt">Functor</span> (<span class="dt">Compose</span> f g) <span class="kw">where</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  fmap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Compose</span> f g a <span class="ot">-&gt;</span> <span class="dt">Compose</span> f g b</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmap</span> f (<span class="dt">Compose</span> x) <span class="ot">=</span> <span class="dt">Compose</span> (<span class="fu">fmap</span> (<span class="fu">fmap</span> f) x)</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -100,37 +111,54 @@ Transformers</code>. The best introduction I have found was in <a href="https://
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="ot">  liftA2 ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> <span class="dt">Compose</span> f g a <span class="ot">-&gt;</span> <span class="dt">Compose</span> f g b <span class="ot">-&gt;</span> <span class="dt">Compose</span> f g c</span>
 <span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  liftA2 f (<span class="dt">Compose</span> x) (<span class="dt">Compose</span> y) <span class="ot">=</span> <span class="dt">Compose</span> (liftA2 (liftA2 f) x y)</span></code></pre></div>
-<p>Now we can compose <code>Functors</code> together and get combined effects:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> xs <span class="ot">=</span> <span class="dt">Compose</span> [<span class="dt">Just</span> <span class="dt">True</span>, <span class="dt">Just</span> <span class="dt">False</span>, <span class="dt">Nothing</span>]</span>
+<p>Now we can compose <code>Functors</code> together and get combined
+effects:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> xs <span class="ot">=</span> <span class="dt">Compose</span> [<span class="dt">Just</span> <span class="dt">True</span>, <span class="dt">Just</span> <span class="dt">False</span>, <span class="dt">Nothing</span>]</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> <span class="op">:</span>t xs</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ot">xs ::</span> <span class="dt">Compose</span> [] <span class="dt">Maybe</span> <span class="dt">Bool</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> <span class="fu">fmap</span> <span class="fu">not</span> xs</span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="dt">Compose</span> [<span class="dt">Just</span> <span class="dt">False</span>,<span class="dt">Just</span> <span class="dt">True</span>,<span class="dt">Nothing</span>]</span></code></pre></div>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> xs</span>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> xs</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Compose</span> [<span class="dt">Just</span> <span class="dt">True</span>,<span class="dt">Just</span> <span class="dt">False</span>,<span class="dt">Nothing</span>]</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ys</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="dt">Compose</span> [<span class="dt">Just</span> <span class="dt">False</span>,<span class="dt">Just</span> <span class="dt">True</span>,<span class="dt">Nothing</span>]</span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> liftA2 (<span class="op">||</span>) xs ys</span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="dt">Compose</span> [<span class="dt">Just</span> <span class="dt">True</span>,<span class="dt">Just</span> <span class="dt">True</span>,<span class="dt">Nothing</span>,<span class="dt">Just</span> <span class="dt">False</span>,<span class="dt">Just</span> <span class="dt">True</span>,<span class="dt">Nothing</span>,<span class="dt">Nothing</span>,<span class="dt">Nothing</span>,<span class="dt">Nothing</span>]</span></code></pre></div>
-<p>We can do this with <em>any</em> two <code>Functors</code>. That is Really Cool:tm:.</p>
-<p>But What about <code>Monad</code>? Can we write a <code>Monad</code> instance for <code>Compose</code>?</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> (<span class="dt">Monad</span> f, <span class="dt">Monad</span> g) <span class="ot">=&gt;</span> <span class="dt">Monad</span> (<span class="dt">Compose</span> f g) <span class="kw">where</span></span>
+<p>We can do this with <em>any</em> two <code>Functors</code>. That is
+Really Cool:tm:.</p>
+<p>But What about <code>Monad</code>? Can we write a <code>Monad</code>
+instance for <code>Compose</code>?</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> (<span class="dt">Monad</span> f, <span class="dt">Monad</span> g) <span class="ot">=&gt;</span> <span class="dt">Monad</span> (<span class="dt">Compose</span> f g) <span class="kw">where</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  return ::</span> a <span class="ot">-&gt;</span> <span class="dt">Compose</span> f g a</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> <span class="ot">=</span> <span class="fu">pure</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ot">  (&gt;&gt;=) ::</span> <span class="dt">Compose</span> f g a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">Compose</span> f g b) <span class="ot">-&gt;</span> <span class="dt">Compose</span> f g b</span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Compose</span> fga <span class="op">&gt;&gt;=</span> f <span class="ot">=</span> _</span></code></pre></div>
-<p>What we are trying to do in this <code>&gt;&gt;=</code> instance is combine these two functions:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">Monad</span> f <span class="ot">=&gt;</span> f a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> f b</span>
+<p>What we are trying to do in this <code>&gt;&gt;=</code> instance is
+combine these two functions:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">Monad</span> f <span class="ot">=&gt;</span> f a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> f b</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Monad</span> g <span class="ot">=&gt;</span> g a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> g b) <span class="ot">-&gt;</span> g b</span></code></pre></div>
 <p>Into this function:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>(<span class="dt">Monad</span> f, <span class="dt">Monad</span> g) <span class="ot">=&gt;</span> f (g a) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> f (g b)) <span class="ot">-&gt;</span> f g b</span></code></pre></div>
-<p>It turns out this is impossible. If we look at the combined <code>join</code> type we can see the knot we have created:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">join ::</span> (<span class="dt">Monad</span> f, <span class="dt">Monad</span> g) <span class="ot">=&gt;</span> f (g (f (g a))) <span class="ot">-&gt;</span> f (g a)</span></code></pre></div>
-<p>There simply is no way to implement this while keeping both <code>Monads</code> polymorphic.</p>
-<h1 id="introducing-monad-transformers">Introducing Monad Transformers</h1>
-<p>The fundamental problem with composing two polymorphic <code>Monads</code> is the polymorphism. If we could make one of the <code>Monads</code> concrete then we could define <code>bind</code> and <code>join</code>:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">  bind ::</span> <span class="dt">Monad</span> f <span class="ot">=&gt;</span> f (<span class="dt">Maybe</span> a) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> f (<span class="dt">Maybe</span> b)) <span class="ot">-&gt;</span> f (<span class="dt">Maybe</span> b)</span>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>(<span class="dt">Monad</span> f, <span class="dt">Monad</span> g) <span class="ot">=&gt;</span> f (g a) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> f (g b)) <span class="ot">-&gt;</span> f g b</span></code></pre></div>
+<p>It turns out this is impossible. If we look at the combined
+<code>join</code> type we can see the knot we have created:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">join ::</span> (<span class="dt">Monad</span> f, <span class="dt">Monad</span> g) <span class="ot">=&gt;</span> f (g (f (g a))) <span class="ot">-&gt;</span> f (g a)</span></code></pre></div>
+<p>There simply is no way to implement this while keeping both
+<code>Monads</code> polymorphic.</p>
+<h1 id="introducing-monad-transformers">Introducing Monad
+Transformers</h1>
+<p>The fundamental problem with composing two polymorphic
+<code>Monads</code> is the polymorphism. If we could make one of the
+<code>Monads</code> concrete then we could define <code>bind</code> and
+<code>join</code>:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">  bind ::</span> <span class="dt">Monad</span> f <span class="ot">=&gt;</span> f (<span class="dt">Maybe</span> a) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> f (<span class="dt">Maybe</span> b)) <span class="ot">-&gt;</span> f (<span class="dt">Maybe</span> b)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  bind ma f <span class="ot">=</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    ma <span class="op">&gt;&gt;=</span> \<span class="kw">case</span></span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="dt">Nothing</span></span>
@@ -143,22 +171,31 @@ Transformers</code>. The best introduction I have found was in <a href="https://
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Just</span> a <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">Just</span> a</span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="dt">Nothing</span></span></code></pre></div>
 <p>This is <code>Monad Transformers</code> in a nutshell!</p>
-<p>As long as we know at least one of the <code>Monads</code> at play then we have a pathway to compose them. We can create special Transformer versions of all our standard <code>Monads</code> which will have a slot for a second polymorphic monad:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">IdentityT</span> m a <span class="ot">=</span> <span class="dt">IdentityT</span> {<span class="ot"> runIdentityT ::</span> m a }</span>
+<p>As long as we know at least one of the <code>Monads</code> at play
+then we have a pathway to compose them. We can create special
+Transformer versions of all our standard <code>Monads</code> which will
+have a slot for a second polymorphic monad:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">IdentityT</span> m a <span class="ot">=</span> <span class="dt">IdentityT</span> {<span class="ot"> runIdentityT ::</span> m a }</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">MaybeT</span> m a <span class="ot">=</span> <span class="dt">MaybeT</span> {<span class="ot"> runMaybeT ::</span> m (<span class="dt">Maybe</span> a) }</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">ExceptT</span> e m a <span class="ot">=</span> <span class="dt">ExceptT</span> {<span class="ot"> runExceptT ::</span> m (<span class="dt">Either</span> e a) }</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">ListT</span> m a <span class="ot">=</span> <span class="dt">ListT</span> {<span class="ot"> runListT ::</span> m [a] }</span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">StateT</span> s m a <span class="ot">=</span> <span class="dt">StateT</span> {<span class="ot"> runStateT ::</span> s <span class="ot">-&gt;</span> m (a, s) }</span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- etc</span></span></code></pre></div>
-<p>An interesting side note is that you can recover all the standard <code>Monad</code> variants by selecting <code>Identity</code> for the <code>m</code> parameter:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Identity</span> a <span class="ot">=</span> <span class="dt">IdentityT</span> <span class="dt">Identity</span> a</span>
+<p>An interesting side note is that you can recover all the standard
+<code>Monad</code> variants by selecting <code>Identity</code> for the
+<code>m</code> parameter:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Identity</span> a <span class="ot">=</span> <span class="dt">IdentityT</span> <span class="dt">Identity</span> a</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Maybe</span> a <span class="ot">=</span> <span class="dt">MaybeT</span> <span class="dt">Identity</span> a</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Either&#39;</span> e a <span class="ot">=</span> <span class="dt">ExceptT</span> e <span class="dt">Identity</span> a</span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">List</span> a <span class="ot">=</span> <span class="dt">ListT</span> <span class="dt">Identity</span> a</span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">State</span> s a <span class="ot">=</span> <span class="dt">StateT</span> s <span class="dt">Identity</span> a</span>
 <span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- etc</span></span></code></pre></div>
-<p>I'll show the instances for <code>MaybeT</code> and the rest are left as an exercise for the reader:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Functor</span> (<span class="dt">MaybeT</span> m) <span class="kw">where</span></span>
+<p>I'll show the instances for <code>MaybeT</code> and the rest are left
+as an exercise for the reader:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Functor</span> (<span class="dt">MaybeT</span> m) <span class="kw">where</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  fmap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">MaybeT</span> m a <span class="ot">-&gt;</span> <span class="dt">MaybeT</span> m b</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmap</span> f (<span class="dt">MaybeT</span> ma) <span class="ot">=</span> <span class="dt">MaybeT</span> <span class="op">$</span> <span class="fu">fmap</span> (<span class="fu">fmap</span> f) ma</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -179,21 +216,36 @@ Transformers</code>. The best introduction I have found was in <a href="https://
 <span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="dt">Nothing</span></span>
 <span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Just</span> a <span class="ot">-&gt;</span> runMaybeT <span class="op">$</span> f a</span></code></pre></div>
 <h1 id="why-is-this-useful">Why is this useful?</h1>
-<p>With combined monadic effects we can do really nice sequencing and combination of effects. For example..</p>
-<p>Imagine we wanted to traverse an AST and replace the values with indices referencing those values. Perhaps there is also the possiblity that there are invalid values in your AST and if found we want to fail the traversal. How might we write this code?</p>
-<p>Our AST is just a binary tree and valid variables are given in a <code>HashSet</code>:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">AST</span> a <span class="ot">=</span> <span class="dt">Leaf</span> a <span class="op">|</span> <span class="dt">Node</span> (<span class="dt">AST</span> a) (<span class="dt">AST</span> a)</span>
+<p>With combined monadic effects we can do really nice sequencing and
+combination of effects. For example..</p>
+<p>Imagine we wanted to traverse an AST and replace the values with
+indices referencing those values. Perhaps there is also the possiblity
+that there are invalid values in your AST and if found we want to fail
+the traversal. How might we write this code?</p>
+<p>Our AST is just a binary tree and valid variables are given in a
+<code>HashSet</code>:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">AST</span> a <span class="ot">=</span> <span class="dt">Leaf</span> a <span class="op">|</span> <span class="dt">Node</span> (<span class="dt">AST</span> a) (<span class="dt">AST</span> a)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Functor</span>, <span class="dt">Foldable</span>, <span class="dt">Traversable</span>)</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">VariableName</span> <span class="ot">=</span> <span class="dt">String</span></span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Variables</span> <span class="ot">=</span> <span class="dt">S.HashSet</span> <span class="dt">VariableName</span></span></code></pre></div>
-<p>While traversing the tree we will need to keep a map of Variables to Indices in state, generating new mappings as we encounter fresh variables. For this we can use the <code>State</code> monad.</p>
-<p>If we encounter an invalid variable then we need a way to exit early from the traversal and report an error message. We can do this with the <code>Either</code> Monad or its transformer variant <code>ExceptT</code>.</p>
-<p>Our Transformer Stack will consist of <code>ExceptT</code> and <code>State</code>:</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">AppM</span> a <span class="ot">=</span> <span class="dt">AppM</span> {<span class="ot"> runAppM ::</span> <span class="dt">ExceptT</span> <span class="dt">String</span> (<span class="dt">State</span> (<span class="dt">M.Map</span> <span class="dt">VariableName</span> <span class="dt">Int</span>)) a }</span>
+<p>While traversing the tree we will need to keep a map of Variables to
+Indices in state, generating new mappings as we encounter fresh
+variables. For this we can use the <code>State</code> monad.</p>
+<p>If we encounter an invalid variable then we need a way to exit early
+from the traversal and report an error message. We can do this with the
+<code>Either</code> Monad or its transformer variant
+<code>ExceptT</code>.</p>
+<p>Our Transformer Stack will consist of <code>ExceptT</code> and
+<code>State</code>:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">AppM</span> a <span class="ot">=</span> <span class="dt">AppM</span> {<span class="ot"> runAppM ::</span> <span class="dt">ExceptT</span> <span class="dt">String</span> (<span class="dt">State</span> (<span class="dt">M.Map</span> <span class="dt">VariableName</span> <span class="dt">Int</span>)) a }</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> <span class="kw">newtype</span> (<span class="dt">Functor</span>, <span class="dt">Applicative</span>, <span class="dt">Monad</span>, <span class="dt">MonadError</span> <span class="dt">String</span>, <span class="dt">MonadState</span> (<span class="dt">M.Map</span> <span class="dt">VariableName</span> <span class="dt">Int</span>))</span></code></pre></div>
-<p>Now our program becomes a simple traversal where we can perform both <code>State</code> effects and <code>Either</code> effects:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ot">assignIndexToVariables ::</span> <span class="dt">AST</span> <span class="dt">VariableName</span> <span class="ot">-&gt;</span> <span class="dt">Variables</span> <span class="ot">-&gt;</span> <span class="dt">AppM</span> (<span class="dt">AST</span> <span class="dt">Int</span>)</span>
+<p>Now our program becomes a simple traversal where we can perform both
+<code>State</code> effects and <code>Either</code> effects:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ot">assignIndexToVariables ::</span> <span class="dt">AST</span> <span class="dt">VariableName</span> <span class="ot">-&gt;</span> <span class="dt">Variables</span> <span class="ot">-&gt;</span> <span class="dt">AppM</span> (<span class="dt">AST</span> <span class="dt">Int</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>assignIndexToVariables ast variables <span class="ot">=</span> forM ast <span class="op">$</span> \var <span class="ot">-&gt;</span> <span class="kw">do</span></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  unless (var <span class="ot">`S.member`</span> variables) <span class="op">$</span></span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    throwError <span class="op">$</span> <span class="st">&quot;Unknown Variable &quot;</span> <span class="op">&lt;&gt;</span> var</span>
@@ -210,7 +262,8 @@ Transformers</code>. The best introduction I have found was in <a href="https://
 <span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> vars <span class="ot">=</span> S.fromList [<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;c&quot;</span>]</span>
 <span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>      ast <span class="ot">=</span> <span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="st">&quot;a&quot;</span>) (<span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="st">&quot;b&quot;</span>) (<span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="st">&quot;a&quot;</span>) (<span class="dt">Leaf</span> <span class="st">&quot;c&quot;</span>)))</span>
 <span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">in</span> <span class="fu">print</span> <span class="op">$</span> <span class="fu">flip</span> evalState <span class="fu">mempty</span> <span class="op">$</span> runExceptT <span class="op">$</span> runAppM <span class="op">$</span> assignIndexToVariables ast vars</span></code></pre></div>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> main</span>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> main</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Right</span> (<span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="dv">0</span>) (<span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="dv">1</span>) (<span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="dv">0</span>) (<span class="dt">Leaf</span> <span class="dv">2</span>))))</span></code></pre></div>
 </body>
 </html>
