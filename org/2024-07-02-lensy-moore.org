@@ -5,8 +5,7 @@ How far can we get leveraging the ~lens~ library in Haskell to model Moore
 Machines and Wiring Diagrams?
 
 ** Morphisms in Poly
-First off we need a rapid pre-amble on the category of polynomials and how it
-can be used to model Moore Machines and Wiring Diagrams.
+First off we need a rapid pre-amble on the category of polynomials.
 
 Objects in ~Poly~ are defined as sums of representable functors and can be
 written in Agda as:
@@ -17,16 +16,20 @@ record Poly : Set where
   field
     Base : Set
     Fiber : Base → Set
-
--- | S × Yᵀ
-monomial : Set → Set → Poly
-(monomial S T) .Base = S
-(monomial S T) .Fiber  = λ _ → T
-
-_y^_ = monomial
 #+end_src
 
-For example, ~2y^2~ becomes:
+Since our goal is an implementation in Haskell we are going to ignore the
+dependency in ~Fiber~ and just look at non-dependent monomials which have the
+following shape:
+
+#+begin_src Agda
+-- | S × Yᵀ
+_y^_ : Set → Set → Poly
+(_y^_ S T) .Base = S
+(_y^_ S T) .Fiber  = λ _ → T
+#+end_src
+
+For example, ~2y^2~ is defined as ~Fin 2 y^ Fin 2~ which would expand out to:
 
 #+begin_src Agda
 2y^2 : Poly
@@ -36,30 +39,35 @@ Fiber 2y^2 = λ where
   suc zero → Fin 2
 #+end_src
 
-Objects in ~Poly~ are in fact functors ~Set → Set~:
-
-#+begin_src agda
-⟦_⟧ : ∀ {a b} → Poly → (Set a → Set b)
-⟦ P ⟧ X = Σ[ base ∈ P .Base ] (P .Fiber base → X)
-#+end_src
-
-Morphisms are then natural transformations:
+Morphisms (poly maps) are then defined as:
 
 #+begin_src Agda
 record _⇒_ (P Q : Poly) : Set where
   no-eta-equality
   field
     map-base : P .Base → Q .Base 
-    map-fiber : (tag : P .Base ) → Q .Fiber (map-base tag) → P .Fiber tag
+    map-fiber : (base : P .Base ) → Q .Fiber (map-base base) → P .Fiber tag
 #+end_src
 
-If you squint your eyes you can see that ~map-base~ and ~map-fiber~ have the
-same shape as ~get~ and ~set~ for lenses. This is because ~Poly Maps~ are actually
-dependent lenses.
+Here we map from the Base of ~P~ to the Base of ~Q~ but then we do a weird
+backwards feeling contravariant move and say 'given a particular base of ~Base
+P~ we have a map from the ~Fiber Q (map-base base)~ to the ~Fiber P base~'.
+
+*** Lenses in Poly
+If you squint your eyes at the definition of poly maps you can see that
+~map-base~ and ~map-fiber~ have the same shape as ~get~ and ~set~ for
+lenses. This is because poly maps turn out to be (dependent) lenses:
+
+#+begin_src agda
+    map-base : P .Base → Q .Base 
+ -- get      : S       → A 
+    map-fiber : (tag : P .Base ) → Q .Fiber (map-base tag) → P .Fiber tag
+ -- set       : (s : S)          → B (get s)               → T
+#+end_src
 
 Since were ultimately going to translate into Haskell we can ignore the
-dependency and just look at how to to build non-dependent lenses with ~Poly
-Maps~:
+dependency in the ~Fiber~ map and just look at how to to build non-dependent
+lenses as poly maps:
 
 #+begin_src Agda
 Lens : Set → Set → Set → Set → Set
@@ -87,7 +95,15 @@ projᵣ = lens proj₂ λ where
   (fst , snd) → λ b → (fst , b)
 #+end_src
 
-Morphisms of the form ~Syˢ ⇒ Oyᴵ~ are Moore Machines:
+*** Moore Machines in Poly
+Poly maps of the form ~Syˢ ⇒ Oyᴵ~ are Moore Machines:
+
+#+begin_src agda
+    map-base : P .Base → Q .Base 
+ -- observe  : S       → O
+    map-fiber  : (tag : P .Base ) → Q .Fiber (map-base tag) → P .Fiber tag
+ -- transition : S                → I                       → S
+#+end_src
 
 #+begin_src Agda
 Moore : Set → Set → Set → Set
@@ -98,16 +114,90 @@ moore output transition .map-base = output
 moore output transition .map-fiber s = transition s
 #+end_src
 
-Wiring diagrams are poly maps ~P ⇒ Q~ where ~Q~ is the outer interface of the
-diagram and ~P~ describes the interior mappings of the diagram.
+*** Wiring Diagrams in Poly
+[[https://cgi.cse.unsw.edu.au/~eptcs/paper.cgi?ACT2020:32.pdf][Wiring diagrams]] (the combinatorial data defining a string diagram) are poly maps
+~P ⇒ Q~ where ~Q~ is the outer interface of the diagram and ~P~ describes the
+interior mappings of the diagram.
 
 #+begin_src Agda
 Diagram : Poly → Poly → Set
 Diagram P Q = P ⇒ Q
 #+end_src
 
+#+begin_example
+  ┌───────────────────────┐
+  │  ┌───┐   ┌───┐        │
+──┼──┤   ├───┤   ├────────┼──
+  │  │   ├┐  └───┘        │
+  │  └───┘│  ┌───┐        │
+  │       └──┤   ├┐       │
+  │          └───┘│ ┌───┐ │
+──┼───────────────┴─┤   ├─┼──
+  │                 └───┘ │
+  └───────────────────────┘
+#+end_example
+
+In this example, ~P~ would describe the wiring of all the interior boxes and ~Q~
+would describe the exterior interface of the outerbox. For convenience, if we
+assume all wires carry the same arbitrary type ~A~, we have:
+
+#+begin_src agda
+-- The base of 'P' is the output wires of each internal slot.
+-- The fiber of 'P' is the input wires of each internal slot.
+P = (A×A×A×A×A)y^(A×A×A)
+
+-- The base of 'Q' is the output wires of the diagram.
+-- The fiber of 'Q' is the input wires of the diagram.
+Q = A×Ay^(A×A)
+#+end_src
+
+*** Composition in Poly
+Since wiring diagrams are poly maps, we can use wiring diagrams to visualize how
+composition works in ~Poly~.
+
+Given poly maps ~g : P ⇒ Q~ and ~f : Q ⇒ R~:
+
+#+begin_example
+       ┌─────────┐
+       │  ┌───┐  │ 
+g :  ──┼──┤  P├──┼───
+       │  └───┘ Q│
+       └─────────┘
+
+       ┌─────────┐
+       │  ┌───┐  │ 
+f :  ──┼──┤  Q├──┼───
+       │  └───┘ R│
+       └─────────┘
+#+end_example
+
+Composition is defined as:
+
+#+begin_example
+            ┌───────────────┐
+            │  ┌─────────┐  │
+            │  │  ┌───┐  │  │ 
+compose : ──┼──┼──┤  P├──┼──┼──
+            │  │  └───┘ Q│  │
+            │  └─────────┘ R│
+            └───────────────┘
+#+end_example
+
+Sticking with the wiring diagram metaphor, we are 'plugging' ~g~ into the open 'slot' of
+~f~ creating a new poly map ~P ⇒ R~ which maps you from interface ~Q~ to the
+interface ~R~, giving you a new way to interact with ~P~.
+
+In this sense ~Poly~ is the language of interface design.
+
+To make this a little more concrete, imagine ~g~ were a Moore Machine ~Syˢ ⇒
+Oyᴵ~ and ~f~ were some poly map ~Oyᴵ ⇒ Byᴬ~. By composing them together we create a
+new poly map ~Syˢ ⇒ Byᴬ~ where ~f~ maps ~A~ inputs to ~I~ inputs and ~B~ outputs
+to ~O~ outputs which are fed into the original Moore Machine.
+
 ** Lensy Moore
-First off we need to overload ~view~ and ~set~ to get some more polymorphism:
+With that rapid fire overview of ~Poly~ concepts out of the way we can move on
+to our ~lens~ based encodings. To make this work we need to overload ~view~ and
+~set~ to get some more polymorphism:
 
 #+begin_src haskell
 view :: Lens s t a b -> s -> a
@@ -117,11 +207,11 @@ set :: Lens s t a b -> s -> b -> t
 set l s b = runIdentity $ l (\_ -> Identity b) s
 #+end_src
 
-With that out of the way we can define ~Moore~ as a type alias and use ~view~
-and ~set~ for our observation and transition functions:
+Now we can define ~Moore~ as a type alias and use ~view~ and ~set~ for our
+observation and transition functions:
 
 #+begin_src haskell
--- | S × yˢ ⇒ O × yᴵ
+-- | Syˢ ⇒ Oyᴵ
 type Moore s i o = Lens s s o i
 
 observe :: Moore s i o -> s -> o
@@ -201,7 +291,7 @@ _⊗_ : Poly → Poly → Poly
 ~tensor~ takes the product of both the base and the fiber of polynomials ~P~ and
 ~Q~.
 
-This translats quite nicely to our ~Moore~ lenses:
+This translates quite nicely to ~Moore~:
 
 #+begin_src haskell
 tensor :: Moore s i o -> Moore t i' o' -> Moore (s, t) (i, i') (o, o')
@@ -232,108 +322,103 @@ instance Monoidal3 Moore' where
 But this requires an annoying ~newtype~ wrapper in Haskell so we will skip the
 typeclass.
 
-With ~tensor~ we can take two ~Moore~ machines and run them in parallel.
-
-** Wiring Diagrams
-Since ~Poly~ is a ~Category~ it has a composition operation that composes ~P ⇒
-Q~ and ~Q ⇒ R~ into ~P ⇒ R~. We can visualize this using wiring diagrams
-
-Given ~g : P ⇒ Q~ and ~f : Q ⇒ R~:
-#+begin_src
---
---          ┌─────────┐
---          │  ┌───┐  │ 
---   g :  ──┼──┤  P├──┼───
---          │  └───┘ Q│
---          └─────────┘
---
---          ┌─────────┐
---          │  ┌───┐  │ 
---   f :  ──┼──┤  Q├──┼───
---          │  └───┘ R│
---          └─────────┘
-#+end_src
-
-We define composition as:
-#+begin_src src
---
---               ┌───────────────┐
---               │  ┌─────────┐  │
---               │  │  ┌───┐  │  │ 
---   compose : ──┼──┼──┤  P├──┼──┼──
---               │  │  └───┘ Q│  │
---               │  └─────────┘ R│
---               └───────────────┘
-#+end_src
-
-So if ~g~ were a ~Moore~ machine ~Syˢ ⇒ Byᴬ~ then ~f~ would be some ~Poly Map~
-~Byᴬ ⇒ R~ where ~R~ is some other polynomial. When you compose these together
-you would get ~Syˢ ⇒ R~.
-
-~f : Byᴬ ⇒ R~ is a wiring diagram and by composing it with ~g~ you are giving
-yourself a new interface onto ~g~. In this sense ~Poly~ is the language of
-interface design.
-
-In the full dependent world of ~Poly~ you can take this a lot further but here
-we can still do some neat stuff. For example, we can create a Fibonacci
-algorithm constructed out of a couple ~Moore~ machines and a wiring diagram that
-dictates how to plug them together.
+With ~tensor~ we can take two ~Moore~ and run them in parallel as a
+single ~Moore~.
 
 ** Fibonacci
+As our big example, we can create a fibonacci wiring diagram and use it to wire
+up the requisite ~Moore~ machines to build a Fibonacci algorithm.
+
 Our wiring diagram looks like this:
 #+begin_src 
---              ┌────────────────────────┐
---              │  ┌───────┐             │ 
---              │  │┌─────┐│  ┌─────┐    │ 
---              │  └┤ℤ    ││  │     │    │ 
--- fib-wire : ──┤   │  P ℤ├┴──┤ℤ Q ℤ├┬───┼──
---            ()│  ┌┤ℤ    │   │     ││   │ℤ
---              │  │└─────┘   └─────┘│   │ 
---              │  └─────────────────┘   │ 
---              └────────────────────────┘
+    ┌────────────────────────┐
+    │  ┌───────┐             │ 
+    │  │┌─────┐│  ┌─────┐    │ 
+    │  └┤ℤ    ││  │     │    │ 
+  ──┤   │  P ℤ├┴──┤ℤ Q ℤ├┬───┼──
+Unit│  ┌┤ℤ    │   │     ││   │ℤ
+    │  │└─────┘   └─────┘│   │ 
+    │  └─────────────────┘   │ 
+    └────────────────────────┘
 #+end_src
 
-Our outer interface receives a unit value and produces an integer. Inside the
-diagram we have slots for two ~Moore~ machines wired together in a particular
-fashion.
+As we saw earlier, we can mechanically translate from this Wiring Diagram to a
+poly map ~fibWiring = (ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ) ⇒ ℤ y^ Unit~.
 
-Every time the ~fibonacci~ machine receives a unit value, the output of
-~P~--aka the ~observation~--is fed into the ~Q~ machine and back into ~P~'s
-input along with the observation from the ~Q~ machine. The observation from
-the ~Q~ machine is also fed into the output of the final fibonacci machine.
-
-I had said that a wiring diagram is a map between two polynomials but here we
-have two slots on the inside of the diagram which would imply two polynomials.
-
-This is where ~tensor~ comes into play. The product of two polynomials is itself
-a polynomial and so the entire fibonacci map is ~(ℤ × ℤ) × y^((ℤ × ℤ) × ℤ) ⇒ ℤ
-y^Unit~.
-
-We can take the ~plus~ and ~delay~ Moore machines, ~tensor~ them together, and
-then compose them with the fibonacci wiring diagram to build our final fibonacci
-machine:
+At this point we have a lot of metaphors floating around trying to explain what
+poly map actually means. To put it most simply, we have two functions which we
+can derive by plugging in the types from ~fibWiring~ into our definition of a
+poly map:
 
 #+begin_src haskell
-plusDelay :: Moore (Int, Int) ((Int, Int), Int) (Int, Int)
-plusDelay = tensor plus delay
+map-base : P .Base → Q .Base 
+map-base : (ℤ × ℤ) → ℤ
 
+map-fiber : (tag : P .Base) → Q .Fiber (map-base tag) → P .Fiber tag
+map-fiber : (ℤ × ℤ)         → Unit                    → ((ℤ, ℤ), ℤ)
+#+end_src
+
+Under the Wiring Diagram perspective, these functions represent a plan for how
+to wire the 'inner' and 'outer' polynomials together. Here the inner one is ~P ⊗
+Q~, eg., ~(ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ)~, and the outer one is ~ℤ y^ Unit~.
+
+The ~Fiber~ represents 'inputs' to the polynomial and the ~Base~ represents
+'outputs'.
+
+~map-base~ is a function that wires the outputs from the inner polynomial to the
+outputs of the outer polynomial.
+
+~map-fiber~ is a function that wires the output of the inner polynomial and the
+input of the 'outer' polynomial to the 'inputs' of the inner polynomial.
+
+In the particular case of ~fibWiring~ the outer polynomial (aka the public
+interface) recieves a ~Unit~ value and produces an integer.
+
+We drop the ~Unit~ value and wire the output from ~Q~ to the output of the
+public interface. We also wire the outputs of both ~P~ and ~Q~ into the inputs
+of ~P~ and the output of ~P~ into ~Q~.
+
+#+begin_src haskell
 fibWiring :: Lens (Int, Int) ((Int, Int), Int) Int ()
 fibWiring = 
   lens
-    -- The delay output is the final observation:
-    (\(pout, dout) -> dout)
-    -- Input the plus result and the delay result back into the plus
-    -- Input the plus result into the delay
-    (\(pstate, dstate) () -> ((pstate, dstate), pstate))
+    -- The Q output is wired to the outer interface's output:
+    (\(pout, qout) -> qout)
+    -- The P and Q outputs are wired into the P input and
+    -- the P output is wired into the Q input:
+    (\(pout, qout) () -> ((pout, qout), pout))
+#+end_src
 
+These diagram describes the 'schema' of an algorithm. It just describes how to
+pass values around along wires.. To build an actual algorithm we need to plug
+~Moore~ machines into those empty boxes to do computation on the propagated values.
+
+We do this by picking appropriate ~Moore~ machine(s) which when tensored
+together have input and output types which match the inner polynomial of
+~fibWiring~.
+
+In our case we want ~P~ to sum its input integers and ~Q~ to act as a delay line
+emitting the previous summed value. Picking ~plus~ for ~P~ and ~delay~ for ~Q~
+gives us exactly that.
+
+#+begin_src haskell
+-- | (ℤ × ℤ) y^ (ℤ × ℤ) ⇒ (ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ)
+plusDelay :: Moore (Int, Int) ((Int, Int), Int) (Int, Int)
+plusDelay = plus `tensor` delay
+#+end_src
+
+Now we have two poly maps encoded as lenses one representing two Moore machines
+running in parallel and the other representing how to wire those Moore Machines
+together with a new public interface.
+
+All we need to do is compose them together to create our final Fibonacci Moore
+machine:
+
+#+begin_src haskell
+-- | (ℤ × ℤ) y^ (ℤ × ℤ) ⇒ ℤ y^ Unit
 fib :: Moore (Int, Int) () Int
 fib = plusDelay . fibWiring
 #+end_src
- 
-Notice how the getter and setter of ~fibWiring~ describes how to wire the
-outputs of the inner machines to the new outer interface (the getter
-function) and how to internally wire together the inputs and outputs of the
-inner machines to one another (the setter function).
 
 If we run this thing we get just what we expected:
 
@@ -344,44 +429,6 @@ If we run this thing we get just what we expected:
 
 Trippy!
 
-** Moore-Mealy Pairings
-As a bonus round here is ~Mealy~:
 
-#+begin_src haskell
-type Mealy s i o = Lens (s, i) s o ()
-
-observe' :: Mealy s i o -> (s, i) -> o
-observe' m (s, i) = view m (s, i)
-
-transition' :: Mealy s i o -> (s, i) -> s
-transition' m (s, i) = set m (s, i) ()
-
-runMealy :: Mealy s i o -> s -> [i] -> [(o, s)]
-runMealy m s [] = []
-runMealy m s (i:is) =
-  let
-    o = observe' m (s, i)
-    s' = transition' m (s, i)
-   in (o, s) : runMealy m s' is
-#+end_src
-
-There is a special relationship between ~Moore~ and ~Mealy~ where their
-interfaces are a perfect fit for one another such that we can 'annihilate' them
-against one another:
-
-#+begin_src haskell
-annihilate :: (s, t) -> Moore s i o -> Mealy t o i -> void
-annihilate (s, t) moore mealy = 
-  let o = observe moore s
-      i = observe' mealy (t, o)
-      s' = transition moore s i
-      t' = transition' mealy (t, o)
-   in annihilate (s', t') moore mealy
-#+end_src
-
-We leveraged this idea in [[https://github.com/cofree-coffee/cofree-bot/blob/main/chat-bots/src/Data/Chat/Server.hs#L91-L100][cofree-bot]] to combine a chat bot with a server
-protocol.
-
-There ought to be an interesting way of sequencing effects using this
-concept. For example, a webserver as a ~Mealy~ machine annihilated against a
-~Moore~ machine representing the real world.
+NOTE: I removed the final section on interactions between ~Mealy~ and
+~Moore~ as it needs a bit more work and will be included in a later post.

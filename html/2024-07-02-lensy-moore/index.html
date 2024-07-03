@@ -85,8 +85,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>How far can we get leveraging the <code>lens</code> library in
 Haskell to model Moore Machines and Wiring Diagrams?</p>
 <h2 id="morphisms-in-poly">Morphisms in Poly</h2>
-<p>First off we need a rapid pre-amble on the category of polynomials
-and how it can be used to model Moore Machines and Wiring Diagrams.</p>
+<p>First off we need a rapid pre-amble on the category of
+polynomials.</p>
 <p>Objects in <code>Poly</code> are defined as sums of representable
 functors and can be written in Agda as:</p>
 <div class="sourceCode" id="cb1"><pre
@@ -94,117 +94,199 @@ class="sourceCode Agda"><code class="sourceCode agda"><span id="cb1-1"><a href="
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">no-eta-equality</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">field</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    Base <span class="ot">:</span> <span class="dt">Set</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    Fiber <span class="ot">:</span> Base <span class="ot">→</span> <span class="dt">Set</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- | S × Yᵀ</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>monomial <span class="ot">:</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> Poly</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>monomial S T<span class="ot">)</span> <span class="ot">.</span>Base <span class="ot">=</span> S</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>monomial S T<span class="ot">)</span> <span class="ot">.</span>Fiber  <span class="ot">=</span> <span class="ot">λ</span> <span class="ot">_</span> <span class="ot">→</span> T</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="ot">_</span>y^<span class="ot">_</span> <span class="ot">=</span> monomial</span></code></pre></div>
-<p>For example, <code>2y^2</code> becomes:</p>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    Fiber <span class="ot">:</span> Base <span class="ot">→</span> <span class="dt">Set</span></span></code></pre></div>
+<p>Since our goal is an implementation in Haskell we are going to ignore
+the dependency in <code>Fiber</code> and just look at non-dependent
+monomials which have the following shape:</p>
 <div class="sourceCode" id="cb2"><pre
-class="sourceCode Agda"><code class="sourceCode agda"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>2y^2 <span class="ot">:</span> Poly</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>Base 2y^2 <span class="ot">=</span> Fin <span class="dv">2</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>Fiber 2y^2 <span class="ot">=</span> <span class="ot">λ</span> <span class="kw">where</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  zero <span class="ot">→</span> Fin <span class="dv">2</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  suc zero <span class="ot">→</span> Fin <span class="dv">2</span></span></code></pre></div>
-<p>Objects in <code>Poly</code> are in fact functors
-<code>Set → Set</code>:</p>
+class="sourceCode Agda"><code class="sourceCode agda"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | S × Yᵀ</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ot">_</span>y^<span class="ot">_</span> <span class="ot">:</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> Poly</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ot">(_</span>y^<span class="ot">_</span> S T<span class="ot">)</span> <span class="ot">.</span>Base <span class="ot">=</span> S</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ot">(_</span>y^<span class="ot">_</span> S T<span class="ot">)</span> <span class="ot">.</span>Fiber  <span class="ot">=</span> <span class="ot">λ</span> <span class="ot">_</span> <span class="ot">→</span> T</span></code></pre></div>
+<p>For example, <code>2y^2</code> is defined as
+<code>Fin 2 y^ Fin 2</code> which would expand out to:</p>
 <div class="sourceCode" id="cb3"><pre
-class="sourceCode agda"><code class="sourceCode agda"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>⟦<span class="ot">_</span>⟧ <span class="ot">:</span> <span class="ot">∀</span> <span class="ot">{</span>a b<span class="ot">}</span> <span class="ot">→</span> Poly <span class="ot">→</span> <span class="ot">(</span><span class="dt">Set</span> a <span class="ot">→</span> <span class="dt">Set</span> b<span class="ot">)</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>⟦ P ⟧ X <span class="ot">=</span> Σ[ base ∈ P <span class="ot">.</span>Base ] <span class="ot">(</span>P <span class="ot">.</span>Fiber base <span class="ot">→</span> X<span class="ot">)</span></span></code></pre></div>
-<p>Morphisms are then natural transformations:</p>
+class="sourceCode Agda"><code class="sourceCode agda"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>2y^2 <span class="ot">:</span> Poly</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Base 2y^2 <span class="ot">=</span> Fin <span class="dv">2</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>Fiber 2y^2 <span class="ot">=</span> <span class="ot">λ</span> <span class="kw">where</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  zero <span class="ot">→</span> Fin <span class="dv">2</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  suc zero <span class="ot">→</span> Fin <span class="dv">2</span></span></code></pre></div>
+<p>Morphisms (poly maps) are then defined as:</p>
 <div class="sourceCode" id="cb4"><pre
 class="sourceCode Agda"><code class="sourceCode agda"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">record</span> <span class="ot">_</span>⇒<span class="ot">_</span> <span class="ot">(</span>P Q <span class="ot">:</span> Poly<span class="ot">)</span> <span class="ot">:</span> <span class="dt">Set</span> <span class="kw">where</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">no-eta-equality</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">field</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    map-base <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">→</span> Q <span class="ot">.</span>Base </span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    map-fiber <span class="ot">:</span> <span class="ot">(</span>tag <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">)</span> <span class="ot">→</span> Q <span class="ot">.</span>Fiber <span class="ot">(</span>map-base tag<span class="ot">)</span> <span class="ot">→</span> P <span class="ot">.</span>Fiber tag</span></code></pre></div>
-<p>If you squint your eyes you can see that <code>map-base</code> and
-<code>map-fiber</code> have the same shape as <code>get</code> and
-<code>set</code> for lenses. This is because <code>Poly Maps</code> are
-actually dependent lenses.</p>
-<p>Since were ultimately going to translate into Haskell we can ignore
-the dependency and just look at how to to build non-dependent lenses
-with <code>Poly
-Maps</code>:</p>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    map-fiber <span class="ot">:</span> <span class="ot">(</span>base <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">)</span> <span class="ot">→</span> Q <span class="ot">.</span>Fiber <span class="ot">(</span>map-base base<span class="ot">)</span> <span class="ot">→</span> P <span class="ot">.</span>Fiber tag</span></code></pre></div>
+<p>Here we map from the Base of <code>P</code> to the Base of
+<code>Q</code> but then we do a weird backwards feeling contravariant
+move and say 'given a particular base of <code>Base
+P</code> we have a map from the <code>Fiber Q (map-base base)</code> to
+the <code>Fiber P base</code>'.</p>
+<h3 id="lenses-in-poly">Lenses in Poly</h3>
+<p>If you squint your eyes at the definition of poly maps you can see
+that <code>map-base</code> and <code>map-fiber</code> have the same
+shape as <code>get</code> and <code>set</code> for lenses. This is
+because poly maps turn out to be (dependent) lenses:</p>
 <div class="sourceCode" id="cb5"><pre
-class="sourceCode Agda"><code class="sourceCode agda"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>Lens <span class="ot">:</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>Lens S T A B <span class="ot">=</span> S y^ T ⇒ A y^ B</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>view <span class="ot">:</span> <span class="ot">∀{</span>S T A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens S T A B <span class="ot">→</span> S <span class="ot">→</span> A</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>view lens s <span class="ot">=</span> lens <span class="ot">.</span>map-base s</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>over <span class="ot">:</span> <span class="ot">∀{</span>S T A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens S T A B <span class="ot">→</span> <span class="ot">(</span>A <span class="ot">→</span> B<span class="ot">)</span> <span class="ot">→</span> S <span class="ot">→</span> T </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>over lens f s <span class="ot">=</span> lens <span class="ot">.</span>map-fiber s <span class="ot">(</span>f <span class="ot">(</span>lens <span class="ot">.</span>map-base s<span class="ot">))</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>set <span class="ot">:</span> <span class="ot">∀{</span>S T A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens S T A B <span class="ot">→</span> B <span class="ot">→</span> S <span class="ot">→</span> T</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>set lens b s <span class="ot">=</span> lens <span class="ot">.</span>map-fiber s b</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>lens <span class="ot">:</span> <span class="ot">∀{</span>S T A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> <span class="ot">(</span>S <span class="ot">→</span> A<span class="ot">)</span> <span class="ot">→</span> <span class="ot">(</span>S <span class="ot">→</span> B <span class="ot">→</span> T<span class="ot">)</span> <span class="ot">→</span> Lens S T A B</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>lens get set<span class="ot">)</span> <span class="ot">.</span>map-base <span class="ot">=</span> get</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>lens get set<span class="ot">)</span> <span class="ot">.</span>map-fiber <span class="ot">=</span> set</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>projₗ <span class="ot">:</span> <span class="ot">∀{</span>A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens <span class="ot">(</span>A × B<span class="ot">)</span> <span class="ot">(</span>A × B<span class="ot">)</span> A A</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>projₗ <span class="ot">=</span> lens proj₁ <span class="ot">λ</span> <span class="kw">where</span></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="ot">(</span>fst , snd<span class="ot">)</span> <span class="ot">→</span> <span class="ot">λ</span> a <span class="ot">→</span> <span class="ot">(</span>a , snd<span class="ot">)</span></span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>projᵣ <span class="ot">:</span> <span class="ot">∀{</span>A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens <span class="ot">(</span>A × B<span class="ot">)</span> <span class="ot">(</span>A × B<span class="ot">)</span> B B</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>projᵣ <span class="ot">=</span> lens proj₂ <span class="ot">λ</span> <span class="kw">where</span></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="ot">(</span>fst , snd<span class="ot">)</span> <span class="ot">→</span> <span class="ot">λ</span> b <span class="ot">→</span> <span class="ot">(</span>fst , b<span class="ot">)</span></span></code></pre></div>
-<p>Morphisms of the form <code>Syˢ ⇒ Oyᴵ</code> are Moore Machines:</p>
+class="sourceCode agda"><code class="sourceCode agda"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>   map-base <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">→</span> Q <span class="ot">.</span>Base </span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- get      : S       → A </span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>   map-fiber <span class="ot">:</span> <span class="ot">(</span>tag <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">)</span> <span class="ot">→</span> Q <span class="ot">.</span>Fiber <span class="ot">(</span>map-base tag<span class="ot">)</span> <span class="ot">→</span> P <span class="ot">.</span>Fiber tag</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- set       : (s : S)          → B (get s)               → T</span></span></code></pre></div>
+<p>Since were ultimately going to translate into Haskell we can ignore
+the dependency in the <code>Fiber</code> map and just look at how to to
+build non-dependent lenses as poly maps:</p>
 <div class="sourceCode" id="cb6"><pre
-class="sourceCode Agda"><code class="sourceCode agda"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>Moore <span class="ot">:</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Moore S I O <span class="ot">=</span> S y^ S ⇒ O y^ I</span>
+class="sourceCode Agda"><code class="sourceCode agda"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>Lens <span class="ot">:</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Lens S T A B <span class="ot">=</span> S y^ T ⇒ A y^ B</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>moore <span class="ot">:</span> <span class="ot">∀{</span>S I O <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> <span class="ot">(</span>S <span class="ot">→</span> O<span class="ot">)</span> <span class="ot">→</span> <span class="ot">(</span>S <span class="ot">→</span> I <span class="ot">→</span> S<span class="ot">)</span> <span class="ot">→</span> Moore S I O</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>moore output transition <span class="ot">.</span>map-base <span class="ot">=</span> output</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>moore output transition <span class="ot">.</span>map-fiber s <span class="ot">=</span> transition s</span></code></pre></div>
-<p>Wiring diagrams are poly maps <code>P ⇒ Q</code> where <code>Q</code>
-is the outer interface of the diagram and <code>P</code> describes the
-interior mappings of the diagram.</p>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>view <span class="ot">:</span> <span class="ot">∀{</span>S T A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens S T A B <span class="ot">→</span> S <span class="ot">→</span> A</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>view lens s <span class="ot">=</span> lens <span class="ot">.</span>map-base s</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>over <span class="ot">:</span> <span class="ot">∀{</span>S T A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens S T A B <span class="ot">→</span> <span class="ot">(</span>A <span class="ot">→</span> B<span class="ot">)</span> <span class="ot">→</span> S <span class="ot">→</span> T </span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>over lens f s <span class="ot">=</span> lens <span class="ot">.</span>map-fiber s <span class="ot">(</span>f <span class="ot">(</span>lens <span class="ot">.</span>map-base s<span class="ot">))</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>set <span class="ot">:</span> <span class="ot">∀{</span>S T A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens S T A B <span class="ot">→</span> B <span class="ot">→</span> S <span class="ot">→</span> T</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>set lens b s <span class="ot">=</span> lens <span class="ot">.</span>map-fiber s b</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>lens <span class="ot">:</span> <span class="ot">∀{</span>S T A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> <span class="ot">(</span>S <span class="ot">→</span> A<span class="ot">)</span> <span class="ot">→</span> <span class="ot">(</span>S <span class="ot">→</span> B <span class="ot">→</span> T<span class="ot">)</span> <span class="ot">→</span> Lens S T A B</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>lens get set<span class="ot">)</span> <span class="ot">.</span>map-base <span class="ot">=</span> get</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>lens get set<span class="ot">)</span> <span class="ot">.</span>map-fiber <span class="ot">=</span> set</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>projₗ <span class="ot">:</span> <span class="ot">∀{</span>A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens <span class="ot">(</span>A × B<span class="ot">)</span> <span class="ot">(</span>A × B<span class="ot">)</span> A A</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>projₗ <span class="ot">=</span> lens proj₁ <span class="ot">λ</span> <span class="kw">where</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  <span class="ot">(</span>fst , snd<span class="ot">)</span> <span class="ot">→</span> <span class="ot">λ</span> a <span class="ot">→</span> <span class="ot">(</span>a , snd<span class="ot">)</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>projᵣ <span class="ot">:</span> <span class="ot">∀{</span>A B <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Lens <span class="ot">(</span>A × B<span class="ot">)</span> <span class="ot">(</span>A × B<span class="ot">)</span> B B</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>projᵣ <span class="ot">=</span> lens proj₂ <span class="ot">λ</span> <span class="kw">where</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  <span class="ot">(</span>fst , snd<span class="ot">)</span> <span class="ot">→</span> <span class="ot">λ</span> b <span class="ot">→</span> <span class="ot">(</span>fst , b<span class="ot">)</span></span></code></pre></div>
+<h3 id="moore-machines-in-poly">Moore Machines in Poly</h3>
+<p>Poly maps of the form <code>Syˢ ⇒ Oyᴵ</code> are Moore Machines:</p>
 <div class="sourceCode" id="cb7"><pre
-class="sourceCode Agda"><code class="sourceCode agda"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>Diagram <span class="ot">:</span> Poly <span class="ot">→</span> Poly <span class="ot">→</span> <span class="dt">Set</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>Diagram P Q <span class="ot">=</span> P ⇒ Q</span></code></pre></div>
-<h2 id="lensy-moore-1">Lensy Moore</h2>
-<p>First off we need to overload <code>view</code> and <code>set</code>
-to get some more polymorphism:</p>
+class="sourceCode agda"><code class="sourceCode agda"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>   map-base <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">→</span> Q <span class="ot">.</span>Base </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- observe  : S       → O</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>   map-fiber  <span class="ot">:</span> <span class="ot">(</span>tag <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">)</span> <span class="ot">→</span> Q <span class="ot">.</span>Fiber <span class="ot">(</span>map-base tag<span class="ot">)</span> <span class="ot">→</span> P <span class="ot">.</span>Fiber tag</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- transition : S                → I                       → S</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">view ::</span> <span class="dt">Lens</span> s t a b <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> a</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>view l s <span class="ot">=</span> getConst <span class="op">$</span> l <span class="dt">Const</span> s</span>
+class="sourceCode Agda"><code class="sourceCode agda"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>Moore <span class="ot">:</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span> <span class="ot">→</span> <span class="dt">Set</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>Moore S I O <span class="ot">=</span> S y^ S ⇒ O y^ I</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ot">set ::</span> <span class="dt">Lens</span> s t a b <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> t</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>set l s b <span class="ot">=</span> runIdentity <span class="op">$</span> l (\_ <span class="ot">-&gt;</span> <span class="dt">Identity</span> b) s</span></code></pre></div>
-<p>With that out of the way we can define <code>Moore</code> as a type
-alias and use <code>view</code> and <code>set</code> for our observation
-and transition functions:</p>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>moore <span class="ot">:</span> <span class="ot">∀{</span>S I O <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> <span class="ot">(</span>S <span class="ot">→</span> O<span class="ot">)</span> <span class="ot">→</span> <span class="ot">(</span>S <span class="ot">→</span> I <span class="ot">→</span> S<span class="ot">)</span> <span class="ot">→</span> Moore S I O</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>moore output transition <span class="ot">.</span>map-base <span class="ot">=</span> output</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>moore output transition <span class="ot">.</span>map-fiber s <span class="ot">=</span> transition s</span></code></pre></div>
+<h3 id="wiring-diagrams-in-poly">Wiring Diagrams in Poly</h3>
+<p><a
+href="https://cgi.cse.unsw.edu.au/~eptcs/paper.cgi?ACT2020:32.pdf">Wiring
+diagrams</a> (the combinatorial data defining a string diagram) are poly
+maps <code>P ⇒ Q</code> where <code>Q</code> is the outer interface of
+the diagram and <code>P</code> describes the interior mappings of the
+diagram.</p>
 <div class="sourceCode" id="cb9"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | S × yˢ ⇒ O × yᴵ</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Moore</span> s i o <span class="ot">=</span> <span class="dt">Lens</span> s s o i</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ot">observe ::</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> o</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>observe m s <span class="ot">=</span> view m s</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="ot">transition ::</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> i <span class="ot">-&gt;</span> s</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>transition m s i <span class="ot">=</span> set m s i</span></code></pre></div>
+class="sourceCode Agda"><code class="sourceCode agda"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>Diagram <span class="ot">:</span> Poly <span class="ot">→</span> Poly <span class="ot">→</span> <span class="dt">Set</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>Diagram P Q <span class="ot">=</span> P ⇒ Q</span></code></pre></div>
+<pre class="example"><code>  ┌───────────────────────┐
+  │  ┌───┐   ┌───┐        │
+──┼──┤   ├───┤   ├────────┼──
+  │  │   ├┐  └───┘        │
+  │  └───┘│  ┌───┐        │
+  │       └──┤   ├┐       │
+  │          └───┘│ ┌───┐ │
+──┼───────────────┴─┤   ├─┼──
+  │                 └───┘ │
+  └───────────────────────┘
+</code></pre>
+<p>In this example, <code>P</code> would describe the wiring of all the
+interior boxes and <code>Q</code> would describe the exterior interface
+of the outerbox. For convenience, if we assume all wires carry the same
+arbitrary type <code>A</code>, we have:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode agda"><code class="sourceCode agda"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- The base of &#39;P&#39; is the output wires of each internal slot.</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- The fiber of &#39;P&#39; is the input wires of each internal slot.</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>P <span class="ot">=</span> <span class="ot">(</span>A×A×A×A×A<span class="ot">)</span>y^<span class="ot">(</span>A×A×A<span class="ot">)</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- The base of &#39;Q&#39; is the output wires of the diagram.</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- The fiber of &#39;Q&#39; is the input wires of the diagram.</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>Q <span class="ot">=</span> A×Ay^<span class="ot">(</span>A×A<span class="ot">)</span></span></code></pre></div>
+<h3 id="composition-in-poly">Composition in Poly</h3>
+<p>Since wiring diagrams are poly maps, we can use wiring diagrams to
+visualize how composition works in <code>Poly</code>.</p>
+<p>Given poly maps <code>g : P ⇒ Q</code> and
+<code>f : Q ⇒ R</code>:</p>
+<pre class="example"><code>       ┌─────────┐
+       │  ┌───┐  │ 
+g :  ──┼──┤  P├──┼───
+       │  └───┘ Q│
+       └─────────┘
+
+       ┌─────────┐
+       │  ┌───┐  │ 
+f :  ──┼──┤  Q├──┼───
+       │  └───┘ R│
+       └─────────┘
+</code></pre>
+<p>Composition is defined as:</p>
+<pre class="example"><code>            ┌───────────────┐
+            │  ┌─────────┐  │
+            │  │  ┌───┐  │  │ 
+compose : ──┼──┼──┤  P├──┼──┼──
+            │  │  └───┘ Q│  │
+            │  └─────────┘ R│
+            └───────────────┘
+</code></pre>
+<p>Sticking with the wiring diagram metaphor, we are 'plugging'
+<code>g</code> into the open 'slot' of <code>f</code> creating a new
+poly map <code>P ⇒ R</code> which maps you from interface <code>Q</code>
+to the interface <code>R</code>, giving you a new way to interact with
+<code>P</code>.</p>
+<p>In this sense <code>Poly</code> is the language of interface
+design.</p>
+<p>To make this a little more concrete, imagine <code>g</code> were a
+Moore Machine <code>Syˢ ⇒
+Oyᴵ</code> and <code>f</code> were some poly map <code>Oyᴵ ⇒ Byᴬ</code>.
+By composing them together we create a new poly map
+<code>Syˢ ⇒ Byᴬ</code> where <code>f</code> maps <code>A</code> inputs
+to <code>I</code> inputs and <code>B</code> outputs to <code>O</code>
+outputs which are fed into the original Moore Machine.</p>
+<h2 id="lensy-moore-1">Lensy Moore</h2>
+<p>With that rapid fire overview of <code>Poly</code> concepts out of
+the way we can move on to our <code>lens</code> based encodings. To make
+this work we need to overload <code>view</code> and <code>set</code> to
+get some more polymorphism:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ot">view ::</span> <span class="dt">Lens</span> s t a b <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> a</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>view l s <span class="ot">=</span> getConst <span class="op">$</span> l <span class="dt">Const</span> s</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ot">set ::</span> <span class="dt">Lens</span> s t a b <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> t</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>set l s b <span class="ot">=</span> runIdentity <span class="op">$</span> l (\_ <span class="ot">-&gt;</span> <span class="dt">Identity</span> b) s</span></code></pre></div>
+<p>Now we can define <code>Moore</code> as a type alias and use
+<code>view</code> and <code>set</code> for our observation and
+transition functions:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | Syˢ ⇒ Oyᴵ</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Moore</span> s i o <span class="ot">=</span> <span class="dt">Lens</span> s s o i</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="ot">observe ::</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> o</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>observe m s <span class="ot">=</span> view m s</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="ot">transition ::</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> i <span class="ot">-&gt;</span> s</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>transition m s i <span class="ot">=</span> set m s i</span></code></pre></div>
 <p>We can then define a recursive function for feeding inputs into a
 <code>Moore</code> given an initial state:</p>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ot">runMoore ::</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> [i] <span class="ot">-&gt;</span> [o]</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>runMoore _ s [] <span class="ot">=</span> []</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>runMoore m s (i<span class="op">:</span>is) <span class="ot">=</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> nextState <span class="ot">=</span> transition m s i </span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>      observation <span class="ot">=</span> view m s</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">in</span> observation <span class="op">:</span> runMoore m nextState is</span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">runMoore ::</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> [i] <span class="ot">-&gt;</span> [o]</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>runMoore _ s [] <span class="ot">=</span> []</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>runMoore m s (i<span class="op">:</span>is) <span class="ot">=</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> nextState <span class="ot">=</span> transition m s i </span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>      observation <span class="ot">=</span> view m s</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">in</span> observation <span class="op">:</span> runMoore m nextState is</span></code></pre></div>
 <p>A simple latch machine to test this out:</p>
-<div class="sourceCode" id="cb11"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | A Moore machine that sets its state to the max of the input ands</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- current state.</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- Int × y^Int =&gt; Int × y^Int</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ot">latchMachine ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> <span class="dt">Int</span> <span class="dt">Int</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>latchMachine <span class="ot">=</span> lens <span class="fu">id</span> <span class="fu">max</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | A Moore machine that sets its state to the max of the input ands</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- current state.</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- Int × y^Int =&gt; Int × y^Int</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="ot">latchMachine ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> <span class="dt">Int</span> <span class="dt">Int</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>latchMachine <span class="ot">=</span> lens <span class="fu">id</span> <span class="fu">max</span></span></code></pre></div>
 <pre><code>&gt; runMoore latchMachine 0 [1,2,3,4,5,4,3,2,1]
 [0,1,2,3,4,5,5,5,5]
 </code></pre>
@@ -212,199 +294,153 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a
 <p>We can create some other classic examples from the <a
 href="https://github.com/ToposInstitute/poly/blob/pdf/poly-book.pdf">Poly
 Book</a>:</p>
-<div class="sourceCode" id="cb13"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | A memoryless dynamical system</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- oy^a =&gt; oy^a</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ot">mds ::</span> (i <span class="ot">-&gt;</span> o) <span class="ot">-&gt;</span> <span class="dt">Moore</span> o i o</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>mds f <span class="ot">=</span> lens <span class="fu">id</span> (<span class="fu">const</span> f)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- | Counter takes unchanging input and produces as output the</span></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- sequence of natural numbers 0, 1, 2, 3, ... .</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- Int × y^Int =&gt; Int × y^()</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="ot">counter ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> () <span class="dt">Int</span></span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>counter <span class="ot">=</span> lens <span class="fu">id</span> (\n () <span class="ot">-&gt;</span> n <span class="op">+</span> <span class="dv">1</span>)</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">-- | Int × y^Int =&gt; Int × y^(Int × Int)</span></span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="ot">plus ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="dt">Int</span></span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>plus <span class="ot">=</span> lens <span class="fu">id</span> (\_ (x, y) <span class="ot">-&gt;</span> x <span class="op">+</span> y)</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="co">-- | Int × y^Int =&gt; Int × y^Int</span></span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="ot">delay ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> <span class="dt">Int</span> <span class="dt">Int</span></span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>delay <span class="ot">=</span> lens <span class="fu">id</span> (\x y <span class="ot">-&gt;</span> y)</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | A memoryless dynamical system</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- oy^a =&gt; oy^a</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="ot">mds ::</span> (i <span class="ot">-&gt;</span> o) <span class="ot">-&gt;</span> <span class="dt">Moore</span> o i o</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>mds f <span class="ot">=</span> lens <span class="fu">id</span> (<span class="fu">const</span> f)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- | Counter takes unchanging input and produces as output the</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- sequence of natural numbers 0, 1, 2, 3, ... .</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- Int × y^Int =&gt; Int × y^()</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="ot">counter ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> () <span class="dt">Int</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>counter <span class="ot">=</span> lens <span class="fu">id</span> (\n () <span class="ot">-&gt;</span> n <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co">-- | Int × y^Int =&gt; Int × y^(Int × Int)</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="ot">plus ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="dt">Int</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>plus <span class="ot">=</span> lens <span class="fu">id</span> (\_ (x, y) <span class="ot">-&gt;</span> x <span class="op">+</span> y)</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="co">-- | Int × y^Int =&gt; Int × y^Int</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a><span class="ot">delay ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> <span class="dt">Int</span> <span class="dt">Int</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>delay <span class="ot">=</span> lens <span class="fu">id</span> (\x y <span class="ot">-&gt;</span> y)</span></code></pre></div>
 <h2 id="tensor-product">Tensor Product</h2>
 <p><code>Poly</code> has infinite monoidal structures, and five notable
 ones. Of those five is the parallel product aka <code>tensor</code> aka
 <code>_⊗_</code> which is particularly useful when working with wiring
 diagrams.</p>
-<div class="sourceCode" id="cb14"><pre
-class="sourceCode Agda"><code class="sourceCode agda"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">infixr</span> <span class="dv">7</span> <span class="ot">_</span>⊗<span class="ot">_</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="ot">_</span>⊗<span class="ot">_</span> <span class="ot">:</span> Poly <span class="ot">→</span> Poly <span class="ot">→</span> Poly</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>P ⊗ Q<span class="ot">)</span> <span class="ot">.</span>Base  <span class="ot">=</span> Base P × Base Q</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>P ⊗ Q<span class="ot">)</span> <span class="ot">.</span>Fiber <span class="ot">(</span>ptag , qtag<span class="ot">)</span> <span class="ot">=</span> Fiber P ptag × Fiber Q qtag</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode Agda"><code class="sourceCode agda"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">infixr</span> <span class="dv">7</span> <span class="ot">_</span>⊗<span class="ot">_</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="ot">_</span>⊗<span class="ot">_</span> <span class="ot">:</span> Poly <span class="ot">→</span> Poly <span class="ot">→</span> Poly</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>P ⊗ Q<span class="ot">)</span> <span class="ot">.</span>Base  <span class="ot">=</span> Base P × Base Q</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="ot">(</span>P ⊗ Q<span class="ot">)</span> <span class="ot">.</span>Fiber <span class="ot">(</span>ptag , qtag<span class="ot">)</span> <span class="ot">=</span> Fiber P ptag × Fiber Q qtag</span></code></pre></div>
 <p><code>tensor</code> takes the product of both the base and the fiber
 of polynomials <code>P</code> and <code>Q</code>.</p>
-<p>This translats quite nicely to our <code>Moore</code> lenses:</p>
-<div class="sourceCode" id="cb15"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ot">tensor ::</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> <span class="dt">Moore</span> t i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Moore</span> (s, t) (i, i&#39;) (o, o&#39;)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>tensor m n <span class="ot">=</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> observe&#39; (s, t) <span class="ot">=</span> (observe m s, observe n t)</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>      transition&#39; (s, t) (a, a&#39;) <span class="ot">=</span> (transition m s a, transition n t a&#39;)</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">in</span> lens observe&#39; transition&#39;</span></code></pre></div>
+<p>This translates quite nicely to <code>Moore</code>:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ot">tensor ::</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> <span class="dt">Moore</span> t i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Moore</span> (s, t) (i, i&#39;) (o, o&#39;)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>tensor m n <span class="ot">=</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> observe&#39; (s, t) <span class="ot">=</span> (observe m s, observe n t)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>      transition&#39; (s, t) (a, a&#39;) <span class="ot">=</span> (transition m s a, transition n t a&#39;)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">in</span> lens observe&#39; transition&#39;</span></code></pre></div>
 <p><code>tensor</code> also happens to be the <code>combine</code>
 operation of a 3 parameter monoidal functor
 <code>(C, (,), ()) → (D, (,), ())</code>:</p>
-<div class="sourceCode" id="cb16"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Monoidal3</span> f <span class="kw">where</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  unital3 ::</span> f () () ()</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  combine3 ::</span> (f x y z, f x&#39; y&#39; z&#39;) <span class="ot">-&gt;</span> f (x, x&#39;) (y, y&#39;) (z, z&#39;)</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Moore&#39;</span> s i o <span class="ot">=</span> <span class="dt">Moore&#39;</span> (<span class="dt">Lens</span> s s o i)</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monoidal3</span> <span class="dt">Moore&#39;</span> <span class="kw">where</span></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="ot">  unital3 ::</span> <span class="dt">Moore&#39;</span> () () ()</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  unital3 <span class="ot">=</span> <span class="dt">Moore&#39;</span> (<span class="op">$</span>)</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="ot">  combine3 ::</span> (<span class="dt">Moore&#39;</span> s i o, <span class="dt">Moore&#39;</span> t i&#39; o&#39;)<span class="ot">-&gt;</span> <span class="dt">Moore&#39;</span> (s, t) (i, i&#39;) (o, o&#39;)</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>  combine3 (<span class="dt">Moore&#39;</span> m, <span class="dt">Moore&#39;</span> n) <span class="ot">=</span> <span class="dt">Moore&#39;</span> (tensor m n)</span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Monoidal3</span> f <span class="kw">where</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  unital3 ::</span> f () () ()</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  combine3 ::</span> (f x y z, f x&#39; y&#39; z&#39;) <span class="ot">-&gt;</span> f (x, x&#39;) (y, y&#39;) (z, z&#39;)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Moore&#39;</span> s i o <span class="ot">=</span> <span class="dt">Moore&#39;</span> (<span class="dt">Lens</span> s s o i)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monoidal3</span> <span class="dt">Moore&#39;</span> <span class="kw">where</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="ot">  unital3 ::</span> <span class="dt">Moore&#39;</span> () () ()</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  unital3 <span class="ot">=</span> <span class="dt">Moore&#39;</span> (<span class="op">$</span>)</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="ot">  combine3 ::</span> (<span class="dt">Moore&#39;</span> s i o, <span class="dt">Moore&#39;</span> t i&#39; o&#39;)<span class="ot">-&gt;</span> <span class="dt">Moore&#39;</span> (s, t) (i, i&#39;) (o, o&#39;)</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  combine3 (<span class="dt">Moore&#39;</span> m, <span class="dt">Moore&#39;</span> n) <span class="ot">=</span> <span class="dt">Moore&#39;</span> (tensor m n)</span></code></pre></div>
 <p>But this requires an annoying <code>newtype</code> wrapper in Haskell
 so we will skip the typeclass.</p>
-<p>With <code>tensor</code> we can take two <code>Moore</code> machines
-and run them in parallel.</p>
-<h2 id="wiring-diagrams">Wiring Diagrams</h2>
-<p>Since <code>Poly</code> is a <code>Category</code> it has a
-composition operation that composes <code>P ⇒
-Q</code> and <code>Q ⇒ R</code> into <code>P ⇒ R</code>. We can
-visualize this using wiring diagrams</p>
-<p>Given <code>g : P ⇒ Q</code> and <code>f : Q ⇒ R</code>:</p>
-<pre><code>--
---          ┌─────────┐
---          │  ┌───┐  │ 
---   g :  ──┼──┤  P├──┼───
---          │  └───┘ Q│
---          └─────────┘
---
---          ┌─────────┐
---          │  ┌───┐  │ 
---   f :  ──┼──┤  Q├──┼───
---          │  └───┘ R│
---          └─────────┘
-</code></pre>
-<p>We define composition as:</p>
-<pre class="src"><code>--
---               ┌───────────────┐
---               │  ┌─────────┐  │
---               │  │  ┌───┐  │  │ 
---   compose : ──┼──┼──┤  P├──┼──┼──
---               │  │  └───┘ Q│  │
---               │  └─────────┘ R│
---               └───────────────┘
-</code></pre>
-<p>So if <code>g</code> were a <code>Moore</code> machine
-<code>Syˢ ⇒ Byᴬ</code> then <code>f</code> would be some
-<code>Poly Map</code> <code>Byᴬ ⇒ R</code> where <code>R</code> is some
-other polynomial. When you compose these together you would get
-<code>Syˢ ⇒ R</code>.</p>
-<p><code>f : Byᴬ ⇒ R</code> is a wiring diagram and by composing it with
-<code>g</code> you are giving yourself a new interface onto
-<code>g</code>. In this sense <code>Poly</code> is the language of
-interface design.</p>
-<p>In the full dependent world of <code>Poly</code> you can take this a
-lot further but here we can still do some neat stuff. For example, we
-can create a Fibonacci algorithm constructed out of a couple
-<code>Moore</code> machines and a wiring diagram that dictates how to
-plug them together.</p>
+<p>With <code>tensor</code> we can take two <code>Moore</code> and run
+them in parallel as a single <code>Moore</code>.</p>
 <h2 id="fibonacci">Fibonacci</h2>
+<p>As our big example, we can create a fibonacci wiring diagram and use
+it to wire up the requisite <code>Moore</code> machines to build a
+Fibonacci algorithm.</p>
 <p>Our wiring diagram looks like this:</p>
-<pre><code>--              ┌────────────────────────┐
---              │  ┌───────┐             │ 
---              │  │┌─────┐│  ┌─────┐    │ 
---              │  └┤ℤ    ││  │     │    │ 
--- fib-wire : ──┤   │  P ℤ├┴──┤ℤ Q ℤ├┬───┼──
---            ()│  ┌┤ℤ    │   │     ││   │ℤ
---              │  │└─────┘   └─────┘│   │ 
---              │  └─────────────────┘   │ 
---              └────────────────────────┘
+<pre><code>    ┌────────────────────────┐
+    │  ┌───────┐             │ 
+    │  │┌─────┐│  ┌─────┐    │ 
+    │  └┤ℤ    ││  │     │    │ 
+  ──┤   │  P ℤ├┴──┤ℤ Q ℤ├┬───┼──
+Unit│  ┌┤ℤ    │   │     ││   │ℤ
+    │  │└─────┘   └─────┘│   │ 
+    │  └─────────────────┘   │ 
+    └────────────────────────┘
 </code></pre>
-<p>Our outer interface receives a unit value and produces an integer.
-Inside the diagram we have slots for two <code>Moore</code> machines
-wired together in a particular fashion.</p>
-<p>Every time the <code>fibonacci</code> machine receives a unit value,
-the output of <code>P</code>–aka the <code>observation</code>–is fed
-into the <code>Q</code> machine and back into <code>P</code>'s input
-along with the observation from the <code>Q</code> machine. The
-observation from the <code>Q</code> machine is also fed into the output
-of the final fibonacci machine.</p>
-<p>I had said that a wiring diagram is a map between two polynomials but
-here we have two slots on the inside of the diagram which would imply
-two polynomials.</p>
-<p>This is where <code>tensor</code> comes into play. The product of two
-polynomials is itself a polynomial and so the entire fibonacci map is
-<code>(ℤ × ℤ) × y^((ℤ × ℤ) × ℤ) ⇒ ℤ
-y^Unit</code>.</p>
-<p>We can take the <code>plus</code> and <code>delay</code> Moore
-machines, <code>tensor</code> them together, and then compose them with
-the fibonacci wiring diagram to build our final fibonacci machine:</p>
-<div class="sourceCode" id="cb20"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ot">plusDelay ::</span> <span class="dt">Moore</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) ((<span class="dt">Int</span>, <span class="dt">Int</span>), <span class="dt">Int</span>) (<span class="dt">Int</span>, <span class="dt">Int</span>)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>plusDelay <span class="ot">=</span> tensor plus delay</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="ot">fibWiring ::</span> <span class="dt">Lens</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) ((<span class="dt">Int</span>, <span class="dt">Int</span>), <span class="dt">Int</span>) <span class="dt">Int</span> ()</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>fibWiring <span class="ot">=</span> </span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  lens</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- The delay output is the final observation:</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    (\(pout, dout) <span class="ot">-&gt;</span> dout)</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- Input the plus result and the delay result back into the plus</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- Input the plus result into the delay</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    (\(pstate, dstate) () <span class="ot">-&gt;</span> ((pstate, dstate), pstate))</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Moore</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) () <span class="dt">Int</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>fib <span class="ot">=</span> plusDelay <span class="op">.</span> fibWiring</span></code></pre></div>
-<p>Notice how the getter and setter of <code>fibWiring</code> describes
-how to wire the outputs of the inner machines to the new outer interface
-(the getter function) and how to internally wire together the inputs and
-outputs of the inner machines to one another (the setter function).</p>
+<p>As we saw earlier, we can mechanically translate from this Wiring
+Diagram to a poly map
+<code>fibWiring = (ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ) ⇒ ℤ y^ Unit</code>.</p>
+<p>At this point we have a lot of metaphors floating around trying to
+explain what poly map actually means. To put it most simply, we have two
+functions which we can derive by plugging in the types from
+<code>fibWiring</code> into our definition of a poly map:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span><span class="op">-</span>base <span class="op">:</span> <span class="dt">P</span> <span class="op">.</span><span class="dt">Base</span> → <span class="dt">Q</span> <span class="op">.</span><span class="dt">Base</span> </span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span><span class="op">-</span>base <span class="op">:</span> (ℤ × ℤ) → ℤ</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span><span class="op">-</span>fiber <span class="op">:</span> (tag <span class="op">:</span> <span class="dt">P</span> <span class="op">.</span><span class="dt">Base</span>) → <span class="dt">Q</span> <span class="op">.</span><span class="dt">Fiber</span> (<span class="fu">map</span><span class="op">-</span>base tag) → <span class="dt">P</span> <span class="op">.</span><span class="dt">Fiber</span> tag</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span><span class="op">-</span>fiber <span class="op">:</span> (ℤ × ℤ)         → <span class="dt">Unit</span>                    → ((ℤ, ℤ), ℤ)</span></code></pre></div>
+<p>Under the Wiring Diagram perspective, these functions represent a
+plan for how to wire the 'inner' and 'outer' polynomials together. Here
+the inner one is <code>P ⊗
+Q</code>, eg., <code>(ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ)</code>, and the outer one
+is <code>ℤ y^ Unit</code>.</p>
+<p>The <code>Fiber</code> represents 'inputs' to the polynomial and the
+<code>Base</code> represents 'outputs'.</p>
+<p><code>map-base</code> is a function that wires the outputs from the
+inner polynomial to the outputs of the outer polynomial.</p>
+<p><code>map-fiber</code> is a function that wires the output of the
+inner polynomial and the input of the 'outer' polynomial to the 'inputs'
+of the inner polynomial.</p>
+<p>In the particular case of <code>fibWiring</code> the outer polynomial
+(aka the public interface) recieves a <code>Unit</code> value and
+produces an integer.</p>
+<p>We drop the <code>Unit</code> value and wire the output from
+<code>Q</code> to the output of the public interface. We also wire the
+outputs of both <code>P</code> and <code>Q</code> into the inputs of
+<code>P</code> and the output of <code>P</code> into <code>Q</code>.</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fibWiring ::</span> <span class="dt">Lens</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) ((<span class="dt">Int</span>, <span class="dt">Int</span>), <span class="dt">Int</span>) <span class="dt">Int</span> ()</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>fibWiring <span class="ot">=</span> </span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  lens</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- The Q output is wired to the outer interface&#39;s output:</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    (\(pout, qout) <span class="ot">-&gt;</span> qout)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- The P and Q outputs are wired into the P input and</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- the P output is wired into the Q input:</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    (\(pout, qout) () <span class="ot">-&gt;</span> ((pout, qout), pout))</span></code></pre></div>
+<p>These diagram describes the 'schema' of an algorithm. It just
+describes how to pass values around along wires.. To build an actual
+algorithm we need to plug <code>Moore</code> machines into those empty
+boxes to do computation on the propagated values.</p>
+<p>We do this by picking appropriate <code>Moore</code> machine(s) which
+when tensored together have input and output types which match the inner
+polynomial of <code>fibWiring</code>.</p>
+<p>In our case we want <code>P</code> to sum its input integers and
+<code>Q</code> to act as a delay line emitting the previous summed
+value. Picking <code>plus</code> for <code>P</code> and
+<code>delay</code> for <code>Q</code> gives us exactly that.</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | (ℤ × ℤ) y^ (ℤ × ℤ) ⇒ (ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ)</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="ot">plusDelay ::</span> <span class="dt">Moore</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) ((<span class="dt">Int</span>, <span class="dt">Int</span>), <span class="dt">Int</span>) (<span class="dt">Int</span>, <span class="dt">Int</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>plusDelay <span class="ot">=</span> plus <span class="ot">`tensor`</span> delay</span></code></pre></div>
+<p>Now we have two poly maps encoded as lenses one representing two
+Moore machines running in parallel and the other representing how to
+wire those Moore Machines together with a new public interface.</p>
+<p>All we need to do is compose them together to create our final
+Fibonacci Moore machine:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | (ℤ × ℤ) y^ (ℤ × ℤ) ⇒ ℤ y^ Unit</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Moore</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) () <span class="dt">Int</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>fib <span class="ot">=</span> plusDelay <span class="op">.</span> fibWiring</span></code></pre></div>
 <p>If we run this thing we get just what we expected:</p>
 <pre><code>&gt; runMoore fib (1, 0) [(), (), (), (), (), (), (), (), (), ()]
 [0,1,1,2,3,5,8,13,21,34]
 </code></pre>
 <p>Trippy!</p>
-<h2 id="moore-mealy-pairings">Moore-Mealy Pairings</h2>
-<p>As a bonus round here is <code>Mealy</code>:</p>
-<div class="sourceCode" id="cb22"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Mealy</span> s i o <span class="ot">=</span> <span class="dt">Lens</span> (s, i) s o ()</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="ot">observe&#39; ::</span> <span class="dt">Mealy</span> s i o <span class="ot">-&gt;</span> (s, i) <span class="ot">-&gt;</span> o</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>observe&#39; m (s, i) <span class="ot">=</span> view m (s, i)</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="ot">transition&#39; ::</span> <span class="dt">Mealy</span> s i o <span class="ot">-&gt;</span> (s, i) <span class="ot">-&gt;</span> s</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>transition&#39; m (s, i) <span class="ot">=</span> set m (s, i) ()</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="ot">runMealy ::</span> <span class="dt">Mealy</span> s i o <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> [i] <span class="ot">-&gt;</span> [(o, s)]</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>runMealy m s [] <span class="ot">=</span> []</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>runMealy m s (i<span class="op">:</span>is) <span class="ot">=</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span></span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    o <span class="ot">=</span> observe&#39; m (s, i)</span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    s&#39; <span class="ot">=</span> transition&#39; m (s, i)</span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>   <span class="kw">in</span> (o, s) <span class="op">:</span> runMealy m s&#39; is</span></code></pre></div>
-<p>There is a special relationship between <code>Moore</code> and
-<code>Mealy</code> where their interfaces are a perfect fit for one
-another such that we can 'annihilate' them against one another:</p>
-<div class="sourceCode" id="cb23"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ot">annihilate ::</span> (s, t) <span class="ot">-&gt;</span> <span class="dt">Moore</span> s i o <span class="ot">-&gt;</span> <span class="dt">Mealy</span> t o i <span class="ot">-&gt;</span> void</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>annihilate (s, t) moore mealy <span class="ot">=</span> </span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> o <span class="ot">=</span> observe moore s</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>      i <span class="ot">=</span> observe&#39; mealy (t, o)</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>      s&#39; <span class="ot">=</span> transition moore s i</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>      t&#39; <span class="ot">=</span> transition&#39; mealy (t, o)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>   <span class="kw">in</span> annihilate (s&#39;, t&#39;) moore mealy</span></code></pre></div>
-<p>We leveraged this idea in <a
-href="https://github.com/cofree-coffee/cofree-bot/blob/main/chat-bots/src/Data/Chat/Server.hs#L91-L100">cofree-bot</a>
-to combine a chat bot with a server protocol.</p>
-<p>There ought to be an interesting way of sequencing effects using this
-concept. For example, a webserver as a <code>Mealy</code> machine
-annihilated against a <code>Moore</code> machine representing the real
-world.</p>
+<p>NOTE: I removed the final section on interactions between
+<code>Mealy</code> and <code>Moore</code> as it needs a bit more work
+and will be included in a later post.</p>
 </body>
 </html>
