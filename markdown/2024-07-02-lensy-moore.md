@@ -57,7 +57,7 @@ Here we map from the Base of `P` to the Base of `Q` but then we do a
 weird backwards feeling contravariant move and say \'given a particular
 base of `Base
 P` we have a map from the `Fiber Q (map-base base)` to the
-`Fiber P base`\'.
+`Fiber P base`.
 
 ### Lenses in Poly
 
@@ -131,8 +131,8 @@ where `Q` is the outer interface of the diagram and `P` describes the
 interior mappings of the diagram.
 
 ``` Agda
-Diagram : Poly → Poly → Set
-Diagram P Q = P ⇒ Q
+WiringDiagram : Poly → Poly → Set
+WiringDiagram P Q = P ⇒ Q
 ```
 
 ``` example
@@ -143,25 +143,37 @@ Diagram P Q = P ⇒ Q
   │  └───┘│  ┌───┐        │
   │       └──┤   ├┐       │
   │          └───┘│ ┌───┐ │
-──┼───────────────┴─┤   ├─┼──
+  │               └─┤   │ │  
+──┼─────────────────┤   ├─┼──
   │                 └───┘ │
   └───────────────────────┘
 ```
 
-In this example, `P` would describe the wiring of all the interior boxes
-and `Q` would describe the exterior interface of the outerbox. For
-convenience, if we assume all wires carry the same arbitrary type `A`,
-we have:
+In this example, `P` would describe the collection interior boxes, `Q`
+would describe the exterior interface of the diagram, and the poly map
+`P ⇒ Q` describes how to wire all of these components together.
 
 ``` agda
 -- The base of 'P' is the output wires of each internal slot.
 -- The fiber of 'P' is the input wires of each internal slot.
-P = (A×A×A×A×A)y^(A×A×A)
+P : {Set} → Poly
+P {A} = (A × A × A × A × A) y^ (A × A × A × A × A)
 
 -- The base of 'Q' is the output wires of the diagram.
 -- The fiber of 'Q' is the input wires of the diagram.
-Q = A×Ay^(A×A)
+Q : {Set} → Poly
+Q {A} = (A × A) y^ (A × A)
+
+-- Here we label input/output wires for P/Q from top to bottom left to right:
+P⇒Q : {A : Set} → P ⇒ Q
+-- The base-map declares how to wire the inner box outputs to the outer box outputs:
+map-base P⇒Q (pout1 , pout2 , pout3 , pout4 , pout5) = pout3 , pout5
+-- The fiber-map declares how to wire the outer box inputs and the inner box outputs to the inner box inputs. 
+map-fiber P⇒Q (pout1 , pout2 , pout3 , pout4 , pout5) (qin1 , qin2) = qin1 , pout1 , pout2 , pout4 , qin2
 ```
+
+NOTE: For convenience in this example, if we assume all wires carry the
+same arbitrary type `A`.
 
 ### Composition in Poly
 

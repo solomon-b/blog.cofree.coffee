@@ -122,7 +122,7 @@ class="sourceCode Agda"><code class="sourceCode agda"><span id="cb4-1"><a href="
 <code>Q</code> but then we do a weird backwards feeling contravariant
 move and say 'given a particular base of <code>Base
 P</code> we have a map from the <code>Fiber Q (map-base base)</code> to
-the <code>Fiber P base</code>'.</p>
+the <code>Fiber P base</code>.</p>
 <h3 id="lenses-in-poly">Lenses in Poly</h3>
 <p>If you squint your eyes at the definition of poly maps you can see
 that <code>map-base</code> and <code>map-fiber</code> have the same
@@ -182,8 +182,8 @@ maps <code>P ⇒ Q</code> where <code>Q</code> is the outer interface of
 the diagram and <code>P</code> describes the interior mappings of the
 diagram.</p>
 <div class="sourceCode" id="cb9"><pre
-class="sourceCode Agda"><code class="sourceCode agda"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>Diagram <span class="ot">:</span> Poly <span class="ot">→</span> Poly <span class="ot">→</span> <span class="dt">Set</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>Diagram P Q <span class="ot">=</span> P ⇒ Q</span></code></pre></div>
+class="sourceCode Agda"><code class="sourceCode agda"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>WiringDiagram <span class="ot">:</span> Poly <span class="ot">→</span> Poly <span class="ot">→</span> <span class="dt">Set</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>WiringDiagram P Q <span class="ot">=</span> P ⇒ Q</span></code></pre></div>
 <pre class="example"><code>  ┌───────────────────────┐
   │  ┌───┐   ┌───┐        │
 ──┼──┤   ├───┤   ├────────┼──
@@ -191,22 +191,34 @@ class="sourceCode Agda"><code class="sourceCode agda"><span id="cb9-1"><a href="
   │  └───┘│  ┌───┐        │
   │       └──┤   ├┐       │
   │          └───┘│ ┌───┐ │
-──┼───────────────┴─┤   ├─┼──
+  │               └─┤   │ │  
+──┼─────────────────┤   ├─┼──
   │                 └───┘ │
   └───────────────────────┘
 </code></pre>
-<p>In this example, <code>P</code> would describe the wiring of all the
-interior boxes and <code>Q</code> would describe the exterior interface
-of the outerbox. For convenience, if we assume all wires carry the same
-arbitrary type <code>A</code>, we have:</p>
+<p>In this example, <code>P</code> would describe the collection
+interior boxes, <code>Q</code> would describe the exterior interface of
+the diagram, and the poly map <code>P ⇒ Q</code> describes how to wire
+all of these components together.</p>
 <div class="sourceCode" id="cb11"><pre
 class="sourceCode agda"><code class="sourceCode agda"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- The base of &#39;P&#39; is the output wires of each internal slot.</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- The fiber of &#39;P&#39; is the input wires of each internal slot.</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>P <span class="ot">=</span> <span class="ot">(</span>A×A×A×A×A<span class="ot">)</span>y^<span class="ot">(</span>A×A×A<span class="ot">)</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- The base of &#39;Q&#39; is the output wires of the diagram.</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- The fiber of &#39;Q&#39; is the input wires of the diagram.</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>Q <span class="ot">=</span> A×Ay^<span class="ot">(</span>A×A<span class="ot">)</span></span></code></pre></div>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>P <span class="ot">:</span> <span class="ot">{</span><span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Poly</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>P <span class="ot">{</span>A<span class="ot">}</span> <span class="ot">=</span> <span class="ot">(</span>A × A × A × A × A<span class="ot">)</span> y^ <span class="ot">(</span>A × A × A × A × A<span class="ot">)</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- The base of &#39;Q&#39; is the output wires of the diagram.</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- The fiber of &#39;Q&#39; is the input wires of the diagram.</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>Q <span class="ot">:</span> <span class="ot">{</span><span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> Poly</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>Q <span class="ot">{</span>A<span class="ot">}</span> <span class="ot">=</span> <span class="ot">(</span>A × A<span class="ot">)</span> y^ <span class="ot">(</span>A × A<span class="ot">)</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- Here we label input/output wires for P/Q from top to bottom left to right:</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>P⇒Q <span class="ot">:</span> <span class="ot">{</span>A <span class="ot">:</span> <span class="dt">Set</span><span class="ot">}</span> <span class="ot">→</span> P ⇒ Q</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- The base-map declares how to wire the inner box outputs to the outer box outputs:</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>map-base P⇒Q <span class="ot">(</span>pout1 , pout2 , pout3 , pout4 , pout5<span class="ot">)</span> <span class="ot">=</span> pout3 , pout5</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co">-- The fiber-map declares how to wire the outer box inputs and the inner box outputs to the inner box inputs. </span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>map-fiber P⇒Q <span class="ot">(</span>pout1 , pout2 , pout3 , pout4 , pout5<span class="ot">)</span> <span class="ot">(</span>qin1 , qin2<span class="ot">)</span> <span class="ot">=</span> qin1 , pout1 , pout2 , pout4 , qin2</span></code></pre></div>
+<p>NOTE: For convenience in this example, if we assume all wires carry
+the same arbitrary type <code>A</code>.</p>
 <h3 id="composition-in-poly">Composition in Poly</h3>
 <p>Since wiring diagrams are poly maps, we can use wiring diagrams to
 visualize how composition works in <code>Poly</code>.</p>
