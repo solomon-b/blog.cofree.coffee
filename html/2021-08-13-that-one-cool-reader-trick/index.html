@@ -97,7 +97,7 @@ class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb1-
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">f</span>(<span class="dv">5</span>) <span class="op">&gt;</span> x<span class="op">;</span></span></code></pre></div>
 <p>Luckily there is a really neat trick using the <code>Reader</code>
 monad to get local scoping for free.</p>
-<h1 id="typing-the-lambda-calculus">Typing The Lambda Calculus</h1>
+<h2 id="typing-the-lambda-calculus">Typing The Lambda Calculus</h2>
 <p>Lets say we want to write a typechecker for a minimal Simply Typed
 Lambda Calculus. Our Types will look like:</p>
 <div class="sourceCode" id="cb2"><pre
@@ -123,8 +123,8 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a 
 <p>Each time we pass through a Lambda term we must create a new local
 context with everything above that Lambda term plus the new local
 binding.</p>
-<h1 id="setting-up-our-transformer-stack">Setting up our transformer
-stack</h1>
+<h2 id="setting-up-our-transformer-stack">Setting up our transformer
+stack</h2>
 <p>An ill typed term should terminate the typechecker and throw an
 error. For this we use <code>ExceptT</code>.</p>
 <p>For managing our <code>Context</code> I already revealed that we will
@@ -140,8 +140,8 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a 
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">TypecheckM</span> a <span class="ot">=</span></span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">TypecheckM</span> {<span class="ot"> unTypecheckM ::</span> <span class="dt">ExceptT</span> <span class="dt">TypeErr</span> (<span class="dt">Reader</span> <span class="dt">Context</span>) a }</span>
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Functor</span>, <span class="dt">Applicative</span>, <span class="dt">Monad</span>, <span class="dt">MonadReader</span> <span class="dt">Context</span>, <span class="dt">MonadError</span> <span class="dt">TypeErr</span>)</span></code></pre></div>
-<h1 id="the-basic-operation-of-our-typechecker">The Basic Operation of
-our Typechecker</h1>
+<h2 id="the-basic-operation-of-our-typechecker">The Basic Operation of
+our Typechecker</h2>
 <p>In general we know that what we want to do is traverse an AST and
 build up the type of the expression represnted by the AST. If at any
 point the type of the AST (or a supexpression of the AST) violates our
@@ -166,7 +166,7 @@ context, then typecheck the body of the Lambda. The type of the
 <code>Abs</code> term is <code>T1 :-&gt; T2</code> where the body is of
 type <code>T2</code>.</li>
 </ol>
-<h1 id="our-typechecker">Our Typechecker</h1>
+<h2 id="our-typechecker">Our Typechecker</h2>
 <div class="sourceCode" id="cb5"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">typecheck ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">TypecheckM</span> <span class="dt">Type</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>typecheck <span class="ot">=</span> \<span class="kw">case</span></span>

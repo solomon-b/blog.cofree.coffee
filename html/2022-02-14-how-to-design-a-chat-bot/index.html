@@ -90,7 +90,7 @@ designing highly composable protocol agnostic chat bots. The design is
 based on Mealy machines and heavily leverages Haskell's profunctor
 machinery. I want to walk through the early stages of the design process
 and how you might arrive at such an architecture.</p>
-<h1 id="what-is-a-chat-bot">What is a Chat Bot?</h1>
+<h2 id="what-is-a-chat-bot">What is a Chat Bot?</h2>
 <p>Lets start by describing what we mean by a chat bot, then lets factor
 out as much as possible until we arrive at a precise, elegant
 abstraction.</p>
@@ -130,7 +130,7 @@ updated state to produce the output? Sadly the answer is no.</p>
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bot</span> m s i o <span class="ot">=</span> <span class="dt">Bot</span> {<span class="ot"> runBot ::</span> i <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> m (s, o) }</span></code></pre></div>
 <p>Now we have a single function which can update state and produce an
 output <em>in a single operation</em>. This gives us what we want.</p>
-<h1 id="exploring-our-type">Exploring Our Type</h1>
+<h2 id="exploring-our-type">Exploring Our Type</h2>
 <p>Now that we have our bot type, lets explore it a bit. We can see that
 it <em>receives</em> an <code>i</code> and an <code>s</code> and it
 <em>produces</em> an <code>s</code> and an <code>o</code>. This means
@@ -200,7 +200,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a
 <p>We will try to sort out the use of some of these structures later on.
 For now, it is a great sign that our spec fits so many well defined
 structures.</p>
-<h1 id="constructing-bots">Constructing Bots</h1>
+<h2 id="constructing-bots">Constructing Bots</h2>
 <p>Lets move on to building some bots. As we go along, we might discover
 interesting uses for the structures defined previously.</p>
 <p>We start with the simplest bot. Eg., one which receives and produces
@@ -240,7 +240,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a
 <p>Notice that all of these bots <em>must</em> return a response
 regardless of the input. This is something we will need to address
 shortly.</p>
-<h1 id="interpretation">Interpretation</h1>
+<h2 id="interpretation">Interpretation</h2>
 <p>Now that we have a few bots, we need some way to run them.</p>
 <p>We can write a simple REPL-like bot interpreter. This will be a
 function which receives a <code>Bot IO s Text Text</code> and produces a
@@ -298,7 +298,7 @@ structure <code>Text</code> and then embeds a smaller output
 <code>Text</code> to pick a <code>()</code> and <em>pretty printed</em>
 into <code>Text</code> to embed a <code>Bool</code>.</p>
 <p>Our work identifying algebraic structures is already paying off.</p>
-<h1 id="conditional-responses">Conditional Responses</h1>
+<h2 id="conditional-responses">Conditional Responses</h2>
 <p>Now we have defined a few simple bots and demonstrated how to
 interpret them in a REPL-like environment. We still have an unsolved
 problem, these bots are rather talkative. They must responsd to
@@ -352,7 +352,7 @@ covariant mappings of our input and output to <em>focus</em> and
 <em>embed</em> structures respectively. In the contravariant case we are
 using a special variation of <code>lmap</code> which leverages
 <code>Alternative</code> to produce optional outputs.</p>
-<h1 id="composition">Composition</h1>
+<h2 id="composition">Composition</h2>
 <p>Our goal now is to take two bots and 'laterally' compose them
 together to combine their behaviors. At the type level, what this looks
 like is combining each of the three type parameters of our
@@ -449,7 +449,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb29-1"><a href=
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="st">4</span></span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="st">&gt; x</span></span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="st">&gt; </span></span></code></pre></div>
-<h1 id="transformations">Transformations</h1>
+<h2 id="transformations">Transformations</h2>
 <p>At this point we can build bot behaviors around arbitrary inputs and
 outputs, combine behaviors to produce composite bots, and interpret them
 in arbitrary protocols. Lets explore a few other interesting ways of
@@ -529,7 +529,7 @@ dispatch the wrapped <code>i</code> term along with the appropriate
 state <code>s</code> term to the embedded bot. This idea isn't fully
 developed, but I hope it gives you an idea of what kinds of
 transformations are possible with this architecture.</p>
-<h1 id="conclusion">Conclusion</h1>
+<h2 id="conclusion">Conclusion</h2>
 <p>We have demonstrated the core bot architecture as well as
 constructing, interpreting, composing, and extending bots in various
 dimensions. More so then explaining how to build a chat bot, I hope this

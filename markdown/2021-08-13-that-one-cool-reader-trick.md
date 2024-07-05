@@ -24,7 +24,7 @@ f(5) > x;
 Luckily there is a really neat trick using the `Reader` monad to get
 local scoping for free.
 
-# Typing The Lambda Calculus
+## Typing The Lambda Calculus
 
 Lets say we want to write a typechecker for a minimal Simply Typed
 Lambda Calculus. Our Types will look like:
@@ -58,7 +58,7 @@ Each time we pass through a Lambda term we must create a new local
 context with everything above that Lambda term plus the new local
 binding.
 
-# Setting up our transformer stack
+## Setting up our transformer stack
 
 An ill typed term should terminate the typechecker and throw an error.
 For this we use `ExceptT`.
@@ -80,7 +80,7 @@ newtype TypecheckM a =
   deriving (Functor, Applicative, Monad, MonadReader Context, MonadError TypeErr)
 ```
 
-# The Basic Operation of our Typechecker
+## The Basic Operation of our Typechecker
 
 In general we know that what we want to do is traverse an AST and build
 up the type of the expression represnted by the AST. If at any point the
@@ -105,7 +105,7 @@ In plain english, our typing rules are as follows:
     typecheck the body of the Lambda. The type of the `Abs` term is
     `T1 :-> T2` where the body is of type `T2`.
 
-# Our Typechecker
+## Our Typechecker
 
 ``` haskell
 typecheck :: Term -> TypecheckM Type

@@ -8,7 +8,7 @@ monad can also be used to construct extensible effect systems. I never
 understood why `Free` why this was the case. It turns out it is deeply
 connected to their ability to yield monads for functors.
 
-# The Free Type
+## The Free Type
 
 For a warmup, lets review `Free`[^1]:
 
@@ -45,7 +45,7 @@ describing effects yet to be interpreted.
 
 Now lets take a closer look `Free`\'s Typeclass instances.
 
-# Free is a Monad
+## Free is a Monad
 
 ``` haskell
 instance Functor f => Functor (Free f) where
@@ -113,7 +113,7 @@ and interprets the `Free` data constructors as the operations of our
 `State` effect. Thus we have recreated the monadic operations of the
 `State` monad via the `State` `Functor` and `Free`\'s data constructors.
 
-# Extensible Effects
+## Extensible Effects
 
 Armed with a reasonable understanding of `Free` we can approach the main
 topic of this blog post. How does seperating the syntax and semantics of
@@ -140,7 +140,7 @@ We need `Sum` rather then `Either` so that both nested functors use the
 same `a` parameter. With `Either` we would only have a `Functor` over
 the `Right` term.
 
-# The Simplest Effects System
+## The Simplest Effects System
 
 With `Sum` we can create the world\'s simplest effects system. In this
 system we will be able to pick two `Functors` patch them into `Free` and
@@ -200,7 +200,7 @@ main =
   in print $ runFX mempty $ assignIndexToVariables ast vars
 ```
 
-# Generalizing
+## Generalizing
 
 In our last example, the interpreter consists of structural recursion on
 `Free` along with explicit interpretations of our effects into some hard
@@ -244,7 +244,7 @@ result to some store. We would be able to swap out store interpretations
 between writing to a file on disk, writing to a database, and sending
 out an HTTP request, etc.
 
-# Further Generalizations
+## Further Generalizations
 
 At this point our effect system can only handle two effects and they
 must have `Functor` instances.

@@ -11,7 +11,7 @@ explanation with examples.
 
 Lets start with the problem they solve.
 
-# Functors and Applicatives Compose
+## Functors and Applicatives Compose
 
 `Functor` and `Applicative` are both closed under composition. If we
 compose any two `Functor` or `Applicative` types then we get a `Functor`
@@ -95,7 +95,7 @@ join :: (Monad f, Monad g) => f (g (f (g a))) -> f (g a)
 There simply is no way to implement this while keeping both `Monads`
 polymorphic.
 
-# Introducing Monad Transformers
+## Introducing Monad Transformers
 
 The fundamental problem with composing two polymorphic `Monads` is the
 polymorphism. If we could make one of the `Monads` concrete then we
@@ -170,7 +170,7 @@ instance Monad m => Monad (MaybeT m) where
       Just a -> runMaybeT $ f a
 ```
 
-# Why is this useful?
+## Why is this useful?
 
 With combined monadic effects we can do really nice sequencing and
 combination of effects. For example..

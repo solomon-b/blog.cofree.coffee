@@ -100,7 +100,7 @@ efficiently.</p>
 <p>At it's simplest alex takes in a set of token definitions and then
 outputs a scanner function <code>String -&gt; [Token]</code>, where
 <code>Token</code> is some provided lexeme type.</p>
-<h1 id="alex-file-syntax">Alex File Syntax</h1>
+<h2 id="alex-file-syntax">Alex File Syntax</h2>
 <p>Here is a complete Alex file taken from the <a
 href="https://www.haskell.org/alex/doc/html/introduction.html">documentation</a>:</p>
 <pre class="example"><code>{
@@ -159,7 +159,7 @@ href="https://www.haskell.org/alex/doc/html/alex-files.html#rules">Rules</a>.</l
 </ol>
 <p>Rules are the only required element, but in practice you will use a
 little bit of everything.</p>
-<h2 id="wrapper-declarations">Wrapper Declarations</h2>
+<h3 id="wrapper-declarations">Wrapper Declarations</h3>
 <p>Wrappers are predefined bits of code that extend the functionality of
 Alex. For example, there is a wrapper to add position tracking and
 another to add monadic effects. The docs give an <a
@@ -170,7 +170,7 @@ at the source code</a>.</p>
 <p>In this post, we will use <code>basic</code> wrapper. It gives you
 <code>alexScanTokens :: String -&gt; [token]</code> which we will use as
 the entry point to our lexer.</p>
-<h2 id="rules">Rules</h2>
+<h3 id="rules">Rules</h3>
 <p>Rules are the only required element in your Alex file and are the
 meat and potatos of the lexer. A rules block is declared with
 <code>id |-</code> followed by a series of rule statements.</p>
@@ -208,7 +208,8 @@ data constructor is used.</p>
 <code>alexScanTokens</code> function, in the case of the
 <code>basic</code> wrapper, or by whatever scanner function we chose to
 define.</p>
-<h3 id="contexts">Contexts</h3>
+<ol>
+<li><p>Contexts</p>
 <p>Rules can also have a <code>right</code> and <code>left</code>
 context which are added before or after your regex respectively..
 Contexts allow you to match on the characters before and after your
@@ -234,13 +235,14 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a 
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="ot">-&gt;</span> <span class="dt">Int</span>        <span class="co">-- length of the token</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="ot">-&gt;</span> <span class="dt">AlexInput</span>  <span class="co">-- input stream after the token</span></span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="ot">-&gt;</span> <span class="dt">Bool</span>       <span class="co">-- True &lt;=&gt; accept the token</span></span></code></pre></div></li>
-</ol>
-<h3 id="start-codes">Start Codes</h3>
+</ol></li>
+<li><p>Start Codes</p>
 <p>Another powerful tool for writing Alex rules are
 <code>Start Codes</code>. They allow you to add state to your lexer. I
 am going to hold off discussing them until a later post but they are
-really useful for things like string templating.</p>
-<h1 id="the-lexer">The Lexer</h1>
+really useful for things like string templating.</p></li>
+</ol>
+<h2 id="the-lexer">The Lexer</h2>
 <p>For a minimal Untyped Lambda Calculus using the traditional syntax we
 will need the following lexemes:</p>
 <div class="sourceCode" id="cb5"><pre
@@ -314,7 +316,7 @@ you can see that it simply calls <code>error</code> for any lex
 errors.</p>
 <p>We will fix these shortcomings soon, but lets move on to the parser
 for now.</p>
-<h1 id="the-parser">The Parser</h1>
+<h2 id="the-parser">The Parser</h2>
 <p>Now that we have a <code>String -&gt; [Token]</code> lexer function,
 we can implement our Happy parser. In my <a
 href="https://blog.cofree.coffee/2021-10-29-dont-worry-be-happy/">last
@@ -394,7 +396,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Abs</span> <span class="st">&quot;x&quot;</span> (<span class="dt">Ap</span> (<span class="dt">Var</span> <span class="st">&quot;y&quot;</span>) (<span class="dt">Var</span> <span class="st">&quot;x&quot;</span>))</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> parser <span class="op">$</span> lexer <span class="st">&quot;\\x. y x # this is a comment&quot;</span></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="dt">Abs</span> <span class="st">&quot;x&quot;</span> (<span class="dt">Ap</span> (<span class="dt">Var</span> <span class="st">&quot;y&quot;</span>) (<span class="dt">Var</span> <span class="st">&quot;x&quot;</span>))</span></code></pre></div>
-<h1 id="final-thoughts">Final Thoughts</h1>
+<h2 id="final-thoughts">Final Thoughts</h2>
 <p>Here we have built a minimally complete lexer and parser for Untyped
 Lambda Calculus. The implementation is available <a
 href="https://github.com/solomon-b/Dont-Worry-Be-Happy/tree/main/app/basic">here</a>

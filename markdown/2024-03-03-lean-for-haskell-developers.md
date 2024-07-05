@@ -27,7 +27,7 @@ just a quick FAQ for common questions a Haskell developer will have when
 starting to learn Lean. Contributions would be greatly appreciated
 [here](https://github.com/solomon-b/blog.cofree.coffee/issues).
 
-# Installer
+## Installer
 
 [Elan](https://github.com/leanprover/elan) is Lean\'s equivalent to
 GHCUp. It automatically puts lean and lake files in your build path.
@@ -36,7 +36,7 @@ Versions can be pinned via the `lean-toolchain` file.
 Elan is recommended even on Nixos systems and seems to integrate fairly
 well.
 
-# Build System
+## Build System
 
 [Lake](https://github.com/leanprover/lean4/tree/master/src/lake) is the
 standard build system. You can initialize a new project with:
@@ -49,13 +49,13 @@ lake init hello
 
 Dependencies and build targets are managed via `lakefile.lean`.
 
-# Basic Syntax
+## Basic Syntax
 
 Note, most of these examples were taken from [Functional Programming in
 Lean](https://lean-lang.org/functional_programming_in_lean) which is a
 much more complete introduction to the language.
 
-### eval
+eval
 
 You can drop the `#eval` meta command anywhere in your code:
 
@@ -65,7 +65,7 @@ You can drop the `#eval` meta command anywhere in your code:
 
 This can be triggered via LSP mode or the lean compiler directly.
 
-### Functions
+Functions
 
 Terms are defined using the `def` keyword:
 
@@ -88,7 +88,7 @@ def add1 (n : Nat) : Nat := n + 1
 
 Lambdas are
 
-### Type Aliases
+Type Aliases
 
 Because types are first class, we can define type aliases as ordinary
 terms:
@@ -98,7 +98,7 @@ def Str : Type := String
 def aStr : Str := "This is a string."
 ```
 
-### Record Types
+Record Types
 
 ``` lean
 structure Point where
@@ -109,7 +109,7 @@ deriving Repr
 def origin : Point := { x := 0.0, y := 0.0 }
 ```
 
-### Recursive and Sum Types
+Recursive and Sum Types
 
 Both are declared with the `inductive` keyword:
 
@@ -155,25 +155,25 @@ inductive Vec : Type u → Nat → Type u where
 More details found
 [here](https://lean-lang.org/functional_programming_in_lean/dependent-types/indices-parameters-universes.html).
 
-### Pattern Matching
+Pattern Matching
 
 `case` statements are called `match` statments:
 
 ``` lean
 def isZero (n : Nat) : Bool :=
-match n with
-| Nat.zero => true
-| Nat.succ k => false
+  match n with
+  | Nat.zero => true
+  | Nat.succ k => false
 ```
 
-### Polymorphism
+Polymorphism
 
     structure PPoint (α : Type) where
       x : α
       y : α
     deriving Repr
 
-### Sigma and Pi?
+Sigma and Pi?
 
 Lean is a dependently typed language which means it has Sigma and Pi
 types. Explaining what that means is out of the scope of this FAQ.
@@ -184,23 +184,30 @@ For reference here is their syntax to build a dependent pair
 
 ``` lean
 def f (α : Type u) (β : α → Type v) (a : α) (b : β a) : (a : α) × β a :=
-  ⟨a, b⟩#+end_src
-* Hoogle?
-Lean has [[https://loogle.lean-lang.org/][loogle]] which does not appear work as well as Hoogle but I think that
-is inevitable given that dependent types can require computation during typechecking.
-
-* Effects? IO
-Lean has [[https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Monad][Monads]]! Lean is a pure functional language with monadic effects and
-~do~ notation:
-
-#+begin_src lean
-  do a ← s,
-   b ← t,
-   f a b,
-   return (g a b)
+  ⟨a, b⟩
 ```
 
-# Functor/Applicative/Monad/Traversable etc?
+## Hoogle?
+
+Lean has [loogle](https://loogle.lean-lang.org/) which does not appear
+work as well as Hoogle but I think that is inevitable given that
+dependent types can require computation during typechecking.
+
+## Effects? IO
+
+Lean has
+[Monads](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Monad)!
+Lean is a pure functional language with monadic effects and `do`
+notation:
+
+``` lean
+do a ← s,
+ b ← t,
+ f a b,
+ return (g a b)
+```
+
+## Functor/Applicative/Monad/Traversable etc?
 
 Lean has a very similar typeclass hierarchy in the prelude:
 
@@ -223,14 +230,14 @@ requiring proofs are noted.
 -   [Mathlib.CategoryTheory.Category.Basic.Category](https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Category/Basic.html#CategoryTheory.Category)
     (requires proofs)
 
-### Notably Absent
+Notably Absent
 
 -   `Foldable` has been folded into `Traversable`.
 -   `Profunctor` but should be recoverable using
     [CategoryTheory.Functor](https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Functor/Basic.html)
     from `Mathlib` (requires proofs).
 
-# Common Types
+## Common Types
 
 -   [Unit](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Unit)
 -   [Init.Prelude.List](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#List)
@@ -250,20 +257,20 @@ requiring proofs are noted.
     [Init.Data.String.Basic](https://leanprover-community.github.io/mathlib4_docs/Init/Data/String/Basic.html)
     [Init.Data.String.Extra](https://leanprover-community.github.io/mathlib4_docs/Init/Data/String/Extra.html)
 
-# Common Tools/Libaries
+## Common Tools/Libaries
 
-### JSON Serialization
+JSON Serialization
 
 Aeson style typeclasses can be found in mathlib:
 
 -   [Lean.Data.Json.FromToJson.FromJSON](https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Json/FromToJson.html#Lean.FromJson)
 -   [Lean.Data.Json.FromToJson.ToJSON](https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Json/FromToJson.html#Lean.ToJson)
 
-### Web Servers/Clients/TLS/JOSE/JWT
+Web Servers/Clients/TLS/JOSE/JWT
 
 To my knowledge nothing exists yet.
 
-### Parsing
+Parsing
 
 Lean uses a non-monadic recursive descent parser:
 <https://leanprover-community.github.io/mathlib4_docs/Lean/Parser/Basic.html>
@@ -271,34 +278,34 @@ Lean uses a non-monadic recursive descent parser:
 To my knowledge no parser generator or parser combinator libraries exist
 yet.
 
-### Database Clients
+Database Clients
 
 To my knowledge nothing exists yet.
 
-### File Handling, FilePaths, Directories, and Environment
+File Handling, FilePaths, Directories, and Environment
 
 This stuff is all mixed togther in the following modules:
 
 -   [Init.System.IO](https://leanprover-community.github.io/mathlib4_docs/Init/System/IO.html)
 -   [Init.System.FilePath](https://leanprover-community.github.io/mathlib4_docs/Init/System/FilePath.html#System.FilePath)
 
-### IORefs/Mutation/Concurrency
+IORefs/Mutation/Concurrency
 
 -   [IO.Mutex](https://leanprover-community.github.io/mathlib4_docs/Init/System/Mutex.html#IO.Mutex)
     Similar to an IO Ref.
 -   [IO.Promise](https://leanprover-community.github.io/mathlib4_docs/Init/System/Promise.html)
 -   [Init.Data.Channel](https://leanprover-community.github.io/mathlib4_docs/Init/Data/Channel.html#IO.Channel)
 
-### ST/STM
+ST/STM
 
-# Package Registry?
+## Package Registry?
 
-<https://reservoir.lean-lang.org/>
+-   <https://reservoir.lean-lang.org/>
 
-# Where can I learn more?
+## Where can I learn more?
 
-<https://reservoir.lean-lang.org/>
-<https://leanprover-community.github.io/>
-<https://lean-lang.org/lean4/doc/>
-<https://lean-lang.org/functional_programming_in_lean/>
-<https://leanprover.github.io/theorem_proving_in_lean4/>
+-   <https://reservoir.lean-lang.org/>
+-   <https://leanprover-community.github.io/>
+-   <https://lean-lang.org/lean4/doc/>
+-   <https://lean-lang.org/functional_programming_in_lean/>
+-   <https://leanprover.github.io/theorem_proving_in_lean4/>

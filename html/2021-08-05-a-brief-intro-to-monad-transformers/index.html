@@ -89,8 +89,8 @@ href="https://haskellbook.com/">Haskell Programming From First
 Principles</a>. If you don't have, or want to purchase, this book, then
 here is a brief explanation with examples.</p>
 <p>Lets start with the problem they solve.</p>
-<h1 id="functors-and-applicatives-compose">Functors and Applicatives
-Compose</h1>
+<h2 id="functors-and-applicatives-compose">Functors and Applicatives
+Compose</h2>
 <p><code>Functor</code> and <code>Applicative</code> are both closed
 under composition. If we compose any two <code>Functor</code> or
 <code>Applicative</code> types then we get a <code>Functor</code> or
@@ -151,8 +151,8 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a 
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">join ::</span> (<span class="dt">Monad</span> f, <span class="dt">Monad</span> g) <span class="ot">=&gt;</span> f (g (f (g a))) <span class="ot">-&gt;</span> f (g a)</span></code></pre></div>
 <p>There simply is no way to implement this while keeping both
 <code>Monads</code> polymorphic.</p>
-<h1 id="introducing-monad-transformers">Introducing Monad
-Transformers</h1>
+<h2 id="introducing-monad-transformers">Introducing Monad
+Transformers</h2>
 <p>The fundamental problem with composing two polymorphic
 <code>Monads</code> is the polymorphism. If we could make one of the
 <code>Monads</code> concrete then we could define <code>bind</code> and
@@ -215,7 +215,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a
 <span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">MaybeT</span> <span class="op">$</span> ma <span class="op">&gt;&gt;=</span> \<span class="kw">case</span></span>
 <span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="dt">Nothing</span></span>
 <span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Just</span> a <span class="ot">-&gt;</span> runMaybeT <span class="op">$</span> f a</span></code></pre></div>
-<h1 id="why-is-this-useful">Why is this useful?</h1>
+<h2 id="why-is-this-useful">Why is this useful?</h2>
 <p>With combined monadic effects we can do really nice sequencing and
 combination of effects. For example..</p>
 <p>Imagine we wanted to traverse an AST and replace the values with

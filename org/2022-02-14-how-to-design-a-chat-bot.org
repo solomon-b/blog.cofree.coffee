@@ -8,7 +8,7 @@ leverages Haskell's profunctor machinery. I want to walk through the
 early stages of the design process and how you might arrive at such an
 architecture.  
 
-* What is a Chat Bot?
+** What is a Chat Bot?
 Lets start by describing what we mean by a chat bot, then lets factor
 out as much as possible until we arrive at a precise, elegant
 abstraction.
@@ -64,7 +64,7 @@ Lets try again:
 Now we have a single function which can update state and produce an
 output /in a single operation/. This gives us what we want.
 
-* Exploring Our Type
+** Exploring Our Type
 Now that we have our bot type, lets explore it a bit. We can
 see that it /receives/ an ~i~ and an ~s~ and it /produces/ an ~s~ and
 an ~o~. This means that it is ~Contravariant~ over ~i~, ~Covariant~
@@ -150,7 +150,7 @@ We will try to sort out the use of some of these structures later
 on. For now, it is a great sign that our spec fits so many
 well defined structures.
 
-* Constructing Bots
+** Constructing Bots
 Lets move on to building some bots. As we go along, we might discover
 interesting uses for the structures defined previously.
 
@@ -206,7 +206,7 @@ And of course, we could build a stateful bot:
 Notice that all of these bots /must/ return a response regardless of
 the input. This is something we will need to address shortly.
 
-* Interpretation
+** Interpretation
 Now that we have a few bots, we need some way to run them. 
 
 We can write a simple REPL-like bot interpreter. This will be a
@@ -272,7 +272,7 @@ Another way to say that is we have /parsed/ out of ~Text~ to pick a
 
 Our work identifying algebraic structures is already paying off.
 
-* Conditional Responses
+** Conditional Responses
 Now we have defined a few simple bots and demonstrated how to
 interpret them in a REPL-like environment. We still have an unsolved
 problem, these bots are rather talkative. They must responsd to /all/
@@ -336,7 +336,7 @@ respectively. In the contravariant case we are using a special
 variation of ~lmap~ which leverages ~Alternative~ to produce optional
 outputs.
 
-* Composition
+** Composition
 Our goal now is to take two bots and 'laterally' compose them together
 to combine their behaviors. At the type level, what this looks like is
 combining each of the three type parameters of our ~Bots~ with some
@@ -451,7 +451,7 @@ few other tools to produce an approprate parser and pretty printer:
   > 
 #+end_src
 
-* Transformations
+** Transformations
 At this point we can build bot behaviors around arbitrary inputs and
 outputs, combine behaviors to produce composite bots, and interpret
 them in arbitrary protocols. Lets explore a few other interesting ways
@@ -553,7 +553,7 @@ embedded bot. This idea isn't fully developed, but I hope it gives you
 an idea of what kinds of transformations are possible with this
 architecture.
 
-* Conclusion
+** Conclusion
 We have demonstrated the core bot architecture as well as
 constructing, interpreting, composing, and extending bots in various
 dimensions. More so then explaining how to build a chat bot, I hope

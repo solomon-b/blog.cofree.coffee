@@ -102,14 +102,14 @@ Lean community (and listed at the end of this article). Rather, this is
 just a quick FAQ for common questions a Haskell developer will have when
 starting to learn Lean. Contributions would be greatly appreciated <a
 href="https://github.com/solomon-b/blog.cofree.coffee/issues">here</a>.</p>
-<h1 id="installer">Installer</h1>
+<h2 id="installer">Installer</h2>
 <p><a href="https://github.com/leanprover/elan">Elan</a> is Lean's
 equivalent to GHCUp. It automatically puts lean and lake files in your
 build path. Versions can be pinned via the <code>lean-toolchain</code>
 file.</p>
 <p>Elan is recommended even on Nixos systems and seems to integrate
 fairly well.</p>
-<h1 id="build-system">Build System</h1>
+<h2 id="build-system">Build System</h2>
 <p><a
 href="https://github.com/leanprover/lean4/tree/master/src/lake">Lake</a>
 is the standard build system. You can initialize a new project with:</p>
@@ -119,18 +119,18 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">lake</span> init hello</span></code></pre></div>
 <p>Dependencies and build targets are managed via
 <code>lakefile.lean</code>.</p>
-<h1 id="basic-syntax">Basic Syntax</h1>
+<h2 id="basic-syntax">Basic Syntax</h2>
 <p>Note, most of these examples were taken from <a
 href="https://lean-lang.org/functional_programming_in_lean">Functional
 Programming in Lean</a> which is a much more complete introduction to
 the language.</p>
-<h3 id="eval">eval</h3>
+<p>eval</p>
 <p>You can drop the <code>#eval</code> meta command anywhere in your
 code:</p>
 <pre class="lean"><code>#eval 1 + 2
 </code></pre>
 <p>This can be triggered via LSP mode or the lean compiler directly.</p>
-<h3 id="functions">Functions</h3>
+<p>Functions</p>
 <p>Terms are defined using the <code>def</code> keyword:</p>
 <pre class="lean"><code>def hello := &quot;Hello&quot;
 </code></pre>
@@ -142,13 +142,13 @@ without ascriptions) to a <code>def</code> statement:</p>
 <pre class="lean"><code>def add1 (n : Nat) : Nat := n + 1
 </code></pre>
 <p>Lambdas are</p>
-<h3 id="type-aliases">Type Aliases</h3>
+<p>Type Aliases</p>
 <p>Because types are first class, we can define type aliases as ordinary
 terms:</p>
 <pre class="lean"><code>def Str : Type := String
 def aStr : Str := &quot;This is a string.&quot;
 </code></pre>
-<h3 id="record-types">Record Types</h3>
+<p>Record Types</p>
 <pre class="lean"><code>structure Point where
   x : Float
   y : Float
@@ -156,7 +156,7 @@ deriving Repr
 
 def origin : Point := { x := 0.0, y := 0.0 }
 </code></pre>
-<h3 id="recursive-and-sum-types">Recursive and Sum Types</h3>
+<p>Recursive and Sum Types</p>
 <p>Both are declared with the <code>inductive</code> keyword:</p>
 <pre class="lean"><code>inductive List (α : Type u) where
   | nil : List α
@@ -189,7 +189,7 @@ This means we have to put the nat index on a Vec after the
 </code></pre>
 <p>More details found <a
 href="https://lean-lang.org/functional_programming_in_lean/dependent-types/indices-parameters-universes.html">here</a>.</p>
-<h3 id="pattern-matching">Pattern Matching</h3>
+<p>Pattern Matching</p>
 <p><code>case</code> statements are called <code>match</code>
 statments:</p>
 <pre class="lean"><code>def isZero (n : Nat) : Bool :=
@@ -197,13 +197,13 @@ statments:</p>
   | Nat.zero =&gt; true
   | Nat.succ k =&gt; false
 </code></pre>
-<h3 id="polymorphism">Polymorphism</h3>
+<p>Polymorphism</p>
 <pre><code>structure PPoint (α : Type) where
   x : α
   y : α
 deriving Repr
 </code></pre>
-<h3 id="sigma-and-pi">Sigma and Pi?</h3>
+<p>Sigma and Pi?</p>
 <p>Lean is a dependently typed language which means it has Sigma and Pi
 types. Explaining what that means is out of the scope of this FAQ. <a
 href="https://lean-lang.org/theorem_proving_in_lean4/dependent_type_theory.html">Here</a>
@@ -212,12 +212,12 @@ is a more detailed article.</p>
 <pre class="lean"><code>def f (α : Type u) (β : α → Type v) (a : α) (b : β a) : (a : α) × β a :=
   ⟨a, b⟩
 </code></pre>
-<h1 id="hoogle">Hoogle?</h1>
+<h2 id="hoogle">Hoogle?</h2>
 <p>Lean has <a href="https://loogle.lean-lang.org/">loogle</a> which
 does not appear work as well as Hoogle but I think that is inevitable
 given that dependent types can require computation during
 typechecking.</p>
-<h1 id="effects-io">Effects? IO</h1>
+<h2 id="effects-io">Effects? IO</h2>
 <p>Lean has <a
 href="https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Monad">Monads</a>!
 Lean is a pure functional language with monadic effects and
@@ -227,9 +227,9 @@ Lean is a pure functional language with monadic effects and
  f a b,
  return (g a b)
 </code></pre>
-<h1
+<h2
 id="functorapplicativemonadtraversable-etc">Functor/Applicative/Monad/Traversable
-etc?</h1>
+etc?</h2>
 <p>Lean has a very similar typeclass hierarchy in the prelude:</p>
 <ul>
 <li><a
@@ -261,7 +261,7 @@ href="https://leanprover-community.github.io/mathlib4_docs/Mathlib/Control/Trave
 href="https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Category/Basic.html#CategoryTheory.Category">Mathlib.CategoryTheory.Category.Basic.Category</a>
 (requires proofs)</li>
 </ul>
-<h3 id="notably-absent">Notably Absent</h3>
+<p>Notably Absent</p>
 <ul>
 <li><code>Foldable</code> has been folded into
 <code>Traversable</code>.</li>
@@ -269,7 +269,7 @@ href="https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheor
 href="https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Functor/Basic.html">CategoryTheory.Functor</a>
 from <code>Mathlib</code> (requires proofs).</li>
 </ul>
-<h1 id="common-types">Common Types</h1>
+<h2 id="common-types">Common Types</h2>
 <ul>
 <li><a
 href="https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Unit">Unit</a></li>
@@ -303,8 +303,8 @@ href="https://leanprover-community.github.io/mathlib4_docs/Init/Data/String/Basi
 <a
 href="https://leanprover-community.github.io/mathlib4_docs/Init/Data/String/Extra.html">Init.Data.String.Extra</a></li>
 </ul>
-<h1 id="common-toolslibaries">Common Tools/Libaries</h1>
-<h3 id="json-serialization">JSON Serialization</h3>
+<h2 id="common-toolslibaries">Common Tools/Libaries</h2>
+<p>JSON Serialization</p>
 <p>Aeson style typeclasses can be found in mathlib:</p>
 <ul>
 <li><a
@@ -312,18 +312,16 @@ href="https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Json/FromTo
 <li><a
 href="https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Json/FromToJson.html#Lean.ToJson">Lean.Data.Json.FromToJson.ToJSON</a></li>
 </ul>
-<h3 id="web-serversclientstlsjosejwt">Web
-Servers/Clients/TLS/JOSE/JWT</h3>
+<p>Web Servers/Clients/TLS/JOSE/JWT</p>
 <p>To my knowledge nothing exists yet.</p>
-<h3 id="parsing">Parsing</h3>
+<p>Parsing</p>
 <p>Lean uses a non-monadic recursive descent parser: <a
 href="https://leanprover-community.github.io/mathlib4_docs/Lean/Parser/Basic.html">https://leanprover-community.github.io/mathlib4_docs/Lean/Parser/Basic.html</a></p>
 <p>To my knowledge no parser generator or parser combinator libraries
 exist yet.</p>
-<h3 id="database-clients">Database Clients</h3>
+<p>Database Clients</p>
 <p>To my knowledge nothing exists yet.</p>
-<h3 id="file-handling-filepaths-directories-and-environment">File
-Handling, FilePaths, Directories, and Environment</h3>
+<p>File Handling, FilePaths, Directories, and Environment</p>
 <p>This stuff is all mixed togther in the following modules:</p>
 <ul>
 <li><a
@@ -331,7 +329,7 @@ href="https://leanprover-community.github.io/mathlib4_docs/Init/System/IO.html">
 <li><a
 href="https://leanprover-community.github.io/mathlib4_docs/Init/System/FilePath.html#System.FilePath">Init.System.FilePath</a></li>
 </ul>
-<h3 id="iorefsmutationconcurrency">IORefs/Mutation/Concurrency</h3>
+<p>IORefs/Mutation/Concurrency</p>
 <ul>
 <li><a
 href="https://leanprover-community.github.io/mathlib4_docs/Init/System/Mutex.html#IO.Mutex">IO.Mutex</a>
@@ -341,13 +339,13 @@ href="https://leanprover-community.github.io/mathlib4_docs/Init/System/Promise.h
 <li><a
 href="https://leanprover-community.github.io/mathlib4_docs/Init/Data/Channel.html#IO.Channel">Init.Data.Channel</a></li>
 </ul>
-<h3 id="ststm">ST/STM</h3>
-<h1 id="package-registry">Package Registry?</h1>
+<p>ST/STM</p>
+<h2 id="package-registry">Package Registry?</h2>
 <ul>
 <li><a
 href="https://reservoir.lean-lang.org/">https://reservoir.lean-lang.org/</a></li>
 </ul>
-<h1 id="where-can-i-learn-more">Where can I learn more?</h1>
+<h2 id="where-can-i-learn-more">Where can I learn more?</h2>
 <ul>
 <li><a
 href="https://reservoir.lean-lang.org/">https://reservoir.lean-lang.org/</a></li>

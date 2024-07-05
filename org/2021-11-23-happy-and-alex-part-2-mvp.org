@@ -22,7 +22,7 @@ At it's simplest alex takes in a set of token definitions and then
 outputs a scanner function ~String -> [Token]~, where ~Token~ is some
 provided lexeme type.
 
-* Alex File Syntax
+** Alex File Syntax
 Here is a complete Alex file taken from the [[https://www.haskell.org/alex/doc/html/introduction.html][documentation]]:
 
 #+begin_example
@@ -81,7 +81,7 @@ The structure of an Alex file is (in order):
 Rules are the only required element, but in practice you will use a
 little bit of everything.
 
-** Wrapper Declarations
+*** Wrapper Declarations
 Wrappers are predefined bits of code that extend the functionality of
 Alex. For example, there is a wrapper to add position tracking and
 another to add monadic effects. The docs give an [[https://www.haskell.org/alex/doc/html/wrappers.html][overview of wrappers]],
@@ -91,7 +91,7 @@ In this post, we will use ~basic~ wrapper. It gives you
 ~alexScanTokens :: String -> [token]~ which we will use as the entry
 point to our lexer.
 
-** Rules
+*** Rules
 Rules are the only required element in your Alex file and are the meat
 and potatos of the lexer. A rules block is declared with ~id |-~
 followed by a series of rule statements. 
@@ -130,7 +130,7 @@ The ~AlexReturn~ term is then consumed by ~alexScanTokens~ function,
 in the case of the ~basic~ wrapper, or by whatever scanner function we
 chose to define.
 
-*** Contexts
+**** Contexts
 Rules can also have a ~right~ and ~left~ context which are added
 before or after your regex respectively.. Contexts allow you
 to match on the characters before and after your lexeme.
@@ -164,13 +164,13 @@ following a newline char.
 	     -> Bool       -- True <=> accept the token
    #+end_src
 
-*** Start Codes
+**** Start Codes
 Another powerful tool for writing Alex rules are ~Start Codes~. They
 allow you to add state to your lexer. I am going to hold off
 discussing them until a later post but they are really useful for
 things like string templating.
 
-* The Lexer
+** The Lexer
 For a minimal Untyped Lambda Calculus using the traditional syntax we
 will need the following lexemes:
 
@@ -257,7 +257,7 @@ simply calls ~error~ for any lex errors.
 We will fix these shortcomings soon, but lets move on to the parser
 for now.
 
-* The Parser
+** The Parser
 Now that we have a ~String -> [Token]~ lexer function, we can
 implement our Happy parser. In my [[https://blog.cofree.coffee/2021-10-29-dont-worry-be-happy/][last post]] I described the
 basic syntax of a Happy file. Here I will include a complete Happy
@@ -343,7 +343,7 @@ We can now execute our parser in the repl and build an AST:
   Abs "x" (Ap (Var "y") (Var "x"))
 #+end_src
 
-* Final Thoughts
+** Final Thoughts
 Here we have built a minimally complete lexer and parser for Untyped
 Lambda Calculus. The implementation is available [[https://github.com/solomon-b/Dont-Worry-Be-Happy/tree/main/app/basic][here]] along with all
 other lexers and parsers for this series.

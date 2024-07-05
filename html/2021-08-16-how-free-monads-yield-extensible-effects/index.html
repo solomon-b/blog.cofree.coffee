@@ -87,7 +87,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 be used to construct extensible effect systems. I never understood why
 <code>Free</code> why this was the case. It turns out it is deeply
 connected to their ability to yield monads for functors.</p>
-<h1 id="the-free-type">The Free Type</h1>
+<h2 id="the-free-type">The Free Type</h2>
 <p>For a warmup, lets review <code>Free</code><a href="#fn1"
 class="footnote-ref" id="fnref1"
 role="doc-noteref"><sup>1</sup></a>:</p>
@@ -118,7 +118,7 @@ perform any effects, it is merely a syntax tree describing effects yet
 to be interpreted.</p>
 <p>Now lets take a closer look <code>Free</code>'s Typeclass
 instances.</p>
-<h1 id="free-is-a-monad">Free is a Monad</h1>
+<h2 id="free-is-a-monad">Free is a Monad</h2>
 <div class="sourceCode" id="cb3"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> <span class="dt">Functor</span> (<span class="dt">Free</span> f) <span class="kw">where</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  fmap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Free</span> f a <span class="ot">-&gt;</span> <span class="dt">Free</span> f b</span>
@@ -181,7 +181,7 @@ recurses through our <code>Free</code> AST and interprets the
 <code>State</code> effect. Thus we have recreated the monadic operations
 of the <code>State</code> monad via the <code>State</code>
 <code>Functor</code> and <code>Free</code>'s data constructors.</p>
-<h1 id="extensible-effects">Extensible Effects</h1>
+<h2 id="extensible-effects">Extensible Effects</h2>
 <p>Armed with a reasonable understanding of <code>Free</code> we can
 approach the main topic of this blog post. How does seperating the
 syntax and semantics of monadic effects help us with composing our
@@ -205,7 +205,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a 
 nested functors use the same <code>a</code> parameter. With
 <code>Either</code> we would only have a <code>Functor</code> over the
 <code>Right</code> term.</p>
-<h1 id="the-simplest-effects-system">The Simplest Effects System</h1>
+<h2 id="the-simplest-effects-system">The Simplest Effects System</h2>
 <p>With <code>Sum</code> we can create the world's simplest effects
 system. In this system we will be able to pick two <code>Functors</code>
 patch them into <code>Free</code> and then write an interpreter to
@@ -255,7 +255,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a 
 <span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> vars <span class="ot">=</span> S.fromList [<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>, <span class="st">&quot;c&quot;</span>]</span>
 <span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>      ast <span class="ot">=</span> <span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="st">&quot;a&quot;</span>) (<span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="st">&quot;b&quot;</span>) (<span class="dt">Node</span> (<span class="dt">Leaf</span> <span class="st">&quot;a&quot;</span>) (<span class="dt">Leaf</span> <span class="st">&quot;c&quot;</span>)))</span>
 <span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="kw">in</span> <span class="fu">print</span> <span class="op">$</span> runFX <span class="fu">mempty</span> <span class="op">$</span> assignIndexToVariables ast vars</span></code></pre></div>
-<h1 id="generalizing">Generalizing</h1>
+<h2 id="generalizing">Generalizing</h2>
 <p>In our last example, the interpreter consists of structural recursion
 on <code>Free</code> along with explicit interpretations of our effects
 into some hard coded result type <code>Either e (a, s)</code>. We can
@@ -288,7 +288,7 @@ that performs some calculation and then dispatches the calculation
 result to some store. We would be able to swap out store interpretations
 between writing to a file on disk, writing to a database, and sending
 out an HTTP request, etc.</p>
-<h1 id="further-generalizations">Further Generalizations</h1>
+<h2 id="further-generalizations">Further Generalizations</h2>
 <p>At this point our effect system can only handle two effects and they
 must have <code>Functor</code> instances.</p>
 <p>We can replace <code>Sum</code> with an open union to be able to

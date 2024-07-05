@@ -10,7 +10,7 @@ is based on Mealy machines and heavily leverages Haskell\'s profunctor
 machinery. I want to walk through the early stages of the design process
 and how you might arrive at such an architecture.
 
-# What is a Chat Bot?
+## What is a Chat Bot?
 
 Lets start by describing what we mean by a chat bot, then lets factor
 out as much as possible until we arrive at a precise, elegant
@@ -67,7 +67,7 @@ newtype Bot m s i o = Bot { runBot :: i -> s -> m (s, o) }
 Now we have a single function which can update state and produce an
 output *in a single operation*. This gives us what we want.
 
-# Exploring Our Type
+## Exploring Our Type
 
 Now that we have our bot type, lets explore it a bit. We can see that it
 *receives* an `i` and an `s` and it *produces* an `s` and an `o`. This
@@ -154,7 +154,7 @@ We will try to sort out the use of some of these structures later on.
 For now, it is a great sign that our spec fits so many well defined
 structures.
 
-# Constructing Bots
+## Constructing Bots
 
 Lets move on to building some bots. As we go along, we might discover
 interesting uses for the structures defined previously.
@@ -211,7 +211,7 @@ todoBot = Bot $ \i s ->
 Notice that all of these bots *must* return a response regardless of the
 input. This is something we will need to address shortly.
 
-# Interpretation
+## Interpretation
 
 Now that we have a few bots, we need some way to run them.
 
@@ -279,7 +279,7 @@ and *pretty printed* into `Text` to embed a `Bool`.
 
 Our work identifying algebraic structures is already paying off.
 
-# Conditional Responses
+## Conditional Responses
 
 Now we have defined a few simple bots and demonstrated how to interpret
 them in a REPL-like environment. We still have an unsolved problem,
@@ -343,7 +343,7 @@ mappings of our input and output to *focus* and *embed* structures
 respectively. In the contravariant case we are using a special variation
 of `lmap` which leverages `Alternative` to produce optional outputs.
 
-# Composition
+## Composition
 
 Our goal now is to take two bots and \'laterally\' compose them together
 to combine their behaviors. At the type level, what this looks like is
@@ -460,7 +460,7 @@ True
 > 
 ```
 
-# Transformations
+## Transformations
 
 At this point we can build bot behaviors around arbitrary inputs and
 outputs, combine behaviors to produce composite bots, and interpret them
@@ -548,6 +548,7 @@ These types describe a language for interacting with a sessionized bot.
 Now we need a function for sessionizing bots:
 
 ``` haskell
+
 sessionize
   :: Monad m
   => s
@@ -562,7 +563,7 @@ embedded bot. This idea isn\'t fully developed, but I hope it gives you
 an idea of what kinds of transformations are possible with this
 architecture.
 
-# Conclusion
+## Conclusion
 
 We have demonstrated the core bot architecture as well as constructing,
 interpreting, composing, and extending bots in various dimensions. More
@@ -570,6 +571,6 @@ so then explaining how to build a chat bot, I hope this post inspires
 you to think more algebraically about your program architectures and to
 leverage more of the powerful abstractions available to us with Haskell.
 
-Special thanks to [@masaeedu](https://github.com/masaeedu),
-[@iris](https://github.com/conjunctive), and everyone else in the
+Special thanks to [\@masaeedu](https://github.com/masaeedu),
+[\@iris](https://github.com/conjunctive), and everyone else in the
 [Cofree-Coffee Org](https://github.com/cofree-coffee/).

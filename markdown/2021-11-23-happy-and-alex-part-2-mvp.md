@@ -23,7 +23,7 @@ At it\'s simplest alex takes in a set of token definitions and then
 outputs a scanner function `String -> [Token]`, where `Token` is some
 provided lexeme type.
 
-# Alex File Syntax
+## Alex File Syntax
 
 Here is a complete Alex file taken from the
 [documentation](https://www.haskell.org/alex/doc/html/introduction.html):
@@ -85,7 +85,7 @@ The structure of an Alex file is (in order):
 Rules are the only required element, but in practice you will use a
 little bit of everything.
 
-## Wrapper Declarations
+### Wrapper Declarations
 
 Wrappers are predefined bits of code that extend the functionality of
 Alex. For example, there is a wrapper to add position tracking and
@@ -98,7 +98,7 @@ In this post, we will use `basic` wrapper. It gives you
 `alexScanTokens :: String -> [token]` which we will use as the entry
 point to our lexer.
 
-## Rules
+### Rules
 
 Rules are the only required element in your Alex file and are the meat
 and potatos of the lexer. A rules block is declared with `id |-`
@@ -145,51 +145,51 @@ The `AlexReturn` term is then consumed by `alexScanTokens` function, in
 the case of the `basic` wrapper, or by whatever scanner function we
 chose to define.
 
-### Contexts
+1.  Contexts
 
-Rules can also have a `right` and `left` context which are added before
-or after your regex respectively.. Contexts allow you to match on the
-characters before and after your lexeme.
+    Rules can also have a `right` and `left` context which are added
+    before or after your regex respectively.. Contexts allow you to
+    match on the characters before and after your lexeme.
 
-`Left Context` allows you to match on the beginning of a line via the
-`^` character:
-
-``` haskell
-^ $alpha [$alpha]* { \s -> Identifier s }
-```
-
-This rule will only match a string of alpha characters immediately
-following a newline char.
-
-`Right context` is more powerful and has three forms:
-
-1.  `$` : The rule will only match if it is immediately *preceding* a
-    newline char.
-
-2.  / *regex* : This rule will only match if its regex match is
-    immediately followed by the additional provided regex.
-
-3.  / { ... } : This rule applies a Haskell predicate function on the
-    rule to determine if it matches.
-
-    The predicate function\'s type must be:
+    `Left Context` allows you to match on the beginning of a line via
+    the `^` character:
 
     ``` haskell
-    { ... } :: user       -- predicate state
-        -> AlexInput  -- input stream before the token
-        -> Int        -- length of the token
-        -> AlexInput  -- input stream after the token
-        -> Bool       -- True <=> accept the token
+    ^ $alpha [$alpha]* { \s -> Identifier s }
     ```
 
-### Start Codes
+    This rule will only match a string of alpha characters immediately
+    following a newline char.
 
-Another powerful tool for writing Alex rules are `Start Codes`. They
-allow you to add state to your lexer. I am going to hold off discussing
-them until a later post but they are really useful for things like
-string templating.
+    `Right context` is more powerful and has three forms:
 
-# The Lexer
+    1.  `$` : The rule will only match if it is immediately *preceding*
+        a newline char.
+
+    2.  / *regex* : This rule will only match if its regex match is
+        immediately followed by the additional provided regex.
+
+    3.  / { ... } : This rule applies a Haskell predicate function on
+        the rule to determine if it matches.
+
+        The predicate function\'s type must be:
+
+        ``` haskell
+        { ... } :: user       -- predicate state
+            -> AlexInput  -- input stream before the token
+            -> Int        -- length of the token
+            -> AlexInput  -- input stream after the token
+            -> Bool       -- True <=> accept the token
+        ```
+
+2.  Start Codes
+
+    Another powerful tool for writing Alex rules are `Start Codes`. They
+    allow you to add state to your lexer. I am going to hold off
+    discussing them until a later post but they are really useful for
+    things like string templating.
+
+## The Lexer
 
 For a minimal Untyped Lambda Calculus using the traditional syntax we
 will need the following lexemes:
@@ -278,7 +278,7 @@ you can see that it simply calls `error` for any lex errors.
 We will fix these shortcomings soon, but lets move on to the parser for
 now.
 
-# The Parser
+## The Parser
 
 Now that we have a `String -> [Token]` lexer function, we can implement
 our Happy parser. In my [last
@@ -366,7 +366,7 @@ Abs "x" (Ap (Var "y") (Var "x"))
 Abs "x" (Ap (Var "y") (Var "x"))
 ```
 
-# Final Thoughts
+## Final Thoughts
 
 Here we have built a minimally complete lexer and parser for Untyped
 Lambda Calculus. The implementation is available

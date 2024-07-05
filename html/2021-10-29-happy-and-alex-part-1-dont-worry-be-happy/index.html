@@ -107,8 +107,8 @@ are simply too powerful.</p>
 another powerful tool the in Haskell arsenal. A tool that does not get
 much attention, but which is used in GHC itself in place of parser
 combinators.</p>
-<h1 id="the-challenges-of-left-recursion-and-ambiguity">The challenges
-of left recursion and ambiguity</h1>
+<h2 id="the-challenges-of-left-recursion-and-ambiguity">The challenges
+of left recursion and ambiguity</h2>
 <p>Imagine we wanted to parse a basic arithmetic language with addition,
 negation, and multiplication of integers. We want infix operators and
 parenthesis to set operator precedence.</p>
@@ -182,7 +182,7 @@ doesn't crash.</p>
 <p>But in order to ensure test coverage, you need to define the formal
 grammar for your language. So now we have to write a parser, a grammar,
 and a test suite all independently.</p>
-<h1 id="simplifying-the-problem">Simplifying the problem</h1>
+<h2 id="simplifying-the-problem">Simplifying the problem</h2>
 <p>Lexical analysis is the process of converting a sequence of
 characters into a sequence of tokens called lexemes. Lexemes typically
 will form a <a
@@ -202,7 +202,7 @@ simplified by factoring out the more trivial lexical analysis.</p>
 <p>Libraries such as MegaParsec offer <a
 href="https://hackage.haskell.org/package/megaparsec-9.2.0/docs/Text-Megaparsec-Stream.html">tools</a>
 to integrate your own lexer.</p>
-<h1 id="introducing-happy">Introducing Happy</h1>
+<h2 id="introducing-happy">Introducing Happy</h2>
 <p>Happy is a <a
 href="https://en.wikipedia.org/wiki/LALR_parser">LALR</a> Parser
 Generator library, which we can think of as a compiler from some
