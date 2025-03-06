@@ -1,0 +1,369 @@
+---
+author: Solomon Bothwell
+title: Chat Bots Revisited
+---
+
+It has been a long while since my last post on [chat
+bots](https://blog.cofree.coffee/2022-02-14-how-to-design-a-chat-bot/);
+quite a bit longer then I intended to be honest. I would like to
+summarize here where the project has gotten as I think it has some cool
+ideas worth documenting.
+
+Special thanks to [Masaeedu](https://github.com/masaeedu),
+[Iris](https://github.com/conjunctive),
+[Isovector](https://github.com/isovector),
+[TOTBWF](https://github.com/totbwf),
+[Jkachmar](https://github.com/jkachmar/),
+[TheMatten](https://github.com/Thematten),
+[Boarders](https://github.com/Boarders),
+[JonathanLorimer](https://github.com/JonathanLorimer),
+[MonoidMusician](https://github.com/monoidmusician),
+[Chessai](https://github.com/chessai) and everyone else who has
+contributed to this project either via code or conversation.
+
+# Bots
+
+A `Bot` is defined as a sort of variation of a `Mealy Machine` which
+produces many monadic results via `List`:
+
+``` haskell
+newtype Bot m s i o = Bot {runBot :: s -> i -> ListT m (o, s)}
+  deriving
+    (Functor, Applicative, Monad, MonadState s, MonadReader i, MonadIO)
+    via MealyTC (ListT m) s i
+```
+
+This is a coalgebraic encoding where we have exposed the machine\'s
+state parameter `s`. These machines are [monoidal
+functors](https://hackage.haskell.org/package/monoidal-functors) (and
+profunctors and categories) which gives us a lot of tools to manipulate
+and combine them:
+
+``` haskell
+deriving via (MealyTC (ListT m)) instance (Monad m) => Trifunctor.Semigroupal (->) (,) (,) (,) (,) (Bot m)
+
+deriving via (MealyTC (ListT m)) instance (Functor m) => Trifunctor.Semigroupal (->) (,) Either Either (,) (Bot m)
+
+deriving via (MealyTC (ListT m)) instance (Monad m) => Trifunctor.Semigroupal (->) (,) These These (,) (Bot m)
+
+deriving via (MealyTC (ListT m)) instance (Monad m) => Trifunctor.Unital (->) () () () () (Bot m)
+
+deriving via (MealyTC (ListT m)) instance Trifunctor.Unital (->) () Void Void () (Bot m)
+
+deriving via (MealyTC (ListT m)) instance (Monad m) => Trifunctor.Monoidal (->) (,) () (,) () (,) () (,) () (Bot m)
+
+deriving via (MealyTC (ListT m)) instance (Applicative m) => Trifunctor.Monoidal (->) (,) () Either Void Either Void (,) () (Bot m)
+
+deriving via (MealyTC (ListT m)) instance (Monad m) => Trifunctor.Monoidal (->) (,) () These Void These Void (,) () (Bot m)
+
+deriving via (MealyTC (ListT f) s) instance (Functor f) => Profunctor (Bot f s)
+
+deriving via (MealyTC (ListT f) s) instance (Functor f) => Strong (Bot f s)
+
+deriving via (MealyTC (ListT m) s) instance (Monad m) => Category (Bot m s)
+```
+
+With those `Monoidal` instances we get these combinators:
+
+``` haskell
+(/\) :: (Monad m) => Bot m s i o -> Bot m s' i' o' -> Bot m (s, s') (i, i') (o, o')
+(/+\) :: (Monad m) => Bot m s i o -> Bot m s' i' o' -> Bot m (s, s') (i `These` i') (o `These` o')
+(/.\) :: (Monad m) => Bot m s i o -> Bot m s' i o -> Bot m (s, s') i o
+(\/) :: (Monad m) => Bot m s i o -> Bot m t i' o' -> Bot m (s, t) (i `Either` i') (o `Either` o')
+```
+
+For example, `b1 /\ b1` will create a new `Bot` whose state, input, and
+output are products of that of `b1` and `b1`. `b1 \/ b1` will receive
+`Either` the input of `b1` or `b2` and produce `Either` the output of
+`b1` and `b2`.
+
+This tensoring ability is central to our ability to build highly
+compositional chat bots. Note that in practice you almost always want to
+use `/+\`.
+
+## A Small Example
+
+Here is a small hello world example:
+
+``` haskell
+helloBot :: (Monad m) => Bot m s () Text
+helloBot = Bot $ \s () -> pure ("Are you talking to me, punk?", s)
+```
+
+This `Bot`\'s state is `s` which effectively makes it stateless as `s`
+is so polymorphic that it cannot be used for anything. It receives `()`
+as input and produces a `Text` output.
+
+Here is another even smaller example:
+
+``` haskell
+coinFlipBot :: Bot IO () () Bool
+coinFlipBot = randomIO
+```
+
+This works because `Bot` is an instance of `MonadIO` allowing us to do
+MTL sillyness. In fact we could rewrite `helloBot` to demonstrate we
+have `MonadState` and `MonadReader` instances as well:
+
+``` haskell
+helloBot :: (Monad m) => Bot m s () Text
+helloBot = do
+  s <- get
+  () <- ask
+  pure "Are you talking to me, punk?"
+```
+
+So you can either work in a monadic MTL style or directly with the `Bot`
+constructor.
+
+## Interacting with `machines`
+
+Once you have defined your `Bot`, you need a way to run it. We have a
+fixed point operation which folds over the state parameter and
+constructs a `MealyT` from the `machines` library:
+
+``` haskell
+fixBot :: forall m s i o. (Functor m) => Bot m s i o -> s -> MealyT (ListT m) i o
+fixBot = fixMealyTC . MealyTC . runBot
+```
+
+NOTE: `MealyTC` comes from our `machines-coalgebras` library.
+
+At this point you are in `machines` land and can use your `Bot` with
+their entire ecosystem. We have [factored out a
+library](https://github.com/cofree-coffee/cofree-bot/tree/main/machines-coalgebras)
+for our coalgebraic encodings of `Mealy` and `Moore` along with tools
+for converting them into `machines` types. The `chat-bots` `Bot` and
+`Server` types are created using `deriving via` and this library.
+
+## Interfaces
+
+The nice thing about working with `Bot` is that you can be very precise
+about the scope of your chat bot behaviors. `Bots` need not receive any
+more input or state then is demanded to produce their outputs. These
+narrowly scoped behaviors can then be tensored together using
+`monoidal-functors`.
+
+Ultimately you do need your bot to speak some protocol (or perhaps just
+`Text`). For this we have a concept of `Serializers` (renaming
+suggestings welcome!):
+
+``` haskell
+data Serializer so si bo bi = Serializer
+  {parser :: so -> Maybe bi, printer :: bo -> si}
+  deriving stock (Functor)
+```
+
+`Serializer` wraps a parser and a printer for bidrectional
+serialization. This gives you an interface layer between your `Bot` and
+whatever it is talking to (foreshadowing..). The type parameters are
+abbreciations of \"server output\", \"server input\", \"bot output\",
+and \"bot input\".
+
+Given the interface for your server and the narrowly scoped types for
+your `Bot`, you build a `Serializer` record that does the \"impedance\"
+matching needed.
+
+For example, if your server spoke `Text` for its input and output you
+would use a `Serializer` with `so` and `si` fixed to `Text`:
+
+``` haskell
+type TextSerializer = Serializer Text Text
+```
+
+Then you smoosh your `Bot` and your `Serializer` with this function:
+
+``` haskell
+applySerializer ::
+  (Applicative m) =>
+  Bot m s bi bo ->
+  Serializer so si bo bi ->
+  Bot m s so si
+applySerializer (Bot bot) (Serializer parser printer) = Bot $ \s i ->
+  case parser i of
+    Nothing -> emptyListT
+    Just i' -> first printer <$> bot s i'
+```
+
+`Serializers` are also monoidal functors and can be tensored together in
+the same way as `Bots`:
+
+``` haskell
+(/+\) :: TextSerializer o i -> TextSerializer o' i' -> TextSerializer (o `These` o') (i `These` i')
+-- etc
+```
+
+This allows you to tensor together a bunch of `Bot` behaviors, then
+tensor their `Serializers`, and finally smoosh everything together with
+`applySerializer`.
+
+## Sessions
+
+This was mentioned in my old blog post but I\'ll reiterate it here
+briefly. Similarly to how we can also embed `Bots` into \"larger\" bots
+that give advanced abilities such as multisession ability.
+
+``` haskell
+newtype SessionState s = SessionState {sessions :: IntMap s}
+data SessionInput i = InteractWithSession Int i | StartSession | EndSession Int
+data SessionOutput o = SessionOutput Int o | SessionStarted Int | SessionEnded Int | InvalidSession Int
+
+sessionize ::
+  (Monad m) =>
+  s ->
+  Bot m s i o ->
+  Bot m (SessionState s) (SessionInput i) (SessionOutput o)
+```
+
+Sessionize recieves a bot and embeds its `s`, `i`, and `o`, in session
+types. These allow the bot to hold multiple copies of its state under
+different sessions. Multiple users can then interact with the `Bot`
+concurrently with independent sessions.
+
+This feature could use more development but it absolutely works and
+again it demonstrates how we can build narrowly scoped behaviors which
+we then build on via various types of composition.
+
+## Higher Kinded Bots
+
+Rather then working with unnamed `Bots` and these low level combinators
+like `/\`, `/+\`, etc we are now moving to a higher kinded bot approach.
+
+The idea is that you define an HKD type which contains fields for all
+your bot behaviors:
+
+``` haskell
+data CofreeBot p = CofreeBot
+  { hello :: p () () Text,
+    updog :: p () Updog Text,
+    coinFlip :: p () () Bool,
+    magic8Ball :: p () () Int,
+    jitsi :: p () () Text,
+    ghci :: p () Text Text,
+    calclator :: p (SessionState CalcState) (SessionInput Statement) (SessionOutput (Either CalcError CalcResp)),
+    lists :: p (Lists.ListsState) Lists.ListAction Text
+  }
+  deriving stock (Generic)
+  deriving anyclass (SequenceBot, SequenceSer)
+```
+
+Then you use this type to build both a record of `Bots` and a record of
+`Serializers`. We provide generics machinery `SequenceBot` and
+`SequenceSer` to sequence those records into a concrete `Bot` and
+`Serializer` which you can smoosh together to get your final bot ready
+to connect to a server:
+
+``` haskell
+bot' :: Process Handle Handle () -> CofreeBot (Bot IO)
+bot' process =
+  CofreeBot
+    helloBot
+    updogBot
+    coinFlipBot
+    magic8BallBot
+    jitsiBot
+    (ghciBot process)
+    (sessionize mempty calculatorBot)
+    Lists.listsBot
+
+serializer' :: CofreeBot Contorted
+serializer' =
+  CofreeBot
+    (Contort helloBotSerializer)
+    (Contort updogSerializer)
+    (Contort coinFlipSerializer)
+    (Contort magic8BallSerializer)
+    (Contort jitsiSerializer)
+    (Contort ghciSerializer)
+    (Contort $ sessionSerializer calculatorSerializer)
+    (Contort $ Lists.listsBotSerializer)
+
+bot :: Process Handle Handle () -> Bot IO (CofreeBot StateF) Text Text
+bot process = S.applySerializer (sequenceBot $ bot' process) (sequenceSer serializer')
+```
+
+`Contorted` is a newtype wrapper that contorts `Serializer` to fit the
+shape of the HKD.
+
+# Servers
+
+`Bots` are protocol agnostic. We use `Serializers` to fit them to the
+API of some particular server, but I haven\'t yet shown you what those
+look like.
+
+``` haskell
+newtype Env m s o i = Env {runEnv :: s -> m (i, [o] -> s)}
+  deriving (Functor)
+```
+
+`Env` represents the server you wish to run the `Bot` against. I should
+rename this type to `Server`. It is actually a coalgebriac encoding of a
+monadic `Moore
+Machine`. Like `Bot` with `MealyT` we offer a fixed point operation for
+folding over the `s` and producing a `MooreT` from \~machines:
+
+``` haskell
+fixEnv :: forall m s o i. (Functor m) => Env m s o i -> s -> MooreT m [o] i
+fixEnv = fixMooreTC . MooreTC . runEnv
+```
+
+NOTE: `MooreTC` comes from our `machines-coalgebras` library.
+
+We currently have a [Matrix
+server](https://github.com/cofree-coffee/cofree-bot/blob/feature%2Ftodo-behavior/chat-bots-contrib/src/Data/Chat/Server/Matrix.hs#L38-L90)
+and a [\"REPL\"
+server](https://github.com/cofree-coffee/cofree-bot/blob/feature%2Ftodo-behavior/chat-bots/src/Data/Chat/Server/Repl.hs#L21-L36)
+for local debugging. To be honest both of those were written with
+`MooreT` directly and its not clear that exposing the state is as useful
+on the server side; more will be revealed.
+
+## Connecting the `Bot`
+
+Once you have your `Bot` and your server, with the appropriate
+`Serializer` to imepedance match, you are ready to connect them
+together. We do that with this operation `annihilate` which I am rather
+obsessed with:
+
+``` haskell
+annihilate :: (Monad m) => MooreT m [o] i -> MealyT (ListT m) i o -> Fix m
+annihilate (MooreT server) b@(MealyT mealy) = Fix $ do
+  (i, nextServer) <- server
+  xs <- fromListT $ mealy i
+  let o = fmap fst $ xs
+  server' = nextServer o
+  pure $
+    annihilate server' $ case xs of
+  [] -> b
+  _ -> snd $ last xs
+
+loop :: (Monad f) => Fix f -> f x
+loop (Fix x) = x >>= loop
+```
+
+Here is the more general version for Mealy and Moore:
+
+``` haskell
+annihilate :: (Monad m) => MooreT m o i -> MealyT m i o -> Fix m
+annihilate (MooreT moore) (MealyT mealy) = Fix $ do
+  (i, nextMoore) <- moore
+  (o, mealy') <- mealy i
+  let moore' = nextMoore o
+  pure $ annihilate moore' mealy'
+```
+
+And away you go!
+
+# Concluding Remarks
+
+Thanks for reading this. State Machines, Co-Algebras, and Polynomial
+Functors are my favorite subjects in the worlds of math and programming.
+I\'m definitely not an expert but I love exploring this domain. It feels
+like an endless well of mind blowing and highly compositional
+abstractions that seem to get to the essence of computing.
+
+I\'ll end with this lovely quote from David Spivak:
+
+> An Ay^B^ Mealy Machine is the \'universal thing\' that interacts with
+> a By^A^ Moore Machine. Its the universal thing that can be put
+> together with a By^A^ Moore Machine. They\'re not just two different
+> definitions, they are dual in certain sense. -- David Spivak

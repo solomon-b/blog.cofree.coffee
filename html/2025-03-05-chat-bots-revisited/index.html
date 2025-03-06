@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Solomon Bothwell" />
+    <title>Chat Bots Revisited</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div id="runner1">SOLOMON'S BLOG</div>
+<div id="runner1b">functional programming, permaculture, math</div>
+<header id="title-block-header">
+<h1 class="title">Chat Bots Revisited</h1>
+</header>
+<p>It has been a long while since my last post on <a
+href="https://blog.cofree.coffee/2022-02-14-how-to-design-a-chat-bot/">chat
+bots</a>; quite a bit longer then I intended to be honest. I would like
+to summarize here where the project has gotten as I think it has some
+cool ideas worth documenting.</p>
+<p>Special thanks to <a href="https://github.com/masaeedu">Masaeedu</a>,
+<a href="https://github.com/conjunctive">Iris</a>, <a
+href="https://github.com/isovector">Isovector</a>, <a
+href="https://github.com/totbwf">TOTBWF</a>, <a
+href="https://github.com/jkachmar/">Jkachmar</a>, <a
+href="https://github.com/Thematten">TheMatten</a>, <a
+href="https://github.com/Boarders">Boarders</a>, <a
+href="https://github.com/JonathanLorimer">JonathanLorimer</a>, <a
+href="https://github.com/monoidmusician">MonoidMusician</a>, <a
+href="https://github.com/chessai">Chessai</a> and everyone else who has
+contributed to this project either via code or conversation.</p>
+<h1 id="bots">Bots</h1>
+<p>A <code>Bot</code> is defined as a sort of variation of a
+<code>Mealy Machine</code> which produces many monadic results via
+<code>List</code>:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bot</span> m s i o <span class="ot">=</span> <span class="dt">Bot</span> {<span class="ot">runBot ::</span> s <span class="ot">-&gt;</span> i <span class="ot">-&gt;</span> <span class="dt">ListT</span> m (o, s)}</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Functor</span>, <span class="dt">Applicative</span>, <span class="dt">Monad</span>, <span class="dt">MonadState</span> s, <span class="dt">MonadReader</span> i, <span class="dt">MonadIO</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    via <span class="dt">MealyTC</span> (<span class="dt">ListT</span> m) s i</span></code></pre></div>
+<p>This is a coalgebraic encoding where we have exposed the machine's
+state parameter <code>s</code>. These machines are <a
+href="https://hackage.haskell.org/package/monoidal-functors">monoidal
+functors</a> (and profunctors and categories) which gives us a lot of
+tools to manipulate and combine them:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m)) <span class="kw">instance</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Trifunctor.Semigroupal</span> (<span class="ot">-&gt;</span>) (,) (,) (,) (,) (<span class="dt">Bot</span> m)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m)) <span class="kw">instance</span> (<span class="dt">Functor</span> m) <span class="ot">=&gt;</span> <span class="dt">Trifunctor.Semigroupal</span> (<span class="ot">-&gt;</span>) (,) <span class="dt">Either</span> <span class="dt">Either</span> (,) (<span class="dt">Bot</span> m)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m)) <span class="kw">instance</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Trifunctor.Semigroupal</span> (<span class="ot">-&gt;</span>) (,) <span class="dt">These</span> <span class="dt">These</span> (,) (<span class="dt">Bot</span> m)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m)) <span class="kw">instance</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Trifunctor.Unital</span> (<span class="ot">-&gt;</span>) () () () () (<span class="dt">Bot</span> m)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m)) <span class="kw">instance</span> <span class="dt">Trifunctor.Unital</span> (<span class="ot">-&gt;</span>) () <span class="dt">Void</span> <span class="dt">Void</span> () (<span class="dt">Bot</span> m)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m)) <span class="kw">instance</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Trifunctor.Monoidal</span> (<span class="ot">-&gt;</span>) (,) () (,) () (,) () (,) () (<span class="dt">Bot</span> m)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m)) <span class="kw">instance</span> (<span class="dt">Applicative</span> m) <span class="ot">=&gt;</span> <span class="dt">Trifunctor.Monoidal</span> (<span class="ot">-&gt;</span>) (,) () <span class="dt">Either</span> <span class="dt">Void</span> <span class="dt">Either</span> <span class="dt">Void</span> (,) () (<span class="dt">Bot</span> m)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m)) <span class="kw">instance</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Trifunctor.Monoidal</span> (<span class="ot">-&gt;</span>) (,) () <span class="dt">These</span> <span class="dt">Void</span> <span class="dt">These</span> <span class="dt">Void</span> (,) () (<span class="dt">Bot</span> m)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> f) s) <span class="kw">instance</span> (<span class="dt">Functor</span> f) <span class="ot">=&gt;</span> <span class="dt">Profunctor</span> (<span class="dt">Bot</span> f s)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> f) s) <span class="kw">instance</span> (<span class="dt">Functor</span> f) <span class="ot">=&gt;</span> <span class="dt">Strong</span> (<span class="dt">Bot</span> f s)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="kw">deriving</span> via (<span class="dt">MealyTC</span> (<span class="dt">ListT</span> m) s) <span class="kw">instance</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Category</span> (<span class="dt">Bot</span> m s)</span></code></pre></div>
+<p>With those <code>Monoidal</code> instances we get these
+combinators:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>(<span class="op">/</span>\)<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) (i, i&#39;) (o, o&#39;)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>(<span class="op">/+</span>\)<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) (i <span class="ot">`These`</span> i&#39;) (o <span class="ot">`These`</span> o&#39;)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>(<span class="op">/.</span>\)<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) i o</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>(\<span class="op">/</span>)<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m t i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, t) (i <span class="ot">`Either`</span> i&#39;) (o <span class="ot">`Either`</span> o&#39;)</span></code></pre></div>
+<p>For example, <code>b1 /\ b1</code> will create a new <code>Bot</code>
+whose state, input, and output are products of that of <code>b1</code>
+and <code>b1</code>. <code>b1 \/ b1</code> will receive
+<code>Either</code> the input of <code>b1</code> or <code>b2</code> and
+produce <code>Either</code> the output of <code>b1</code> and
+<code>b2</code>.</p>
+<p>This tensoring ability is central to our ability to build highly
+compositional chat bots. Note that in practice you almost always want to
+use <code>/+\</code>.</p>
+<h2 id="a-small-example">A Small Example</h2>
+<p>Here is a small hello world example:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">helloBot ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s () <span class="dt">Text</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>helloBot <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \s () <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="st">&quot;Are you talking to me, punk?&quot;</span>, s)</span></code></pre></div>
+<p>This <code>Bot</code>'s state is <code>s</code> which effectively
+makes it stateless as <code>s</code> is so polymorphic that it cannot be
+used for anything. It receives <code>()</code> as input and produces a
+<code>Text</code> output.</p>
+<p>Here is another even smaller example:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">coinFlipBot ::</span> <span class="dt">Bot</span> <span class="dt">IO</span> () () <span class="dt">Bool</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>coinFlipBot <span class="ot">=</span> randomIO</span></code></pre></div>
+<p>This works because <code>Bot</code> is an instance of
+<code>MonadIO</code> allowing us to do MTL sillyness. In fact we could
+rewrite <code>helloBot</code> to demonstrate we have
+<code>MonadState</code> and <code>MonadReader</code> instances as
+well:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">helloBot ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s () <span class="dt">Text</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>helloBot <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> get</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  () <span class="ot">&lt;-</span> ask</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> <span class="st">&quot;Are you talking to me, punk?&quot;</span></span></code></pre></div>
+<p>So you can either work in a monadic MTL style or directly with the
+<code>Bot</code> constructor.</p>
+<h2 id="interacting-with-machines">Interacting with
+<code>machines</code></h2>
+<p>Once you have defined your <code>Bot</code>, you need a way to run
+it. We have a fixed point operation which folds over the state parameter
+and constructs a <code>MealyT</code> from the <code>machines</code>
+library:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fixBot ::</span> <span class="kw">forall</span> m s i o<span class="op">.</span> (<span class="dt">Functor</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> <span class="dt">MealyT</span> (<span class="dt">ListT</span> m) i o</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>fixBot <span class="ot">=</span> fixMealyTC <span class="op">.</span> <span class="dt">MealyTC</span> <span class="op">.</span> runBot</span></code></pre></div>
+<p>NOTE: <code>MealyTC</code> comes from our
+<code>machines-coalgebras</code> library.</p>
+<p>At this point you are in <code>machines</code> land and can use your
+<code>Bot</code> with their entire ecosystem. We have <a
+href="https://github.com/cofree-coffee/cofree-bot/tree/main/machines-coalgebras">factored
+out a library</a> for our coalgebraic encodings of <code>Mealy</code>
+and <code>Moore</code> along with tools for converting them into
+<code>machines</code> types. The <code>chat-bots</code> <code>Bot</code>
+and <code>Server</code> types are created using
+<code>deriving via</code> and this library.</p>
+<h2 id="interfaces">Interfaces</h2>
+<p>The nice thing about working with <code>Bot</code> is that you can be
+very precise about the scope of your chat bot behaviors.
+<code>Bots</code> need not receive any more input or state then is
+demanded to produce their outputs. These narrowly scoped behaviors can
+then be tensored together using <code>monoidal-functors</code>.</p>
+<p>Ultimately you do need your bot to speak some protocol (or perhaps
+just <code>Text</code>). For this we have a concept of
+<code>Serializers</code> (renaming suggestings welcome!):</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Serializer</span> so si bo bi <span class="ot">=</span> <span class="dt">Serializer</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  {<span class="ot">parser ::</span> so <span class="ot">-&gt;</span> <span class="dt">Maybe</span> bi,<span class="ot"> printer ::</span> bo <span class="ot">-&gt;</span> si}</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> stock (<span class="dt">Functor</span>)</span></code></pre></div>
+<p><code>Serializer</code> wraps a parser and a printer for bidrectional
+serialization. This gives you an interface layer between your
+<code>Bot</code> and whatever it is talking to (foreshadowing..). The
+type parameters are abbreciations of "server output", "server input",
+"bot output", and "bot input".</p>
+<p>Given the interface for your server and the narrowly scoped types for
+your <code>Bot</code>, you build a <code>Serializer</code> record that
+does the "impedance" matching needed.</p>
+<p>For example, if your server spoke <code>Text</code> for its input and
+output you would use a <code>Serializer</code> with <code>so</code> and
+<code>si</code> fixed to <code>Text</code>:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">TextSerializer</span> <span class="ot">=</span> <span class="dt">Serializer</span> <span class="dt">Text</span> <span class="dt">Text</span></span></code></pre></div>
+<p>Then you smoosh your <code>Bot</code> and your
+<code>Serializer</code> with this function:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ot">applySerializer ::</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  (<span class="dt">Applicative</span> m) <span class="ot">=&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Bot</span> m s bi bo <span class="ot">-&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Serializer</span> so si bo bi <span class="ot">-&gt;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Bot</span> m s so si</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>applySerializer (<span class="dt">Bot</span> bot) (<span class="dt">Serializer</span> parser printer) <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \s i <span class="ot">-&gt;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> parser i <span class="kw">of</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> emptyListT</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Just</span> i&#39; <span class="ot">-&gt;</span> first printer <span class="op">&lt;$&gt;</span> bot s i&#39;</span></code></pre></div>
+<p><code>Serializers</code> are also monoidal functors and can be
+tensored together in the same way as <code>Bots</code>:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>(<span class="op">/+</span>\)<span class="ot"> ::</span> <span class="dt">TextSerializer</span> o i <span class="ot">-&gt;</span> <span class="dt">TextSerializer</span> o&#39; i&#39; <span class="ot">-&gt;</span> <span class="dt">TextSerializer</span> (o <span class="ot">`These`</span> o&#39;) (i <span class="ot">`These`</span> i&#39;)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- etc</span></span></code></pre></div>
+<p>This allows you to tensor together a bunch of <code>Bot</code>
+behaviors, then tensor their <code>Serializers</code>, and finally
+smoosh everything together with <code>applySerializer</code>.</p>
+<h2 id="sessions">Sessions</h2>
+<p>This was mentioned in my old blog post but I'll reiterate it here
+briefly. Similarly to how we can also embed <code>Bots</code> into
+"larger" bots that give advanced abilities such as multisession
+ability.</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">SessionState</span> s <span class="ot">=</span> <span class="dt">SessionState</span> {<span class="ot">sessions ::</span> <span class="dt">IntMap</span> s}</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SessionInput</span> i <span class="ot">=</span> <span class="dt">InteractWithSession</span> <span class="dt">Int</span> i <span class="op">|</span> <span class="dt">StartSession</span> <span class="op">|</span> <span class="dt">EndSession</span> <span class="dt">Int</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SessionOutput</span> o <span class="ot">=</span> <span class="dt">SessionOutput</span> <span class="dt">Int</span> o <span class="op">|</span> <span class="dt">SessionStarted</span> <span class="dt">Int</span> <span class="op">|</span> <span class="dt">SessionEnded</span> <span class="dt">Int</span> <span class="op">|</span> <span class="dt">InvalidSession</span> <span class="dt">Int</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ot">sessionize ::</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">-&gt;</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Bot</span> m (<span class="dt">SessionState</span> s) (<span class="dt">SessionInput</span> i) (<span class="dt">SessionOutput</span> o)</span></code></pre></div>
+<p>Sessionize recieves a bot and embeds its <code>s</code>,
+<code>i</code>, and <code>o</code>, in session types. These allow the
+bot to hold multiple copies of its state under different sessions.
+Multiple users can then interact with the <code>Bot</code> concurrently
+with independent sessions.</p>
+<p>This feature could use more development but it absolutely works and
+again it demonstrates how we can build narrowly scoped behaviors which
+we then build on via various types of composition.</p>
+<h2 id="higher-kinded-bots">Higher Kinded Bots</h2>
+<p>Rather then working with unnamed <code>Bots</code> and these low
+level combinators like <code>/\</code>, <code>/+\</code>, etc we are now
+moving to a higher kinded bot approach.</p>
+<p>The idea is that you define an HKD type which contains fields for all
+your bot behaviors:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">CofreeBot</span> p <span class="ot">=</span> <span class="dt">CofreeBot</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  {<span class="ot"> hello ::</span> p () () <span class="dt">Text</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ot">    updog ::</span> p () <span class="dt">Updog</span> <span class="dt">Text</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ot">    coinFlip ::</span> p () () <span class="dt">Bool</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="ot">    magic8Ball ::</span> p () () <span class="dt">Int</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="ot">    jitsi ::</span> p () () <span class="dt">Text</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="ot">    ghci ::</span> p () <span class="dt">Text</span> <span class="dt">Text</span>,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="ot">    calclator ::</span> p (<span class="dt">SessionState</span> <span class="dt">CalcState</span>) (<span class="dt">SessionInput</span> <span class="dt">Statement</span>) (<span class="dt">SessionOutput</span> (<span class="dt">Either</span> <span class="dt">CalcError</span> <span class="dt">CalcResp</span>)),</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="ot">    lists ::</span> p (<span class="dt">Lists.ListsState</span>) <span class="dt">Lists.ListAction</span> <span class="dt">Text</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> stock (<span class="dt">Generic</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> anyclass (<span class="dt">SequenceBot</span>, <span class="dt">SequenceSer</span>)</span></code></pre></div>
+<p>Then you use this type to build both a record of <code>Bots</code>
+and a record of <code>Serializers</code>. We provide generics machinery
+<code>SequenceBot</code> and <code>SequenceSer</code> to sequence those
+records into a concrete <code>Bot</code> and <code>Serializer</code>
+which you can smoosh together to get your final bot ready to connect to
+a server:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ot">bot&#39; ::</span> <span class="dt">Process</span> <span class="dt">Handle</span> <span class="dt">Handle</span> () <span class="ot">-&gt;</span> <span class="dt">CofreeBot</span> (<span class="dt">Bot</span> <span class="dt">IO</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>bot&#39; process <span class="ot">=</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">CofreeBot</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    helloBot</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    updogBot</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    coinFlipBot</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    magic8BallBot</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    jitsiBot</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    (ghciBot process)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    (sessionize <span class="fu">mempty</span> calculatorBot)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    Lists.listsBot</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="ot">serializer&#39; ::</span> <span class="dt">CofreeBot</span> <span class="dt">Contorted</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>serializer&#39; <span class="ot">=</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">CofreeBot</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Contort</span> helloBotSerializer)</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Contort</span> updogSerializer)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Contort</span> coinFlipSerializer)</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Contort</span> magic8BallSerializer)</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Contort</span> jitsiSerializer)</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Contort</span> ghciSerializer)</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Contort</span> <span class="op">$</span> sessionSerializer calculatorSerializer)</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    (<span class="dt">Contort</span> <span class="op">$</span> Lists.listsBotSerializer)</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="ot">bot ::</span> <span class="dt">Process</span> <span class="dt">Handle</span> <span class="dt">Handle</span> () <span class="ot">-&gt;</span> <span class="dt">Bot</span> <span class="dt">IO</span> (<span class="dt">CofreeBot</span> <span class="dt">StateF</span>) <span class="dt">Text</span> <span class="dt">Text</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>bot process <span class="ot">=</span> S.applySerializer (sequenceBot <span class="op">$</span> bot&#39; process) (sequenceSer serializer&#39;)</span></code></pre></div>
+<p><code>Contorted</code> is a newtype wrapper that contorts
+<code>Serializer</code> to fit the shape of the HKD.</p>
+<h1 id="servers">Servers</h1>
+<p><code>Bots</code> are protocol agnostic. We use
+<code>Serializers</code> to fit them to the API of some particular
+server, but I haven't yet shown you what those look like.</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Env</span> m s o i <span class="ot">=</span> <span class="dt">Env</span> {<span class="ot">runEnv ::</span> s <span class="ot">-&gt;</span> m (i, [o] <span class="ot">-&gt;</span> s)}</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Functor</span>)</span></code></pre></div>
+<p><code>Env</code> represents the server you wish to run the
+<code>Bot</code> against. I should rename this type to
+<code>Server</code>. It is actually a coalgebriac encoding of a monadic
+<code>Moore
+Machine</code>. Like <code>Bot</code> with <code>MealyT</code> we offer
+a fixed point operation for folding over the <code>s</code> and
+producing a <code>MooreT</code> from ~machines:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fixEnv ::</span> <span class="kw">forall</span> m s o i<span class="op">.</span> (<span class="dt">Functor</span> m) <span class="ot">=&gt;</span> <span class="dt">Env</span> m s o i <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> <span class="dt">MooreT</span> m [o] i</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fixEnv <span class="ot">=</span> fixMooreTC <span class="op">.</span> <span class="dt">MooreTC</span> <span class="op">.</span> runEnv</span></code></pre></div>
+<p>NOTE: <code>MooreTC</code> comes from our
+<code>machines-coalgebras</code> library.</p>
+<p>We currently have a <a
+href="https://github.com/cofree-coffee/cofree-bot/blob/feature%2Ftodo-behavior/chat-bots-contrib/src/Data/Chat/Server/Matrix.hs#L38-L90">Matrix
+server</a> and a <a
+href="https://github.com/cofree-coffee/cofree-bot/blob/feature%2Ftodo-behavior/chat-bots/src/Data/Chat/Server/Repl.hs#L21-L36">"REPL"
+server</a> for local debugging. To be honest both of those were written
+with <code>MooreT</code> directly and its not clear that exposing the
+state is as useful on the server side; more will be revealed.</p>
+<h2 id="connecting-the-bot">Connecting the <code>Bot</code></h2>
+<p>Once you have your <code>Bot</code> and your server, with the
+appropriate <code>Serializer</code> to imepedance match, you are ready
+to connect them together. We do that with this operation
+<code>annihilate</code> which I am rather obsessed with:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ot">annihilate ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MooreT</span> m [o] i <span class="ot">-&gt;</span> <span class="dt">MealyT</span> (<span class="dt">ListT</span> m) i o <span class="ot">-&gt;</span> <span class="dt">Fix</span> m</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>annihilate (<span class="dt">MooreT</span> server) b<span class="op">@</span>(<span class="dt">MealyT</span> mealy) <span class="ot">=</span> <span class="dt">Fix</span> <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  (i, nextServer) <span class="ot">&lt;-</span> server</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  xs <span class="ot">&lt;-</span> fromListT <span class="op">$</span> mealy i</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> o <span class="ot">=</span> <span class="fu">fmap</span> <span class="fu">fst</span> <span class="op">$</span> xs</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  server&#39; <span class="ot">=</span> nextServer o</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> <span class="op">$</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    annihilate server&#39; <span class="op">$</span> <span class="kw">case</span> xs <span class="kw">of</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  [] <span class="ot">-&gt;</span> b</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  _ <span class="ot">-&gt;</span> <span class="fu">snd</span> <span class="op">$</span> <span class="fu">last</span> xs</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="ot">loop ::</span> (<span class="dt">Monad</span> f) <span class="ot">=&gt;</span> <span class="dt">Fix</span> f <span class="ot">-&gt;</span> f x</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>loop (<span class="dt">Fix</span> x) <span class="ot">=</span> x <span class="op">&gt;&gt;=</span> loop</span></code></pre></div>
+<p>Here is the more general version for Mealy and Moore:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ot">annihilate ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MooreT</span> m o i <span class="ot">-&gt;</span> <span class="dt">MealyT</span> m i o <span class="ot">-&gt;</span> <span class="dt">Fix</span> m</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>annihilate (<span class="dt">MooreT</span> moore) (<span class="dt">MealyT</span> mealy) <span class="ot">=</span> <span class="dt">Fix</span> <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  (i, nextMoore) <span class="ot">&lt;-</span> moore</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  (o, mealy&#39;) <span class="ot">&lt;-</span> mealy i</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> moore&#39; <span class="ot">=</span> nextMoore o</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> <span class="op">$</span> annihilate moore&#39; mealy&#39;</span></code></pre></div>
+<p>And away you go!</p>
+<h1 id="concluding-remarks">Concluding Remarks</h1>
+<p>Thanks for reading this. State Machines, Co-Algebras, and Polynomial
+Functors are my favorite subjects in the worlds of math and programming.
+I'm definitely not an expert but I love exploring this domain. It feels
+like an endless well of mind blowing and highly compositional
+abstractions that seem to get to the essence of computing.</p>
+<p>I'll end with this lovely quote from David Spivak:</p>
+<blockquote>
+<p>An Ay<sup>B</sup> Mealy Machine is the 'universal thing' that
+interacts with a By<sup>A</sup> Moore Machine. Its the universal thing
+that can be put together with a By<sup>A</sup> Moore Machine. They're
+not just two different definitions, they are dual in certain sense. –
+David Spivak</p>
+</blockquote>
+</body>
+</html>
