@@ -12,8 +12,8 @@ ideas worth documenting.
 Special thanks to [Masaeedu](https://github.com/masaeedu),
 [Iris](https://github.com/conjunctive),
 [Isovector](https://github.com/isovector),
-[TOTBWF](https://github.com/totbwf), [*jkachmar*]{.spurious-link
-target="H~tps://github.com/jkachmar/"},
+[TOTBWF](https://github.com/totbwf),
+[jkachmar](https://github.com/jkachmar/),
 [TheMatten](https://github.com/Thematten),
 [Boarders](https://github.com/Boarders),
 [JonathanLorimer](https://github.com/JonathanLorimer),

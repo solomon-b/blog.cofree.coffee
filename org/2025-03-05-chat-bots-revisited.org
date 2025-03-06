@@ -5,7 +5,7 @@ It has been a long while since my last post on [[https://blog.cofree.coffee/2022
 then I intended to be honest. I would like to summarize here where the project
 has gotten as I think it has some cool ideas worth documenting.
 
-Special thanks to [[https://github.com/masaeedu][Masaeedu]], [[https://github.com/conjunctive][Iris]], [[https://github.com/isovector][Isovector]], [[https://github.com/totbwf][TOTBWF]], [[H~tps://github.com/jkachmar/][jkachmar]], [[https://github.com/Thematten][TheMatten]],
+Special thanks to [[https://github.com/masaeedu][Masaeedu]], [[https://github.com/conjunctive][Iris]], [[https://github.com/isovector][Isovector]], [[https://github.com/totbwf][TOTBWF]], [[https://github.com/jkachmar/][jkachmar]], [[https://github.com/Thematten][TheMatten]],
 [[https://github.com/Boarders][Boarders]], [[https://github.com/JonathanLorimer][JonathanLorimer]], [[https://github.com/monoidmusician][MonoidMusician]], [[https://github.com/chessai][Chessai]] and everyone else who has
 contributed to this project either via code or conversation.
 
