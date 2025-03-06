@@ -12,8 +12,8 @@ ideas worth documenting.
 Special thanks to [Masaeedu](https://github.com/masaeedu),
 [Iris](https://github.com/conjunctive),
 [Isovector](https://github.com/isovector),
-[TOTBWF](https://github.com/totbwf),
-[Jkachmar](https://github.com/jkachmar/),
+[TOTBWF](https://github.com/totbwf), [*jkachmar*]{.spurious-link
+target="H~tps://github.com/jkachmar/"},
 [TheMatten](https://github.com/Thematten),
 [Boarders](https://github.com/Boarders),
 [JonathanLorimer](https://github.com/JonathanLorimer),
@@ -24,7 +24,7 @@ contributed to this project either via code or conversation.
 # Bots
 
 A `Bot` is defined as a sort of variation of a `Mealy Machine` which
-produces many monadic results via `List`:
+produces many monadic results via `ListT`:
 
 ``` haskell
 newtype Bot m s i o = Bot {runBot :: s -> i -> ListT m (o, s)}
@@ -73,7 +73,7 @@ With those `Monoidal` instances we get these combinators:
 ```
 
 For example, `b1 /\ b1` will create a new `Bot` whose state, input, and
-output are products of that of `b1` and `b1`. `b1 \/ b1` will receive
+output are products of that of `b1` and `b2`. `b1 \/ b1` will receive
 `Either` the input of `b1` or `b2` and produce `Either` the output of
 `b1` and `b2`.
 
@@ -300,7 +300,7 @@ newtype Env m s o i = Env {runEnv :: s -> m (i, [o] -> s)}
 rename this type to `Server`. It is actually a coalgebriac encoding of a
 monadic `Moore
 Machine`. Like `Bot` with `MealyT` we offer a fixed point operation for
-folding over the `s` and producing a `MooreT` from \~machines:
+folding over the `s` and producing a `MooreT` from `machines`:
 
 ``` haskell
 fixEnv :: forall m s o i. (Functor m) => Env m s o i -> s -> MooreT m [o] i
@@ -366,4 +366,4 @@ I\'ll end with this lovely quote from David Spivak:
 > An Ay^B^ Mealy Machine is the \'universal thing\' that interacts with
 > a By^A^ Moore Machine. Its the universal thing that can be put
 > together with a By^A^ Moore Machine. They\'re not just two different
-> definitions, they are dual in certain sense. -- David Spivak
+> definitions, they are dual in a certain sense. -- David Spivak

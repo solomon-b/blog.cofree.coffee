@@ -5,14 +5,14 @@ It has been a long while since my last post on [[https://blog.cofree.coffee/2022
 then I intended to be honest. I would like to summarize here where the project
 has gotten as I think it has some cool ideas worth documenting.
 
-Special thanks to [[https://github.com/masaeedu][Masaeedu]], [[https://github.com/conjunctive][Iris]], [[https://github.com/isovector][Isovector]], [[https://github.com/totbwf][TOTBWF]], [[https://github.com/jkachmar/][Jkachmar]], [[https://github.com/Thematten][TheMatten]],
+Special thanks to [[https://github.com/masaeedu][Masaeedu]], [[https://github.com/conjunctive][Iris]], [[https://github.com/isovector][Isovector]], [[https://github.com/totbwf][TOTBWF]], [[H~tps://github.com/jkachmar/][jkachmar]], [[https://github.com/Thematten][TheMatten]],
 [[https://github.com/Boarders][Boarders]], [[https://github.com/JonathanLorimer][JonathanLorimer]], [[https://github.com/monoidmusician][MonoidMusician]], [[https://github.com/chessai][Chessai]] and everyone else who has
 contributed to this project either via code or conversation.
 
 * Bots
 
 A ~Bot~ is defined as a sort of variation of a ~Mealy Machine~ which produces
-many monadic results via ~List~:
+many monadic results via ~ListT~:
 
 #+begin_src haskell
   newtype Bot m s i o = Bot {runBot :: s -> i -> ListT m (o, s)}
@@ -60,7 +60,7 @@ With those ~Monoidal~ instances we get these combinators:
 #+end_src
 
 For example, ~b1 /\ b1~ will create a new ~Bot~ whose state, input, and output
-are products of that of ~b1~ and ~b1~. ~b1 \/ b1~ will receive ~Either~ the
+are products of that of ~b1~ and ~b2~. ~b1 \/ b1~ will receive ~Either~ the
 input of ~b1~ or ~b2~ and produce ~Either~ the output of ~b1~ and ~b2~.
 
 This tensoring ability is central to our ability to build highly compositional
@@ -271,7 +271,7 @@ some particular server, but I haven't yet shown you what those look like.
 ~Env~ represents the server you wish to run the ~Bot~ against. I should rename
 this type to ~Server~. It is actually a coalgebriac encoding of a monadic ~Moore
 Machine~. Like ~Bot~ with ~MealyT~ we offer a fixed point operation for
-folding over the ~s~ and producing a ~MooreT~ from ~machines:
+folding over the ~s~ and producing a ~MooreT~ from ~machines~:
 
 #+begin_src haskell
 fixEnv :: forall m s o i. (Functor m) => Env m s o i -> s -> MooreT m [o] i
@@ -330,6 +330,6 @@ I'll end with this lovely quote from David Spivak:
 #+begin_quote
 An Ay^B Mealy Machine is the 'universal thing' that interacts with a By^A Moore
 Machine. Its the universal thing that can be put together with a By^A Moore
-Machine. They're not just two different definitions, they are dual in certain
+Machine. They're not just two different definitions, they are dual in a certain
 sense. -- David Spivak
 #+end_quote

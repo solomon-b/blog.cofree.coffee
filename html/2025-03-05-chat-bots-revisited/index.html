@@ -90,8 +90,8 @@ cool ideas worth documenting.</p>
 <p>Special thanks to <a href="https://github.com/masaeedu">Masaeedu</a>,
 <a href="https://github.com/conjunctive">Iris</a>, <a
 href="https://github.com/isovector">Isovector</a>, <a
-href="https://github.com/totbwf">TOTBWF</a>, <a
-href="https://github.com/jkachmar/">Jkachmar</a>, <a
+href="https://github.com/totbwf">TOTBWF</a>, <span class="spurious-link"
+target="H~tps://github.com/jkachmar/"><em>jkachmar</em></span>, <a
 href="https://github.com/Thematten">TheMatten</a>, <a
 href="https://github.com/Boarders">Boarders</a>, <a
 href="https://github.com/JonathanLorimer">JonathanLorimer</a>, <a
@@ -101,7 +101,7 @@ contributed to this project either via code or conversation.</p>
 <h1 id="bots">Bots</h1>
 <p>A <code>Bot</code> is defined as a sort of variation of a
 <code>Mealy Machine</code> which produces many monadic results via
-<code>List</code>:</p>
+<code>ListT</code>:</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bot</span> m s i o <span class="ot">=</span> <span class="dt">Bot</span> {<span class="ot">runBot ::</span> s <span class="ot">-&gt;</span> i <span class="ot">-&gt;</span> <span class="dt">ListT</span> m (o, s)}</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span></span>
@@ -143,7 +143,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a 
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>(\<span class="op">/</span>)<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m t i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, t) (i <span class="ot">`Either`</span> i&#39;) (o <span class="ot">`Either`</span> o&#39;)</span></code></pre></div>
 <p>For example, <code>b1 /\ b1</code> will create a new <code>Bot</code>
 whose state, input, and output are products of that of <code>b1</code>
-and <code>b1</code>. <code>b1 \/ b1</code> will receive
+and <code>b2</code>. <code>b1 \/ b1</code> will receive
 <code>Either</code> the input of <code>b1</code> or <code>b2</code> and
 produce <code>Either</code> the output of <code>b1</code> and
 <code>b2</code>.</p>
@@ -331,7 +331,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a
 <code>Moore
 Machine</code>. Like <code>Bot</code> with <code>MealyT</code> we offer
 a fixed point operation for folding over the <code>s</code> and
-producing a <code>MooreT</code> from ~machines:</p>
+producing a <code>MooreT</code> from <code>machines</code>:</p>
 <div class="sourceCode" id="cb16"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fixEnv ::</span> <span class="kw">forall</span> m s o i<span class="op">.</span> (<span class="dt">Functor</span> m) <span class="ot">=&gt;</span> <span class="dt">Env</span> m s o i <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> <span class="dt">MooreT</span> m [o] i</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fixEnv <span class="ot">=</span> fixMooreTC <span class="op">.</span> <span class="dt">MooreTC</span> <span class="op">.</span> runEnv</span></code></pre></div>
@@ -383,7 +383,7 @@ abstractions that seem to get to the essence of computing.</p>
 <p>An Ay<sup>B</sup> Mealy Machine is the 'universal thing' that
 interacts with a By<sup>A</sup> Moore Machine. Its the universal thing
 that can be put together with a By<sup>A</sup> Moore Machine. They're
-not just two different definitions, they are dual in certain sense. –
+not just two different definitions, they are dual in a certain sense. –
 David Spivak</p>
 </blockquote>
 </body>
