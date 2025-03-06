@@ -141,7 +141,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a 
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>(<span class="op">/+</span>\)<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) (i <span class="ot">`These`</span> i&#39;) (o <span class="ot">`These`</span> o&#39;)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>(<span class="op">/.</span>\)<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s&#39; i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, s&#39;) i o</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>(\<span class="op">/</span>)<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Bot</span> m s i o <span class="ot">-&gt;</span> <span class="dt">Bot</span> m t i&#39; o&#39; <span class="ot">-&gt;</span> <span class="dt">Bot</span> m (s, t) (i <span class="ot">`Either`</span> i&#39;) (o <span class="ot">`Either`</span> o&#39;)</span></code></pre></div>
-<p>For example, <code>b1 /\ b1</code> will create a new <code>Bot</code>
+<p>For example, <code>b1 /\ b2</code> will create a new <code>Bot</code>
 whose state, input, and output are products of that of <code>b1</code>
 and <code>b2</code>. <code>b1 \/ b1</code> will receive
 <code>Either</code> the input of <code>b1</code> or <code>b2</code> and
@@ -243,9 +243,8 @@ behaviors, then tensor their <code>Serializers</code>, and finally
 smoosh everything together with <code>applySerializer</code>.</p>
 <h2 id="sessions">Sessions</h2>
 <p>This was mentioned in my old blog post but I'll reiterate it here
-briefly. Similarly to how we can also embed <code>Bots</code> into
-"larger" bots that give advanced abilities such as multisession
-ability.</p>
+briefly. We can embed <code>Bots</code> into "larger" bots that give
+advanced abilities such as multisession ability.</p>
 <div class="sourceCode" id="cb12"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">SessionState</span> s <span class="ot">=</span> <span class="dt">SessionState</span> {<span class="ot">sessions ::</span> <span class="dt">IntMap</span> s}</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SessionInput</span> i <span class="ot">=</span> <span class="dt">InteractWithSession</span> <span class="dt">Int</span> i <span class="op">|</span> <span class="dt">StartSession</span> <span class="op">|</span> <span class="dt">EndSession</span> <span class="dt">Int</span></span>

@@ -72,7 +72,7 @@ With those `Monoidal` instances we get these combinators:
 (\/) :: (Monad m) => Bot m s i o -> Bot m t i' o' -> Bot m (s, t) (i `Either` i') (o `Either` o')
 ```
 
-For example, `b1 /\ b1` will create a new `Bot` whose state, input, and
+For example, `b1 /\ b2` will create a new `Bot` whose state, input, and
 output are products of that of `b1` and `b2`. `b1 \/ b1` will receive
 `Either` the input of `b1` or `b2` and produce `Either` the output of
 `b1` and `b2`.
@@ -200,8 +200,8 @@ tensor their `Serializers`, and finally smoosh everything together with
 ## Sessions
 
 This was mentioned in my old blog post but I\'ll reiterate it here
-briefly. Similarly to how we can also embed `Bots` into \"larger\" bots
-that give advanced abilities such as multisession ability.
+briefly. We can embed `Bots` into \"larger\" bots that give advanced
+abilities such as multisession ability.
 
 ``` haskell
 newtype SessionState s = SessionState {sessions :: IntMap s}
