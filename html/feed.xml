@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Solomon's Blog</title>
+    <link>https://blog.cofree.coffee</link>
+    <description>functional programming, permaculture, math</description>
+    <item>
+      <title>Chat Bots Revisited</title>
+      <link>https://blog.cofree.coffee/2025-03-05-chat-bots-revisited</link>
+      <pubDate>Wed, 05 Mar 2025 00:00:00 -0800</pubDate>
+      <description>It has been a long while since my last post on chat bots; quite a bit longer then I intended to be honest. I would like to summarize here where the project has gotten as I think it has some cool ideas worth documenting.</description>
+    </item>
+    <item>
+      <title>Lensy Moore</title>
+      <link>https://blog.cofree.coffee/2024-07-02-lensy-moore</link>
+      <pubDate>Tue, 02 Jul 2024 00:00:00 -0700</pubDate>
+      <description>How far can we get leveraging the lens library in Haskell to model Moore Machines and Wiring Diagrams?</description>
+    </item>
+    <item>
+      <title>Lean For Haskell Developers</title>
+      <link>https://blog.cofree.coffee/2024-03-03-lean-for-haskell-developers</link>
+      <pubDate>Sun, 03 Mar 2024 00:00:00 -0800</pubDate>
+      <description>Last updated 2024-03-03</description>
+    </item>
+    <item>
+      <title>How To Design A Chat Bot</title>
+      <link>https://blog.cofree.coffee/2022-02-14-how-to-design-a-chat-bot</link>
+      <pubDate>Mon, 14 Feb 2022 00:00:00 -0800</pubDate>
+      <description>I'm working on a library for designing highly composable protocol agnostic chat bots. The design is based on Mealy machines and heavily leverages Haskell's profunctor machinery. I want to walk through the early stages of the design process and how you might arrive at such an architecture.</description>
+    </item>
+    <item>
+      <title>Happy and Alex Part 2: MVP</title>
+      <link>https://blog.cofree.coffee/2021-11-23-happy-and-alex-part-2-mvp</link>
+      <pubDate>Tue, 23 Nov 2021 00:00:00 -0800</pubDate>
+      <description>In my last post I gave a brief introduction to Happy and parser generators. In this post I will continue the story with Happy's counterpart Alex.</description>
+    </item>
+    <item>
+      <title>Happy and Alex Part 1: Don't Worry Be Happy</title>
+      <link>https://blog.cofree.coffee/2021-10-29-happy-and-alex-part-1-dont-worry-be-happy</link>
+      <pubDate>Fri, 29 Oct 2021 00:00:00 -0700</pubDate>
+      <description>When I was first learning Haskell it was emphasized to me via blog posts, books, and conversations how wonderful Haskell is for language design. One of the major points in favor of this was parser combinators.</description>
+    </item>
+    <item>
+      <title>How Free Monads Yield Extensible Effects</title>
+      <link>https://blog.cofree.coffee/2021-08-16-how-free-monads-yield-extensible-effects</link>
+      <pubDate>Mon, 16 Aug 2021 00:00:00 -0700</pubDate>
+      <description>The Free monad gives you a Monad for any Functor. The Free monad can also be used to construct extensible effect systems. I never understood why Free why this was the case. It turns out it is deeply connected to their ability to yield monads for functors.</description>
+    </item>
+    <item>
+      <title>That One Cool Reader Trick</title>
+      <link>https://blog.cofree.coffee/2021-08-13-that-one-cool-reader-trick</link>
+      <pubDate>Fri, 13 Aug 2021 00:00:00 -0700</pubDate>
+      <description>If you are writing an interpreter, odds are you will want to bind variables. If you are binding variables, there is a decent chance you will want to locally scope your variables.</description>
+    </item>
+    <item>
+      <title>A Brief Intro to Monad Transformers</title>
+      <link>https://blog.cofree.coffee/2021-08-05-a-brief-intro-to-monad-transformers</link>
+      <pubDate>Thu, 05 Aug 2021 00:00:00 -0700</pubDate>
+      <description>A few friends have recently asked about literature introducing Monad Transformers. The best introduction I have found was in Haskell Programming From First Principles. If you don't have, or want to purchase, this book, then here is a brief explanation with examples.</description>
+    </item>
+    <item>
+      <title>Finally Modular Arithmetic</title>
+      <link>https://blog.cofree.coffee/2020-12-22-finally-modular-arithmetic</link>
+      <pubDate>Tue, 22 Dec 2020 00:00:00 -0800</pubDate>
+      <description>Fin _ is one of those data types that makes you take a step back and question how much you really understand typed functional programming.</description>
+    </item>
+    <item>
+      <title>Bounded Space Automata</title>
+      <link>https://blog.cofree.coffee/2020-10-17-bounded-space-automata</link>
+      <pubDate>Sat, 17 Oct 2020 00:00:00 -0700</pubDate>
+      <description>After reading Chris Penner's blog post on Conway's Game Of Life Using Representable and Comonads, I decided to implement a similar solution for the 1 dimensional automata Rule 110. Being such a simple algorithm I thought the implementation would be trivial. However, it turns out that working with arbitarily bounded spaces in the Store Comonad requires a clever use of dependent types to apply memoizaition as described in Chris' blog.</description>
+    </item>
+    <item>
+      <title>Hello World</title>
+      <link>https://blog.cofree.coffee/2020-10-16-hello-world</link>
+      <pubDate>Fri, 16 Oct 2020 00:00:00 -0700</pubDate>
+      <description>Its October 2020, COVID-19 has wreaked havoc across the globe, the US is deeply divided along partisan lines, the environment is in collapse, the government is in a seemingly endless consitutional crisis, and I've decided to start blogging! What a time to be alive.</description>
+    </item>
+  </channel>
+</rss>

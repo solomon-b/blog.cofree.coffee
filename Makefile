@@ -11,6 +11,7 @@ html/%/index.html: org/%.org
 
 default: $(MD) $(HTML)
 	./build-index.sh
+	./build-rss.sh
 
 publish:
 	git push publish
