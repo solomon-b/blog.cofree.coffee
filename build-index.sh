@@ -15,9 +15,9 @@ FOOTER=$(<../html-template/footer.html)
 (
   echo "$HEADER"
   for POSTDIR in $POSTS ; do
-# Capitalize and replace '-' with ' '
-POST=$(sed -E 's/[[:alpha:]]+/\u&/g;s/-/\ /g' <<< "${POSTDIR:11}" )  
-echo "    <li><a href=\"${POSTDIR}\">${POST}</li>"
+    # Extract title from the generated HTML file
+    POST=$(grep -oP '(?<=<title>).*(?=</title>)' "${POSTDIR}/index.html")
+    echo "    <li><a href=\"${POSTDIR}\">${POST}</a></li>"
   done
   echo "$FOOTER"
 ) > "index.html"
