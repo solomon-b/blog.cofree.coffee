@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Solomon Bothwell" />
+    <title>Servant Auth Roles</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div id="runner1">SOLOMON'S BLOG</div>
+<div id="runner1b">functional programming, permaculture, math</div>
+<header id="title-block-header">
+<h1 class="title">Servant Auth Roles</h1>
+</header>
+<p>I wanted a nice way to create a roles system on top of
+<code>servant-auth</code>. This post walks through the design and
+implementation process. The end result is quite similar to OCharle's <a
+href="https://blog.ocharles.org.uk/blog/posts/2019-08-09-who-authorized-these-ghosts.html">Who
+Authorized These Ghosts</a>. You can see the final result <a
+href="https://github.com/solomon-b/servant-auth-roles">here</a>.</p>
+<p>The immediate thing I wanted was auth roles/permission sets in my
+Servant API types such that I can define distinct handlers for each auth
+role. I also want to maintain compatibility with
+<code>AuthProtect</code>.</p>
+<h1 id="the-idea">The idea</h1>
+<p>My first move was to sketch out an imaginary interface for the
+library. My hope is that starting from the interface that the code would
+reveal its implementation to me.</p>
+<p>I wanted to define my roles as a sum type and then instantiate a
+typeclass to describe the role check conditions. This way I could design
+a variety of role systems (hierarchical, non-hierarchical, set based,
+etc).</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">UserRole</span> <span class="ot">=</span> <span class="dt">Viewer</span> <span class="op">|</span> <span class="dt">Editor</span> <span class="op">|</span> <span class="dt">Admin</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Eq</span>, <span class="dt">Ord</span>, <span class="dt">Show</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">CheckRole</span> <span class="dt">&#39;Viewer</span> <span class="kw">where</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  checkRole role <span class="ot">=</span> role <span class="op">&gt;=</span> <span class="dt">Viewer</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">CheckRole</span> <span class="dt">&#39;Editor</span> <span class="kw">where</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  checkRole role <span class="ot">=</span> role <span class="op">&gt;=</span> <span class="dt">Editor</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">CheckRole</span> <span class="dt">&#39;Admin</span> <span class="kw">where</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  checkRole role <span class="ot">=</span> role <span class="op">&gt;=</span> <span class="dt">Admin</span></span></code></pre></div>
+<p><code>CheckRole</code> allows you to use arbitrary predicates. In
+this case I use Ord, because I want fall-through but we could just as
+easily use Eq, or even set membership if you want to model something
+more like "permissions" then "roles."</p>
+<p>Then we would define our typical Servant auth type and
+<code>AuthServerData</code> instance:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Authz</span> <span class="ot">=</span> <span class="dt">Authz</span> {<span class="ot"> userRole ::</span> <span class="dt">UserRole</span>,<span class="ot"> userName ::</span> <span class="dt">String</span> }</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="kw">instance</span> <span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> <span class="st">&quot;test-auth&quot;</span>) <span class="ot">=</span> <span class="dt">Authz</span></span></code></pre></div>
+<p>And finally some magical Servant combinator <code>RequireRole</code>
+I can use in my API types to assign auth roles to routes. The combinator
+would introduce a role permission check before firing the handler. If
+the <code>UserRole</code> value from <code>Authz</code> doesn't satisfy
+the <code>RoleChecK</code> for a handler it fails and tries the next
+matching route.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelAdminAPI</span> <span class="ot">=</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">RequireRole</span> <span class="st">&quot;test-auth&quot;</span> <span class="dt">&#39;Admin</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelEditorAPI</span> <span class="ot">=</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">RequireRole</span> <span class="st">&quot;test-auth&quot;</span> <span class="dt">&#39;Editor</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelViewerAPI</span> <span class="ot">=</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">RequireRole</span> <span class="st">&quot;test-auth&quot;</span> <span class="dt">&#39;Viewer</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">API</span> <span class="ot">=</span> <span class="dt">PanelAdminAPI</span> <span class="op">:&lt;|&gt;</span> <span class="dt">PanelEditorAPI</span> <span class="op">:&lt;|&gt;</span> <span class="dt">PanelViewerAPI</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="ot">server ::</span> <span class="dt">Server</span> <span class="dt">API</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>server <span class="ot">=</span> panelAdmin <span class="op">:&lt;|&gt;</span> panelEditor <span class="op">:&lt;|&gt;</span> panelViewer</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="ot">    panelAdmin ::</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    panelAdmin _ <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;admin panel&quot;</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="ot">    panelEditor ::</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    panelEditor _ <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;editor panel&quot;</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="ot">    panelViewer ::</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    panelViewer _ <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;viewer panel&quot;</span></span></code></pre></div>
+<p>This obviously doens't work as is, but I wanted a DX roughly like
+this.</p>
+<h1 id="making-the-idea-work">Making the idea work</h1>
+<p>The key to this idea is going to be the <code>RequireRole</code>
+<code>HasServer</code> instance.</p>
+<h2 id="hasserver-in-a-nutshell">HasServer in a nutshell</h2>
+<p>But before that, allow me to briefly explain the
+<code>HasServer</code> class. This isn't a Servant tutorial so I'm going
+to skip a lot of details.</p>
+<p>It has one associated type and two methods:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">HasServer</span> api context <span class="kw">where</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span> <span class="dt">ServerT</span> api (<span class="ot">m ::</span> <span class="dt">Type</span> <span class="ot">-&gt;</span> <span class="dt">Type</span>)<span class="ot"> ::</span> <span class="dt">Type</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ot">  route ::</span> <span class="dt">Proxy</span> api <span class="ot">-&gt;</span> <span class="dt">Context</span> context <span class="ot">-&gt;</span> <span class="dt">Delayed</span> env (<span class="dt">Server</span> api) <span class="ot">-&gt;</span> <span class="dt">Router</span> env</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  hoistServerWithContext</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="ot">    ::</span> <span class="dt">Proxy</span> api <span class="ot">-&gt;</span> <span class="dt">Proxy</span> context <span class="ot">-&gt;</span> (<span class="kw">forall</span> x<span class="op">.</span> m x <span class="ot">-&gt;</span> n x) <span class="ot">-&gt;</span> <span class="dt">ServerT</span> api m <span class="ot">-&gt;</span> <span class="dt">ServerT</span> api n</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Server</span> api <span class="ot">=</span> <span class="dt">ServerT</span> api <span class="dt">Handler</span></span></code></pre></div>
+<p><code>api</code> is our Servant Combinator. It describes a part of an
+API's structure. The <code>HasServer</code> instance is sort of a bridge
+between that API description and an actual route handler that serves
+it.</p>
+<p>The associated type <code>ServerT</code> tells the compiler how to
+translate from the <code>api</code> type to a fragment of your handler's
+type signature.</p>
+<p>For example the <code>ServerT</code> associated type for
+<code>Verb</code> is:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">ServerT</span> (<span class="dt">Verb</span> method status ctypes a) m <span class="ot">=</span> m a</span></code></pre></div>
+<p>This means <code>Verb 'GET 200 '[JSON] a</code> maps to
+<code>m a</code> in your handler's signature.</p>
+<p><code>route</code> builds a dispatch tree called a
+<code>Router</code> that Servant then converts via <code>serve</code>
+into a WAI Application for processing requests.</p>
+<p>Each API component has its own <code>route</code> definition and they
+recursively build up a <code>Delayed</code> computation used to produce
+the input to the handler function.</p>
+<p>For example, <code>Capture "id" Int</code> says to grab the next URL
+path segment, try to parse it as an <code>Int</code>, then pass it to
+the handler. Chaining more API components builds out the
+<code>Delayed</code> computation whose result is passed to the handler
+function.</p>
+<p>Lastly we have <code>hoistServerWithContext</code>. Servant
+applications are typically written in a custom monad <code>m</code> but
+ultimately they need to be run in <code>Handler</code>. We use a natural
+transformation to map from <code>m</code> to <code>Handler</code>. This
+function says how to propagate the natural transformation through this
+API component.</p>
+<h2 id="our-instance">Our instance</h2>
+<p>Our datatype will contain a symbol representing the auth method to
+lookup in the <code>Context</code> and a role <code>r</code> that we
+will use to check against our authenticated user's role:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">RequireRole</span> (<span class="ot">tag ::</span> <span class="dt">Symbol</span>) (<span class="ot">r ::</span> k)</span></code></pre></div>
+<p>Our <code>hoistServerWithContext</code> definition is boring and just
+passes the natural transformation through the next API component.</p>
+<p><code>route</code> is where we do all the work. We want to get the
+<code>AuthServerData</code> from the <code>AuthHandler</code> and call
+<code>checkRole</code> to compare the user's role against the required
+role in the API component.</p>
+<p>To make this work we need to create another typeclass that tells us
+how to extract a role from our auth context.</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">HasRole</span> auth r <span class="op">|</span> auth <span class="ot">-&gt;</span> r <span class="kw">where</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  getRole ::</span> auth <span class="ot">-&gt;</span> r</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">HasRole</span> <span class="dt">Authz</span> <span class="dt">UserRole</span> <span class="kw">where</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  getRole <span class="ot">=</span> userRole</span></code></pre></div>
+<p>Then we fancy up <code>CheckRole</code> with an associated type and a
+<code>Proxy</code>:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">CheckRole</span> (<span class="ot">r ::</span> k) <span class="kw">where</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span> <span class="dt">RoleType</span><span class="ot"> r ::</span> <span class="dt">Type</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ot">  checkRole ::</span> <span class="dt">Proxy</span> r <span class="ot">-&gt;</span> <span class="dt">RoleType</span> r <span class="ot">-&gt;</span> <span class="dt">Bool</span></span></code></pre></div>
+<p>Now inside <code>route</code> we can use <code>Proxy</code> to
+specialize <code>CheckRole</code> to the instance <code>r</code> and
+call <code>checkRole</code> against the user's role from
+<code>getRole</code>:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>checkRole (<span class="dt">Proxy</span> <span class="op">@</span>r) (getRole auth)</span></code></pre></div>
+<p>If the role check fails we throw a 403 error. Otherwise we allow the
+<code>Delayed</code> computation to continue with the
+<code>AuthServerData</code>.</p>
+<p>We call execute the failure with <code>delayedFail</code>. This makes
+the error non fatal allowing Servant to try the next
+<code>:&lt;|&gt;</code> alternative. This gives us fall through behavior
+for matching route paths with different role requirements.</p>
+<p>An actual auth lookup failure calls <code>delayedFailFatal</code>
+which returns immediately. This means we reject all unauthenticated
+requests.</p>
+<p>We could instead ouse <code>delayedFail</code> here allowing an
+unauthenticated request to fall-through every gate before failing. This
+would let us create an unauthenticated fallback route.</p>
+<p>This is a design choice, perhaps I should offer combinators with both
+behaviors?</p>
+<p>The full <code>HasServer</code> instance:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">forall</span> tag r api context<span class="op">.</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  ( <span class="dt">HasServer</span> api context,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">CheckRole</span> r,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">HasRole</span> (<span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> tag)) (<span class="dt">RoleType</span> r),</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">HasContextEntry</span> context (<span class="dt">AuthHandler</span> <span class="dt">Request</span> (<span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> tag)))</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="ot">=&gt;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">HasServer</span> (<span class="dt">RequireRole</span> tag r <span class="op">:&gt;</span> api) context</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">ServerT</span> (<span class="dt">RequireRole</span> tag r <span class="op">:&gt;</span> api) m <span class="ot">=</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> tag) <span class="ot">-&gt;</span> <span class="dt">ServerT</span> api m</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  hoistServerWithContext _ pc nt s <span class="ot">=</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    hoistServerWithContext (<span class="dt">Proxy</span> <span class="op">@</span>api) pc nt <span class="op">.</span> s</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>  route _ context subserver <span class="ot">=</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    route (<span class="dt">Proxy</span> <span class="op">@</span>api) context (subserver <span class="ot">`addAuthCheck`</span> withRequest authCheck)</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">where</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="ot">      authHandler&#39; ::</span> <span class="dt">Request</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> (<span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> tag))</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>      authHandler&#39; <span class="ot">=</span> unAuthHandler (getContextEntry context)</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="ot">      authCheck ::</span> <span class="dt">Request</span> <span class="ot">-&gt;</span> <span class="dt">DelayedIO</span> (<span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> tag))</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>      authCheck req <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        eResult <span class="ot">&lt;-</span> liftIO <span class="op">$</span> runHandler (authHandler&#39; req)</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        <span class="kw">case</span> eResult <span class="kw">of</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>          <span class="dt">Left</span> err <span class="ot">-&gt;</span> delayedFailFatal err</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>          <span class="dt">Right</span> auth <span class="ot">-&gt;</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> checkRole (<span class="dt">Proxy</span> <span class="op">@</span>r) (getRole auth)</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>              <span class="kw">then</span> <span class="fu">pure</span> auth</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>              <span class="kw">else</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>                delayedFail</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>                  err403</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>                    { errBody <span class="ot">=</span> <span class="st">&quot;Forbidden: insufficient permissions&quot;</span>,</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>                      errHeaders <span class="ot">=</span> [(<span class="st">&quot;Content-Type&quot;</span>, <span class="st">&quot;text/plain; charset=utf-8&quot;</span>)]</span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>                    }</span></code></pre></div>
+<p>Armed with a working servant combinator we can build a working
+example.</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">UserRole</span> <span class="ot">=</span> <span class="dt">Viewer</span> <span class="op">|</span> <span class="dt">Editor</span> <span class="op">|</span> <span class="dt">Admin</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Ord</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">CheckRole</span> <span class="dt">&#39;Viewer</span> <span class="kw">where</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span> <span class="dt">RoleType</span> <span class="dt">&#39;Viewer</span> <span class="ot">=</span> <span class="dt">UserRole</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  checkRole _ role <span class="ot">=</span> role <span class="op">&gt;=</span> <span class="dt">Viewer</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">CheckRole</span> <span class="dt">&#39;Editor</span> <span class="kw">where</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span> <span class="dt">RoleType</span> <span class="dt">&#39;Editor</span> <span class="ot">=</span> <span class="dt">UserRole</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  checkRole _ role <span class="ot">=</span> role <span class="op">&gt;=</span> <span class="dt">Editor</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">CheckRole</span> <span class="dt">&#39;Admin</span> <span class="kw">where</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span> <span class="dt">RoleType</span> <span class="dt">&#39;Admin</span> <span class="ot">=</span> <span class="dt">UserRole</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  checkRole _ role <span class="ot">=</span> role <span class="op">&gt;=</span> <span class="dt">Admin</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Authz</span> <span class="ot">=</span> <span class="dt">Authz</span> {<span class="ot"> userRole ::</span> <span class="dt">UserRole</span>,<span class="ot"> userName ::</span> <span class="dt">String</span> }</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">HasRole</span> <span class="dt">Authz</span> <span class="dt">UserRole</span> <span class="kw">where</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  getRole <span class="ot">=</span> userRole</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="kw">instance</span> <span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> <span class="st">&quot;test-auth&quot;</span>) <span class="ot">=</span> <span class="dt">Authz</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelAdminAPI</span> <span class="ot">=</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  <span class="dt">RequireRole</span> <span class="st">&quot;test-auth&quot;</span> <span class="dt">&#39;Admin</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelEditorAPI</span> <span class="ot">=</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>  <span class="dt">RequireRole</span> <span class="st">&quot;test-auth&quot;</span> <span class="dt">&#39;Editor</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelViewerAPI</span> <span class="ot">=</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>  <span class="dt">RequireRole</span> <span class="st">&quot;test-auth&quot;</span> <span class="dt">&#39;Viewer</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">API</span> <span class="ot">=</span> <span class="dt">PanelAdminAPI</span> <span class="op">:&lt;|&gt;</span> <span class="dt">PanelEditorAPI</span> <span class="op">:&lt;|&gt;</span> <span class="dt">PanelViewerAPI</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a><span class="ot">server ::</span> <span class="dt">Server</span> <span class="dt">API</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>server <span class="ot">=</span> panelAdmin <span class="op">:&lt;|&gt;</span> panelEditor <span class="op">:&lt;|&gt;</span> panelViewer</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a><span class="ot">    panelAdmin ::</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>    panelAdmin _ <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;admin panel&quot;</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a><span class="ot">    panelEditor ::</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>    panelEditor _ <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;editor panel&quot;</span></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a><span class="ot">    panelViewer ::</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>    panelViewer _ <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;viewer panel&quot;</span></span></code></pre></div>
+<p>Nice!</p>
+<h1 id="who-authorized-those-ghosts">Who Authorized Those Ghosts?</h1>
+<p>This is pretty neat but I think we can do better. We are gating
+access to handlers by user roles but we can call any sort of subroutine
+from our handlers.</p>
+<p>If we constructed a special <code>Proof</code> token during the role
+check we could constrain what subroutines are callable with a
+handler.</p>
+<p>The <code>Proof</code> token would be index by the auth role checked
+in the <code>HasServer</code> <code>route</code> function. Then we could
+build functions like:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ot">banUser ::</span> <span class="dt">Proof</span> <span class="dt">&#39;Admin</span> <span class="ot">-&gt;</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>banUser _proof auth <span class="ot">=</span> <span class="st">&quot;banned by &quot;</span> <span class="op">&lt;&gt;</span> userName auth</span></code></pre></div>
+<p>And we would only be able to call this function from an
+<code>'Admin</code> authscoped handler.</p>
+<p>Note that because the <code>Authz</code> itself is not (yet!) indexed
+by the role, we don't have a proof that a
+<strong><strong>particular</strong></strong> user passed the role check,
+just that <strong><strong>some</strong></strong> user did.</p>
+<p>To make this work we need to define a couple data types:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Proof</span> (<span class="ot">required ::</span> k) <span class="ot">=</span> <span class="dt">Proof</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Satisfies</span> (<span class="ot">required ::</span> k) authz <span class="ot">=</span> <span class="dt">Satisfies</span> (<span class="dt">Proof</span> required) authz</span></code></pre></div>
+<p><code>Proof</code> is a witness that some role satifies the
+requirement <code>required</code>. The constructor is not exported so
+the only way to construct it will be via a new function
+<code>checkAuth</code> called in <code>authCheck</code> and yields a
+<code>Proof</code> if the <code>checkRole</code> succeeds.</p>
+<p><code>Satisfies</code> is an authentication result paired with a
+proof that it satisfies <code>required</code>. This is what handlers
+receive.</p>
+<p><code>checkAuth</code> replaces the <code>if</code> statement in
+<code>authCheck</code> and produces our <code>Proof</code>:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ot">checkAuth ::</span> <span class="dt">CheckRole</span> required <span class="ot">=&gt;</span> <span class="dt">Proxy</span> required <span class="ot">-&gt;</span> <span class="dt">RoleType</span> required <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Proof</span> required)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>checkAuth p role</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> checkRole p role <span class="ot">=</span> <span class="dt">Just</span> <span class="dt">Proof</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="dt">Nothing</span></span></code></pre></div>
+<p><code>authCheck</code> now returns
+<code>Satisfies required (AuthServerData (AuthProtect tag))</code>:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ot">authCheck ::</span> <span class="dt">Request</span> <span class="ot">-&gt;</span> <span class="dt">DelayedIO</span> (<span class="dt">Satisfies</span> required (<span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> tag)))</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>authCheck request <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  eResult <span class="ot">&lt;-</span> liftIO <span class="op">$</span> runHandler (authHandler&#39; request)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> eResult <span class="kw">of</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> err <span class="ot">-&gt;</span> delayedFailFatal err</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> auth <span class="ot">-&gt;</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>      <span class="kw">case</span> checkAuth (<span class="dt">Proxy</span> <span class="op">@</span>required) (getRole auth) <span class="kw">of</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Just</span> proof <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">Satisfies</span> proof auth</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Nothing</span> <span class="ot">-&gt;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>          delayedFail</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>            err403</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>              { errBody <span class="ot">=</span> <span class="st">&quot;Forbidden: insufficient permissions&quot;</span>,</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>                errHeaders <span class="ot">=</span> [(<span class="st">&quot;Content-Type&quot;</span>, <span class="st">&quot;text/plain; charset=utf-8&quot;</span>)]</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>              }</span></code></pre></div>
+<p>Our handlers now receive
+<code>Satisfies required (AuthServerData (AuthProtect tag))</code>
+allowing the admin handler to call <code>banUser</code> using the
+proof:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">adminHandler ::</span> <span class="dt">Satisfies</span> <span class="dt">&#39;Admin</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>adminHandler (<span class="dt">Satisfies</span> proof auth) <span class="ot">=</span> <span class="fu">pure</span> (banUser proof auth)</span></code></pre></div>
+<p>The other handlers cannot call <code>banUser</code> as they have the
+wrong proof, demonstrated by their <code>Satisfies</code> param:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ot">editorHandler ::</span> <span class="dt">Satisfies</span> <span class="dt">&#39;Editor</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>editorHandler (<span class="dt">Satisfies</span> _proof auth) <span class="ot">=</span> <span class="fu">pure</span> <span class="op">$</span> <span class="st">&quot;editor: &quot;</span> <span class="op">&lt;&gt;</span> <span class="fu">show</span> (userName auth)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="ot">viewerHandler ::</span> <span class="dt">Satisfies</span> <span class="dt">&#39;Viewer</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>viewerHandler (<span class="dt">Satisfies</span> _proof auth) <span class="ot">=</span> <span class="fu">pure</span> <span class="op">$</span> <span class="st">&quot;viewer: &quot;</span> <span class="op">&lt;&gt;</span> <span class="fu">show</span> (userName auth)</span></code></pre></div>
+<p>We have restricted subroutines to handlers with the approriate role
+check. What we have not done is restrict those subroutine to
+<strong><strong>users</strong></strong> who have satisifed those role
+checks. Inside <code>editorHandler</code> we could fetch a
+<code>Authz</code> for some other user and use it with the
+<code>Proof 'Admin</code> we have acquired.</p>
+<p>To prevent this we need to lift the <code>UserRole</code> from a
+value inside the <code>Authz</code> into an index on
+<code>UserRole</code>:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Authz</span> (<span class="ot">r ::</span> <span class="dt">UserRole</span>) <span class="ot">=</span> <span class="dt">Authz</span> {<span class="ot">userName ::</span> <span class="dt">String</span>}</span></code></pre></div>
+<p>In other words, currently the Proof and the subject are independent.
+We have proven <strong><strong>someone</strong></strong> is an admin (or
+whatever) but we don't have evidence of who.</p>
+<p>It turns out this will require taking a few steps into the <a
+href="https://homepages.inf.ed.ac.uk/slindley/papers/hasochism.pdf">hasochism</a>.</p>
+<h1 id="dont-fear-the-reaper">(Don't fear) The Reaper</h1>
+<p>The remainder gets a little brutal. I'm going to walk through the
+minimal singletons based solution without all the bells and whistles and
+with a bunch of boilerplate. In the actual library
+<code>servant-auth-roles</code> I take a slightly different singletons
+approach and hide it all behind Template Haskell to eliminate the
+boilerplate.</p>
+<h1 id="reification-and-forgery">Reification and forgery</h1>
+<p>The foundational concept in singletons is that we construct a GADT
+that uniquely maps to indices of an indexed type. This allows you to
+recover type level information at runtime via pattern matching on the
+GADT.</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SBool</span> (<span class="ot">b ::</span> <span class="dt">Bool</span>) <span class="kw">where</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">STrue</span><span class="ot">  ::</span> <span class="dt">SBool</span> <span class="dt">&#39;True</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SFalse</span><span class="ot"> ::</span> <span class="dt">SBool</span> <span class="dt">&#39;False</span></span></code></pre></div>
+<p>With <code>SBool</code>, each branch of the GADT uniquely specializes
+<code>b</code> to a type of the <code>Bool</code> kind. This means that
+when pattern matching GHC is able to infer <code>b</code> based on the
+branch.</p>
+<p>This allows us to perform reification, mapping from a value to a
+type.</p>
+<p>Imagine trying to write this function:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ot">toSBool ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">SBool</span> b</span></code></pre></div>
+<p>No matter which case of <code>SBool</code> you return, you will get a
+type error because <code>b</code> is universally quantified. However, if
+we hide the parameter behind an existential quantifier then we can
+write:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SomeSBool</span> <span class="kw">where</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SomeSBool</span><span class="ot"> ::</span> <span class="dt">SBool</span> b <span class="ot">-&gt;</span> <span class="dt">SomeSBool</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="ot">toSBool ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">SomeSBool</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>toSBool <span class="dt">True</span>  <span class="ot">=</span> <span class="dt">SomeSBool</span> <span class="dt">STrue</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>toSBool <span class="dt">False</span> <span class="ot">=</span> <span class="dt">SomeSBool</span> <span class="dt">SFalse</span></span></code></pre></div>
+<p>And now when we pattern match on <code>SomeBool</code> we can access
+the specialized <code>b</code>. This allows us to write a function
+like:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fireTheMissiles ::</span> <span class="dt">SBool</span> <span class="dt">&#39;True</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>fireTheMissiles <span class="dt">STrue</span> <span class="ot">=</span> <span class="fu">print</span> <span class="st">&quot;Missiles have been fired!&quot;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="ot">check ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>check input <span class="ot">=</span> <span class="kw">case</span> toSBool input <span class="kw">of</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SomeSBool</span> tru  <span class="ot">-&gt;</span> fireTheMissiles tru</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SomeSBool</span> <span class="dt">SFalse</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> ()</span></code></pre></div>
+<p>Calling <code>fireTheMissiles</code> with <code>SFalse</code> will
+result in a type error as it demands <code>SBool 'True</code>. This is
+the vibe of the trick we want to play. However, at this point could
+forge an <code>STrue</code> in the <code>SFalse</code> branch:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="dt">SomeSBool</span> <span class="dt">SFalse</span>  <span class="ot">-&gt;</span> fireTheMissiles <span class="dt">STrue</span></span></code></pre></div>
+<p>To prevent a forgery we need to introduce an evidence type that
+shares the index <code>b</code>. This way we can enforce that our
+<code>SBool</code> matches that of our evidence.</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">IsTrue</span> (<span class="ot">b ::</span> <span class="dt">Bool</span>) <span class="kw">where</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">IsTrue</span><span class="ot"> ::</span> <span class="dt">IsTrue</span> <span class="dt">&#39;True</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="ot">decide ::</span> <span class="dt">SBool</span> b <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">IsTrue</span> b)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>decide <span class="dt">STrue</span>  <span class="ot">=</span> <span class="dt">Just</span> <span class="dt">IsTrue</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>decide <span class="dt">SFalse</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="ot">fireTheMissiles ::</span> <span class="dt">IsTrue</span> b <span class="ot">-&gt;</span> <span class="dt">SBool</span> b <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>fireTheMissiles <span class="ot">=</span> <span class="op">...</span></span></code></pre></div>
+<p>The only way to call <code>fireTheMissiles</code> is if our
+<code>SBool b</code> matches our <code>IsTrue b</code>:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ot">check ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>check input <span class="ot">=</span> <span class="kw">case</span> toSBool input <span class="kw">of</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SomeSBool</span> sb <span class="ot">-&gt;</span> <span class="kw">case</span> decide sb <span class="kw">of</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Just</span> ev <span class="ot">-&gt;</span> fireTheMissiles ev sb</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> ()</span></code></pre></div>
+<p>Now we can only call <code>fireTheMissiles</code> on
+<code>input</code> if we have also produced evidence that
+<code>input</code> is <code>True</code>, which we do with
+<code>decide</code>.</p>
+<p>Let's look at our <code>banUser</code> function:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ot">banUser ::</span> <span class="dt">Proof</span> <span class="dt">&#39;Admin</span> <span class="ot">-&gt;</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span></code></pre></div>
+<p><code>Proof 'Admin</code> is our evidence type. If we parameterize it
+and <code>Authz</code> with <code>r :: UserRole</code> then
+<code>banUser</code> has exactly the same shape as
+<code>fireTheMissiles</code>:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ot">banUser ::</span> <span class="dt">Proof</span> <span class="dt">&#39;Admin</span> r <span class="ot">-&gt;</span> <span class="dt">Authz</span> r <span class="ot">-&gt;</span> <span class="dt">String</span></span></code></pre></div>
+<p>We can only call <code>banUser</code> with an <code>Authz</code> that
+matches <code>Proof</code>.</p>
+<h1 id="applying-singletons">Applying singletons</h1>
+<p>Extrapolating from the <code>SBool</code> example, we have three key
+changes:</p>
+<ol>
+<li>We need to dispatch our check function on a type, since the required
+role is a parameter of <code>RequireRole</code> rather than a fixed
+value like <code>'True</code>.</li>
+<li>We need to construct the proof inside the <code>HasServer</code>
+<code>route</code> method.</li>
+<li>We need the proof and the <code>Authz</code> it was checked against
+to travel together from <code>route</code> to our handler.</li>
+</ol>
+<h2 id="dispatch">Dispatch</h2>
+<p>We need to update <code>checkRole</code> to follow the shape of
+<code>decide</code>. However, since the typeclass is polymorphic in the
+role kind we cannot expect a particular singleton GADT. We need to
+dispatch a singleton on the kind of the <code>RoleType</code> associated
+type.</p>
+<p>For that we introduce the <code>Sing</code> type family.</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="kw">family</span> <span class="dt">Sing</span><span class="ot"> ::</span> k <span class="ot">-&gt;</span> <span class="dt">Type</span></span></code></pre></div>
+<p>Put simply, it is a type level function that allows us to uniquely
+pick out a singleton type for a kind.</p>
+<p><code>Sing</code> dispatches on the kind of its parameter. So given a
+<code>SUserRole</code> GADT and instance:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SUserRole</span> (<span class="ot">r ::</span> <span class="dt">UserRole</span>) <span class="kw">where</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SViewer</span><span class="ot"> ::</span> <span class="dt">SUserRole</span> <span class="dt">&#39;Viewer</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SEditor</span><span class="ot"> ::</span> <span class="dt">SUserRole</span> <span class="dt">&#39;Editor</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SAdmin</span><span class="ot"> ::</span> <span class="dt">SUserRole</span> <span class="dt">&#39;Admin</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="kw">instance</span> <span class="dt">Sing</span> <span class="ot">=</span> <span class="dt">SUserRole</span></span></code></pre></div>
+<p><code>Sing (r :: UserRole)</code> must dispatch to
+<code>SUserRole</code>. If there are instances for multiple GADTs on the
+same kind then GHC will produce a conflicting instance error.</p>
+<p>Now in our <code>checkRole</code> method we replace
+<code>RoleType required</code> with its singleton via
+<code>Sing</code>.</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">CheckRole</span> (<span class="ot">required ::</span> k) <span class="kw">where</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- | The value-level type that this role checks against.</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span> <span class="dt">RoleType</span><span class="ot"> required ::</span> <span class="dt">Type</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- | Check whether the given role value satisfies the requirement @required@.</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="ot">  checkRole ::</span> <span class="dt">Sing</span> (<span class="ot">actual ::</span> <span class="dt">RoleType</span> required) <span class="ot">-&gt;</span> <span class="op">...</span></span></code></pre></div>
+<p>For <code>CheckRole 'Viewer</code>, <code>RoleType 'Viewer</code>
+resolves to <code>UserRole</code> giving us
+<code>Sing (actual :: UserRole)</code> which we just showed returns
+<code>SUserRole</code>.</p>
+<h2 id="evidence">Evidence</h2>
+<p>Now we must update our <code>Proof</code> type and complete the
+signature for <code>checkRole</code>. <code>Proof</code> currently
+carries the required auth role.</p>
+<p>Recall that in our current version the user provides
+<code>checkRole :: Proxy required -&gt; RoleType required -&gt; Bool</code>
+and then the library function <code>checkAuth</code> acts as a smart
+constructor to build the appropriate <code>Proof</code>:</p>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="ot">checkAuth ::</span> <span class="dt">CheckRole</span> required <span class="ot">=&gt;</span> <span class="dt">Proxy</span> required <span class="ot">-&gt;</span> <span class="dt">RoleType</span> required <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Proof</span> required)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>checkAuth p role</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> checkRole p role <span class="ot">=</span> <span class="dt">Just</span> <span class="dt">Proof</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="dt">Nothing</span></span></code></pre></div>
+<p>This allows us to keep the <code>Proof</code> data constructor out of
+user space to eliminate forgery.</p>
+<p>In the new world we don't need this.</p>
+<p>Lets take a step back and think about what proof we need.</p>
+<ol>
+<li>The role the route demands.</li>
+<li>The role the user has.</li>
+</ol>
+<p>1 is how we dispatch a proof to a handler and 2 is the actual role of
+the authorized user, which ties the proof to the subject it was checked
+against.</p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Proof</span> (<span class="ot">required ::</span> kr) (<span class="ot">actual ::</span> ka) <span class="kw">where</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Proof</span><span class="ot"> ::</span> <span class="dt">Proof</span> required actual</span></code></pre></div>
+<p><code>required</code> is the role required by the route and
+<code>actual</code> is the auth'd user's role.</p>
+<p>Now we can complete our <code>checkRole</code> signature, dropping
+the proxy.</p>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="ot">checkRole ::</span> <span class="dt">Sing</span> (<span class="ot">actual ::</span> <span class="dt">RoleType</span> required) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Proof</span> required actual)</span></code></pre></div>
+<p>And we can write an instance like this:</p>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">CheckRole</span> <span class="dt">&#39;Editor</span> <span class="kw">where</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  checkRole <span class="dt">SViewer</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  checkRole <span class="dt">SEditor</span> <span class="ot">=</span> <span class="dt">Just</span> <span class="dt">Proof</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  checkRole <span class="dt">SAdmin</span>  <span class="ot">=</span> <span class="dt">Just</span> <span class="dt">Proof</span></span></code></pre></div>
+<p>The required role is <code>'Editor</code> so
+<code>Sing (RoleType required)</code> evaluates to
+<code>SUserRole _</code> representing the actual role of the
+authenticated user. If it is <code>SViewer</code> then we reject with
+<code>Nothing</code>, otherwise we produce a <code>Just Proof</code>
+which is specialized to <code>Proof 'Editor actual</code>.</p>
+<p>In the <code>SEditor</code> branch, <code>actual</code> is
+specialized to <code>'Editor</code> giving us
+<code>Proof 'Editor 'Editor</code>.</p>
+<p>Now, were we to construct a proof in the <code>SViewer</code> branch
+it would be <code>Proof 'Editor 'Viewer</code>. This would be morally
+wrong as the point of the proof is that the actual satisfies the role
+requirement. We need to eliminate the ability to produce such a
+proof.</p>
+<p>We can do that with another type family.</p>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="kw">family</span> <span class="dt">Satisfied</span> (<span class="ot">required ::</span> kr) (<span class="ot">actual ::</span> ka)<span class="ot"> ::</span> <span class="dt">Constraint</span></span></code></pre></div>
+<p><code>Satisfied</code> is the constraint that holds when
+<code>actual</code> meets the satisfaction condition for
+<code>required</code>. That condition is user defined (equality, set
+membership, order, etc) so I'm going to defer an example for a
+moment.</p>
+<p>Now we attach that constraint on <code>Proof</code> and we can
+gaurantee that the satisfaction condition holds when constructing a
+proof.</p>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Proof</span> (<span class="ot">required ::</span> kr) (<span class="ot">actual ::</span> ka) <span class="kw">where</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Proof</span><span class="ot"> ::</span> (<span class="dt">Satisfied</span> required actual) <span class="ot">=&gt;</span> <span class="dt">Proof</span> required actual</span></code></pre></div>
+<p>Now <code>checkRole SViewer = Just Proof</code> would demand
+<code>Satisfied 'Editor 'Viewer</code> which wont typecheck.</p>
+<p>This also means we no longer have to worry about hiding the
+<code>Proof</code> data constructor. There is no way for a user to
+construct a proof whose <code>actual</code> role fails to satisfy the
+requirement. Thus we can also eliminate the <code>checkAuth</code>
+library function.</p>
+<h2 id="constructing">Constructing</h2>
+<p>Now we need to update our <code>HasServer</code> instance using the
+new <code>CheckRole</code> class. To do this we need to reify the role
+type from the request value.</p>
+<p>We do this with another GADT <code>SomeRole</code> which works just
+like <code>SomeSBool</code>.</p>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SomeRole</span> (<span class="ot">authF ::</span> k <span class="ot">-&gt;</span> <span class="dt">Type</span>) <span class="kw">where</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">SomeRole</span><span class="ot"> ::</span> <span class="dt">Sing</span> (<span class="ot">r ::</span> k) <span class="ot">-&gt;</span> authF r <span class="ot">-&gt;</span> <span class="dt">SomeRole</span> authF</span></code></pre></div>
+<p>The only real difference is that we also pack <code>SomeRole</code>
+with the auth value along with the singleton. We construct the
+<code>SomeRole</code> value in our <code>AuthHandler</code> and then
+discharge it in the <code>HasServer</code> instance.</p>
+<p>Introduction:</p>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="ot">parseRole ::</span> <span class="dt">Request</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">SomeRole</span> <span class="dt">Authz</span>)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>parseRole req <span class="ot">=</span> <span class="kw">case</span> <span class="fu">lookup</span> <span class="st">&quot;X-Role&quot;</span> (requestHeaders req) <span class="kw">of</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> <span class="st">&quot;viewer&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">SomeRole</span> <span class="dt">SViewer</span> (<span class="dt">Authz</span> <span class="st">&quot;Reed&quot;</span>)</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> <span class="st">&quot;editor&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">SomeRole</span> <span class="dt">SEditor</span> (<span class="dt">Authz</span> <span class="st">&quot;Lyxia&quot;</span>)</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> <span class="st">&quot;admin&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">SomeRole</span> <span class="dt">SAdmin</span> (<span class="dt">Authz</span> <span class="st">&quot;Sandy&quot;</span>)</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  _ <span class="ot">-&gt;</span> <span class="dt">Nothing</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- | Reads the &quot;X-Role&quot; header to determine the user&#39;s role.</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="co">-- Missing header -&gt; 401. Values: &quot;viewer&quot;, &quot;editor&quot;, &quot;admin&quot;.</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a><span class="ot">roleAuthHandler ::</span> <span class="dt">AuthHandler</span> <span class="dt">Request</span> (<span class="dt">SomeRole</span> <span class="dt">Authz</span>)</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>roleAuthHandler <span class="ot">=</span> mkAuthHandler <span class="op">$</span> \req <span class="ot">-&gt;</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">maybe</span> (throwError err401) <span class="fu">pure</span> (parseRole req)</span></code></pre></div>
+<p>Elimination:</p>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="ot">authCheck ::</span> <span class="dt">Request</span> <span class="ot">-&gt;</span> <span class="dt">DelayedIO</span> (<span class="dt">Satisfies</span> required authF)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>authCheck request <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  eResult <span class="ot">&lt;-</span> liftIO <span class="op">$</span> runHandler (authHandler&#39; request)</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> eResult <span class="kw">of</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> err <span class="ot">-&gt;</span> delayedFailFatal err</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> (<span class="dt">SomeRole</span> sActual auth) <span class="ot">-&gt;</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>      <span class="kw">case</span> checkRole sActual <span class="kw">of</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Just</span> proof <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">Satisfies</span> proof auth</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Nothing</span> <span class="ot">-&gt;</span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>          delayedFail</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>            err403</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>              { errBody <span class="ot">=</span> <span class="st">&quot;Forbidden: insufficient permissions&quot;</span>,</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>                errHeaders <span class="ot">=</span> [(<span class="st">&quot;Content-Type&quot;</span>, <span class="st">&quot;text/plain; charset=utf-8&quot;</span>)]</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>              }</span></code></pre></div>
+<p><code>Satisfies</code> becomes the final GADT which carries the
+associated <code>Proof</code> the auth object to be propagated to our
+handler.</p>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Satisfies</span> (<span class="ot">required ::</span> kr) (<span class="ot">authF ::</span> ka <span class="ot">-&gt;</span> <span class="dt">Type</span>) <span class="kw">where</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Satisfies</span><span class="ot"> ::</span> <span class="dt">Proof</span> required actual <span class="ot">-&gt;</span> authF actual <span class="ot">-&gt;</span> <span class="dt">Satisfies</span> required authF</span></code></pre></div>
+<h2 id="discharging">Discharging</h2>
+<p>We still need to define our <code>Satisfied</code> instance for
+<code>UserRole</code>.</p>
+<div class="sourceCode" id="cb41"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="kw">family</span> (<span class="ot">a ::</span> <span class="dt">UserRole</span>) <span class="op">&lt;=?</span> (<span class="ot">b ::</span> <span class="dt">UserRole</span>)<span class="ot"> ::</span> <span class="dt">Bool</span> <span class="kw">where</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&#39;Viewer</span> <span class="op">&lt;=?</span> _       <span class="ot">=</span> <span class="dt">&#39;True</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&#39;Editor</span> <span class="op">&lt;=?</span> <span class="dt">&#39;Viewer</span> <span class="ot">=</span> <span class="dt">&#39;False</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&#39;Editor</span> <span class="op">&lt;=?</span> _       <span class="ot">=</span> <span class="dt">&#39;True</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&#39;Admin</span>  <span class="op">&lt;=?</span> <span class="dt">&#39;Admin</span>  <span class="ot">=</span> <span class="dt">&#39;True</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&#39;Admin</span>  <span class="op">&lt;=?</span> _       <span class="ot">=</span> <span class="dt">&#39;False</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="kw">instance</span> <span class="dt">Satisfied</span> (<span class="ot">required ::</span> <span class="dt">UserRole</span>) (<span class="ot">actual ::</span> <span class="dt">UserRole</span>) <span class="ot">=</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  (required <span class="op">&lt;=?</span> actual) <span class="op">~</span> <span class="dt">&#39;True</span></span></code></pre></div>
+<p><code>&lt;=?</code> is a type level Ord specialized to
+<code>UserRole</code>. <code>Viewer</code> matches anything,
+<code>Editor</code> matches itself or <code>Admin</code>,
+<code>Admin</code> matches itself. Then in <code>Satisfied</code>, if
+<code>required &lt;=? actual</code> evaluates to <code>'True</code> then
+the whole constraint evalues to <code
+class="verbatim">'True ~ 'True</code> and holds.</p>
+<p>And at last we are back to our servant handlers. They receive a
+<code>Satisfies 'Admin Authz</code> which contains the
+<code>Proof</code> and the <code>Authz</code> both at the same
+<code>r</code>, so the proof can only be spent on the very
+<code>Authz</code> it was checked against.</p>
+<p>This allows us to write <code>banUser</code> such that it can only be
+used in authorized route by an authorized user.</p>
+<div class="sourceCode" id="cb42"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="ot">banUser ::</span> <span class="dt">Proof</span> <span class="dt">&#39;Admin</span> r <span class="ot">-&gt;</span> <span class="dt">Authz</span> r <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>banUser _prf auth <span class="ot">=</span> <span class="st">&quot;banned by &quot;</span> <span class="op">&lt;&gt;</span> userName auth</span></code></pre></div>
+<h1 id="conclusion">Conclusion</h1>
+<p>Wow that was brutal. Writing dependent Haskell is painful. Luckily a
+ton of this code is boilerplate that can be automated away via template
+haskell, which i have done in my libary <a
+href="https://github.com/solomon-b/servant-auth-roles">servant-auth-roles</a>.</p>
+<p>The complete <code>UserRole</code> example becomes:</p>
+<div class="sourceCode" id="cb43"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">UserRole</span> <span class="ot">=</span> <span class="dt">Viewer</span> <span class="op">|</span> <span class="dt">Editor</span> <span class="op">|</span> <span class="dt">Admin</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="op">$</span>(deriveOrdRole &#39;<span class="dt">&#39;UserRole</span>)</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Authz</span> (<span class="ot">r ::</span> <span class="dt">UserRole</span>) <span class="ot">=</span> <span class="dt">Authz</span> {<span class="ot">userName ::</span> <span class="dt">String</span>}</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="kw">instance</span> <span class="dt">AuthServerData</span> (<span class="dt">AuthProtect</span> <span class="st">&quot;role-auth&quot;</span>) <span class="ot">=</span> <span class="dt">SomeRole</span> <span class="dt">Authz</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="ot">parseRole ::</span> <span class="dt">Request</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">SomeRole</span> <span class="dt">Authz</span>)</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>parseRole req <span class="ot">=</span> <span class="kw">case</span> <span class="fu">lookup</span> <span class="st">&quot;X-Role&quot;</span> (requestHeaders req) <span class="kw">of</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> <span class="st">&quot;viewer&quot;</span> <span class="ot">-&gt;</span> <span class="dt">Just</span> (someUserRole <span class="dt">Viewer</span> (<span class="dt">Authz</span> <span class="st">&quot;Reed&quot;</span>))</span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> <span class="st">&quot;editor&quot;</span> <span class="ot">-&gt;</span> <span class="dt">Just</span> (someUserRole <span class="dt">Editor</span> (<span class="dt">Authz</span> <span class="st">&quot;Lyxia&quot;</span>))</span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> <span class="st">&quot;admin&quot;</span> <span class="ot">-&gt;</span> <span class="dt">Just</span> (someUserRole <span class="dt">Admin</span> (<span class="dt">Authz</span> <span class="st">&quot;Sandy&quot;</span>))</span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>  _ <span class="ot">-&gt;</span> <span class="dt">Nothing</span></span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a><span class="ot">roleAuthHandler ::</span> <span class="dt">AuthHandler</span> <span class="dt">Request</span> (<span class="dt">SomeRole</span> <span class="dt">Authz</span>)</span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>roleAuthHandler <span class="ot">=</span> mkAuthHandler <span class="op">$</span> <span class="fu">maybe</span> (throwError err401) <span class="fu">pure</span> <span class="op">.</span> parseRole</span>
+<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a><span class="ot">banUser ::</span> (<span class="dt">IsAtleastAdmin</span> userAuth) <span class="ot">=&gt;</span> <span class="dt">Authz</span> userAuth <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>banUser auth <span class="ot">=</span> <span class="st">&quot;banned by &quot;</span> <span class="op">&lt;&gt;</span> userName auth</span>
+<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelAdminAPI</span> <span class="ot">=</span> <span class="dt">RequireRole</span> <span class="st">&quot;role-auth&quot;</span> <span class="dt">&#39;Admin</span> <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span> <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelEditorAPI</span> <span class="ot">=</span> <span class="dt">RequireRole</span> <span class="st">&quot;role-auth&quot;</span> <span class="dt">&#39;Editor</span> <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span> <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">PanelViewerAPI</span> <span class="ot">=</span> <span class="dt">RequireRole</span> <span class="st">&quot;role-auth&quot;</span> <span class="dt">&#39;Viewer</span> <span class="op">:&gt;</span> <span class="st">&quot;panel&quot;</span> <span class="op">:&gt;</span> <span class="dt">Get</span> &#39;[<span class="dt">JSON</span>] <span class="dt">String</span></span>
+<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">FallthroughAPI</span> <span class="ot">=</span> <span class="dt">PanelAdminAPI</span> <span class="op">:&lt;|&gt;</span> <span class="dt">PanelEditorAPI</span> <span class="op">:&lt;|&gt;</span> <span class="dt">PanelViewerAPI</span></span>
+<span id="cb43-29"><a href="#cb43-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-30"><a href="#cb43-30" aria-hidden="true" tabindex="-1"></a><span class="ot">server ::</span> <span class="dt">Server</span> <span class="dt">FallthroughAPI</span></span>
+<span id="cb43-31"><a href="#cb43-31" aria-hidden="true" tabindex="-1"></a>server <span class="ot">=</span> pAdmin <span class="op">:&lt;|&gt;</span> pEditor <span class="op">:&lt;|&gt;</span> pViewer</span>
+<span id="cb43-32"><a href="#cb43-32" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb43-33"><a href="#cb43-33" aria-hidden="true" tabindex="-1"></a><span class="ot">    pAdmin ::</span> <span class="dt">Satisfies</span> <span class="dt">&#39;Admin</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb43-34"><a href="#cb43-34" aria-hidden="true" tabindex="-1"></a>    pAdmin (<span class="dt">Satisfies</span> <span class="dt">UserRoleProof</span> auth) <span class="ot">=</span> <span class="fu">pure</span> (banUser auth)</span>
+<span id="cb43-35"><a href="#cb43-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-36"><a href="#cb43-36" aria-hidden="true" tabindex="-1"></a><span class="ot">    pEditor ::</span> <span class="dt">Satisfies</span> <span class="dt">&#39;Editor</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb43-37"><a href="#cb43-37" aria-hidden="true" tabindex="-1"></a>    pEditor _ <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;editor panel&quot;</span></span>
+<span id="cb43-38"><a href="#cb43-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-39"><a href="#cb43-39" aria-hidden="true" tabindex="-1"></a><span class="ot">    pViewer ::</span> <span class="dt">Satisfies</span> <span class="dt">&#39;Viewer</span> <span class="dt">Authz</span> <span class="ot">-&gt;</span> <span class="dt">Handler</span> <span class="dt">String</span></span>
+<span id="cb43-40"><a href="#cb43-40" aria-hidden="true" tabindex="-1"></a>    pViewer _ <span class="ot">=</span> <span class="fu">pure</span> <span class="st">&quot;viewer panel&quot;</span></span>
+<span id="cb43-41"><a href="#cb43-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-42"><a href="#cb43-42" aria-hidden="true" tabindex="-1"></a><span class="ot">app ::</span> <span class="dt">IO</span> <span class="dt">Application</span></span>
+<span id="cb43-43"><a href="#cb43-43" aria-hidden="true" tabindex="-1"></a>app <span class="ot">=</span> <span class="fu">pure</span> <span class="op">$</span> serveWithContext (<span class="dt">Proxy</span> <span class="op">@</span><span class="dt">FallthroughAPI</span>) (roleAuthHandler <span class="op">:.</span> <span class="dt">EmptyContext</span>) server</span></code></pre></div>
+<p>No singletons or weird boilerplate in sight!</p>
+<p>The hierarchy is derived via <code>Ord</code>. Equality based roles
+and Set Membership based roles can be derived with
+<code>deriveEqRole</code> and <code>deriveMemberRole</code>.</p>
+</body>
+</html>

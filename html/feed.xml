@@ -5,6 +5,12 @@
     <link>https://blog.cofree.coffee</link>
     <description>functional programming, permaculture, math</description>
     <item>
+      <title>Servant Auth Roles</title>
+      <link>https://blog.cofree.coffee/2026-07-20-servant-auth-roles</link>
+      <pubDate>Mon, 20 Jul 2026 00:00:00 -0700</pubDate>
+      <description>I wanted a nice way to create a roles system on top of servant-auth. This post walks through the design and implementation process. The end result is quite similar to OCharle's Who Authorized These Ghosts. You can see the final result here.</description>
+    </item>
+    <item>
       <title>Chat Bots Revisited</title>
       <link>https://blog.cofree.coffee/2025-03-05-chat-bots-revisited</link>
       <pubDate>Wed, 05 Mar 2025 00:00:00 -0800</pubDate>
