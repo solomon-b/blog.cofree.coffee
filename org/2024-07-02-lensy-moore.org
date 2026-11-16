@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Lensy Moore
+#+PROPERTY: header-args:haskell :tangle LensyMoore.hs
 
 How far can we get leveraging the ~lens~ library in Haskell to model Moore
 Machines and Wiring Diagrams?
@@ -212,6 +213,14 @@ With that rapid fire overview of ~Poly~ concepts out of the way we can move on
 to our ~lens~ based encodings. To make this work we need to overload ~view~ and
 ~set~ to get some more polymorphism:
 
+#+begin_src haskell :exports none
+module LensyMoore where
+
+import Control.Lens (Lens, lens)
+import Data.Functor.Const (Const (..))
+import Data.Functor.Identity (Identity (..))
+#+end_src
+
 #+begin_src haskell
 view :: Lens s t a b -> s -> a
 view l s = getConst $ l Const s
@@ -257,7 +266,7 @@ latchMachine :: Moore Int Int Int
 latchMachine = lens id max
 #+end_src
 
-#+begin_src 
+#+begin_src haskell :tangle sessions/LensyMoore.ghci
 > runMoore latchMachine 0 [1,2,3,4,5,4,3,2,1]
 [0,1,2,3,4,5,5,5,5]
 #+end_src
@@ -363,8 +372,8 @@ poly map actually means. To put it most simply, we have two functions which we
 can derive by plugging in the types from ~fibWiring~ into our definition of a
 poly map:
 
-#+begin_src haskell
-map-base : P .Base → Q .Base 
+#+begin_src agda
+map-base : P .Base → Q .Base
 map-base : (ℤ × ℤ) → ℤ
 
 map-fiber : (tag : P .Base) → Q .Fiber (map-base tag) → P .Fiber tag
@@ -435,7 +444,7 @@ fib = plusDelay . fibWiring
 
 If we run this thing we get just what we expected:
 
-#+begin_src
+#+begin_src haskell :tangle sessions/LensyMoore.ghci
 > runMoore fib (1, 0) [(), (), (), (), (), (), (), (), (), ()]
 [0,1,1,2,3,5,8,13,21,34]
 #+end_src

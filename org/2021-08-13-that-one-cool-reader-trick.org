@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: That One Cool Reader Trick
+#+PROPERTY: header-args:haskell :tangle ReaderTrick.hs
 If you are writing an interpreter, odds are you will want to bind
 variables. If you are binding variables, there is a decent chance you
 will want to locally scope your variables.
@@ -26,6 +27,16 @@ local scoping for free.
 Lets say we want to write a typechecker for a minimal Simply Typed
 Lambda Calculus. Our Types will look like:
 
+#+begin_src haskell :exports none
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
+
+module ReaderTrick where
+
+import Control.Monad.Except (ExceptT, MonadError, throwError)
+import Control.Monad.Reader (MonadReader, Reader, asks, local)
+#+end_src
+
 #+begin_src haskell
 data Term = Var String
           | Abs String Type Term
@@ -43,7 +54,7 @@ our bindings and their types as we pass over Lambda terms (~Abs~) and
 then return the type of the entire expression.
 
 We will our save our types in the typing context which we call ~Context~:
-#+begin_src haskell
+#+begin_src haskell :tangle no
   type Context = [(String, Type)]
 #+end_src
 

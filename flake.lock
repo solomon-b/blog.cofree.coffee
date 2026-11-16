@@ -1,0 +1,99 @@
+{
+  "nodes": {
+    "cofree-bot": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1741331126,
+        "narHash": "sha256-B9k5ouG86TFQ0XiEU7i5GkvP6yJEg5rTnZ29YFZ8aC8=",
+        "owner": "cofree-coffee",
+        "repo": "cofree-bot",
+        "rev": "ab88844b2f8e8278d095ff6aa7e68e9984432987",
+        "type": "github"
+      },
+      "original": {
+        "owner": "cofree-coffee",
+        "repo": "cofree-bot",
+        "rev": "ab88844b2f8e8278d095ff6aa7e68e9984432987",
+        "type": "github"
+      }
+    },
+    "matrix-client": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1739388809,
+        "narHash": "sha256-GNCnlaxWhg5pDi8JYlXyrqVIljr7NcNy+tWYSb+YYAg=",
+        "owner": "softwarefactory-project",
+        "repo": "matrix-client-haskell",
+        "rev": "57f13c2579fbcd9088fbb6b25046460e6cdbfdb0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "softwarefactory-project",
+        "repo": "matrix-client-haskell",
+        "rev": "57f13c2579fbcd9088fbb6b25046460e6cdbfdb0",
+        "type": "github"
+      }
+    },
+    "monoidal-functors": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1740789101,
+        "narHash": "sha256-HfIMuU9yBp0JtN/ONOFku1wItbGLJl09fhaFzyiNVMg=",
+        "owner": "solomon-b",
+        "repo": "monoidal-functors",
+        "rev": "e951a2be496d57d7f4e5b582ad175e8e97a9ab7b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "solomon-b",
+        "repo": "monoidal-functors",
+        "rev": "e951a2be496d57d7f4e5b582ad175e8e97a9ab7b",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1794756927,
+        "narHash": "sha256-IfuPcOpwC+bYvBdtUhA9hHhY7xV7k9T5LeOTZFiJB4o=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "b349185bb79c7cf7ad8ea8c097931730bf473c71",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-26.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "cofree-bot": "cofree-bot",
+        "matrix-client": "matrix-client",
+        "monoidal-functors": "monoidal-functors",
+        "nixpkgs": "nixpkgs",
+        "servant-auth-roles": "servant-auth-roles"
+      }
+    },
+    "servant-auth-roles": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794559071,
+        "narHash": "sha256-+chW6Kcyf/sgXQCgoz3YocO6WwdYdtpXedYuRO3+rYg=",
+        "owner": "solomon-b",
+        "repo": "servant-auth-roles",
+        "rev": "2f7728174307a707c757fba5dde28f0fea2155bf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "solomon-b",
+        "repo": "servant-auth-roles",
+        "rev": "2f7728174307a707c757fba5dde28f0fea2155bf",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

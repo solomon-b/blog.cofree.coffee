@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Servant Auth Roles
+#+PROPERTY: header-args:haskell :tangle no
 
 I wanted a nice way to create a roles system on top of ~servant-auth~. This post
 walks through the design and implementation process. The end result is quite
@@ -87,6 +88,28 @@ server = panelAdmin :<|> panelEditor :<|> panelViewer
 This obviously doens't work as is, but I wanted a DX roughly like this.
 
 * Making the idea work
+:PROPERTIES:
+:header-args:haskell: :tangle ServantAuthRoles/Stage1.hs
+:END:
+
+#+begin_src haskell :exports none
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+
+module ServantAuthRoles.Stage1 where
+
+import Control.Monad.IO.Class (liftIO)
+import Data.Kind (Type)
+import GHC.TypeLits (Symbol)
+import Network.Wai (Request)
+import Servant
+import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData, unAuthHandler)
+import Servant.Server.Internal.Delayed (addAuthCheck)
+import Servant.Server.Internal.DelayedIO (DelayedIO, delayedFail, delayedFailFatal, withRequest)
+#+end_src
 
 The key to this idea is going to be the ~RequireRole~ ~HasServer~ instance.
 
@@ -97,7 +120,7 @@ Servant tutorial so I'm going to skip a lot of details.
 
 It has one associated type and two methods:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 class HasServer api context where
   type ServerT api (m :: Type -> Type) :: Type
 
@@ -118,7 +141,7 @@ type to a fragment of your handler's type signature.
 
 For example the ~ServerT~ associated type for ~Verb~ is:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 type ServerT (Verb method status ctypes a) m = m a
 #+end_src
 
@@ -163,7 +186,9 @@ extract a role from our auth context.
 #+begin_src haskell
 class HasRole auth r | auth -> r where
   getRole :: auth -> r
+#+end_src
 
+#+begin_src haskell :tangle no
 instance HasRole Authz UserRole where
   getRole = userRole
 #+end_src
@@ -180,7 +205,7 @@ class CheckRole (r :: k) where
 Now inside ~route~ we can use ~Proxy~ to specialize ~CheckRole~ to the instance
 ~r~ and call ~checkRole~ against the user's role from ~getRole~:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 checkRole (Proxy @r) (getRole auth)
 #+end_src
 
@@ -245,7 +270,7 @@ Armed with a working servant combinator we can build a working example.
 
 #+begin_src haskell
 data UserRole = Viewer | Editor | Admin
-  deriving (Ord)
+  deriving (Eq, Ord, Show)
 
 instance CheckRole 'Viewer where
   type RoleType 'Viewer = UserRole
@@ -300,6 +325,27 @@ server = panelAdmin :<|> panelEditor :<|> panelViewer
 Nice!
 
 * Who Authorized Those Ghosts?
+:PROPERTIES:
+:header-args:haskell: :tangle ServantAuthRoles/Stage2.hs
+:END:
+
+#+begin_src haskell :exports none
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+
+module ServantAuthRoles.Stage2 where
+
+import Control.Monad.IO.Class (liftIO)
+import GHC.TypeLits (Symbol)
+import Network.Wai (Request)
+import Servant
+import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData, unAuthHandler)
+import Servant.Server.Internal.Delayed (addAuthCheck)
+import Servant.Server.Internal.DelayedIO (DelayedIO, delayedFail, delayedFailFatal, withRequest)
+import ServantAuthRoles.Stage1 (Authz (..), CheckRole (..), HasRole (..), UserRole (..))
+#+end_src
 
 This is pretty neat but I think we can do better. We are gating access to
 handlers by user roles but we can call any sort of subroutine from our handlers.
@@ -349,7 +395,8 @@ checkAuth p role
 
 ~authCheck~ now returns ~Satisfies required (AuthServerData (AuthProtect tag))~:
 
-#+begin_src haskell
+#+name: ghosts-auth-check
+#+begin_src haskell :tangle no
       authCheck :: Request -> DelayedIO (Satisfies required (AuthServerData (AuthProtect tag)))
       authCheck request = do
         eResult <- liftIO $ runHandler (authHandler' request)
@@ -369,7 +416,8 @@ checkAuth p role
 Our handlers now receive ~Satisfies required (AuthServerData (AuthProtect tag))~
 allowing the admin handler to call ~banUser~ using the proof:
 
-#+begin_src haskell
+#+name: ghosts-admin-handler
+#+begin_src haskell :tangle no
     adminHandler :: Satisfies 'Admin Authz -> Handler String
     adminHandler (Satisfies proof auth) = pure (banUser proof auth)
 #+end_src
@@ -377,12 +425,65 @@ allowing the admin handler to call ~banUser~ using the proof:
 The other handlers cannot call ~banUser~ as they have the wrong proof,
 demonstrated by their ~Satisfies~ param:
 
-#+begin_src haskell
+#+name: ghosts-other-handlers
+#+begin_src haskell :tangle no
     editorHandler :: Satisfies 'Editor Authz -> Handler String
     editorHandler (Satisfies _proof auth) = pure $ "editor: " <> show (userName auth)
 
     viewerHandler :: Satisfies 'Viewer Authz -> Handler String
     viewerHandler (Satisfies _proof auth) = pure $ "viewer: " <> show (userName auth)
+#+end_src
+
+#+begin_src haskell :exports none :noweb yes
+data RequireRole (tag :: Symbol) (required :: k)
+
+instance
+  forall tag required api context.
+  ( HasServer api context,
+    CheckRole required,
+    HasRole (AuthServerData (AuthProtect tag)) (RoleType required),
+    HasContextEntry context (AuthHandler Request (AuthServerData (AuthProtect tag)))
+  ) =>
+  HasServer (RequireRole tag required :> api) context
+  where
+  type
+    ServerT (RequireRole tag required :> api) m =
+      Satisfies required (AuthServerData (AuthProtect tag)) -> ServerT api m
+
+  hoistServerWithContext _ pc nt s =
+    hoistServerWithContext (Proxy @api) pc nt . s
+
+  route _ context subserver =
+    route (Proxy @api) context (subserver `addAuthCheck` withRequest authCheck)
+    where
+      authHandler' :: Request -> Handler (AuthServerData (AuthProtect tag))
+      authHandler' = unAuthHandler (getContextEntry context)
+
+      <<ghosts-auth-check>>
+
+type PanelAdminAPI =
+  RequireRole "test-auth" 'Admin
+    :> "panel"
+    :> Get '[JSON] String
+
+type PanelEditorAPI =
+  RequireRole "test-auth" 'Editor
+    :> "panel"
+    :> Get '[JSON] String
+
+type PanelViewerAPI =
+  RequireRole "test-auth" 'Viewer
+    :> "panel"
+    :> Get '[JSON] String
+
+type API = PanelAdminAPI :<|> PanelEditorAPI :<|> PanelViewerAPI
+
+server :: Server API
+server = adminHandler :<|> editorHandler :<|> viewerHandler
+  where
+    <<ghosts-admin-handler>>
+
+    <<ghosts-other-handlers>>
 #+end_src
 
 We have restricted subroutines to handlers with the approriate role check. What
@@ -393,7 +494,8 @@ other user and use it with the ~Proof 'Admin~ we have acquired.
  To prevent this we need to lift the ~UserRole~ from a value inside the
  ~Authz~ into an index on ~UserRole~:
 
- #+begin_src haskell
+ #+name: indexed-authz
+ #+begin_src haskell :tangle no
 newtype Authz (r :: UserRole) = Authz {userName :: String}
  #+end_src
 
@@ -410,6 +512,25 @@ different singletons approach and hide it all behind Template Haskell to
 eliminate the boilerplate.
 
 * Reification and forgery
+:PROPERTIES:
+:header-args:haskell: :tangle ServantAuthRoles/SBool.hs
+:END:
+
+#+begin_src haskell :exports none
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+
+module ServantAuthRoles.SBool where
+#+end_src
+
+#+begin_src haskell :exports none :tangle ServantAuthRoles/SBoolEvidence.hs
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+
+module ServantAuthRoles.SBoolEvidence where
+
+import ServantAuthRoles.SBool (SBool (..), SomeSBool (..), toSBool)
+#+end_src
 
 The foundational concept in singletons is that we construct a GADT that uniquely
 maps to indices of an indexed type. This allows you to recover type level
@@ -429,7 +550,7 @@ This allows us to perform reification, mapping from a value to a type.
 
 Imagine trying to write this function:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 toSBool :: Bool -> SBool b
 #+end_src
 
@@ -455,7 +576,7 @@ fireTheMissiles STrue = print "Missiles have been fired!"
 
 check :: Bool -> IO ()
 check input = case toSBool input of
-  SomeSBool tru  -> fireTheMissiles tru
+  SomeSBool tru@STrue  -> fireTheMissiles tru
   SomeSBool SFalse -> pure ()
 #+end_src
 
@@ -463,29 +584,44 @@ Calling ~fireTheMissiles~ with ~SFalse~ will result in a type error as it
 demands ~SBool 'True~. This is the vibe of the trick we want to play. However,
 at this point could forge an ~STrue~ in the ~SFalse~ branch:
 
-#+begin_src haskell
+#+name: sbool-forgery
+#+begin_src haskell :tangle no
   SomeSBool SFalse  -> fireTheMissiles STrue
+#+end_src
+
+#+begin_src haskell :exports none :noweb yes
+checkForged :: Bool -> IO ()
+checkForged input = case toSBool input of
+  SomeSBool tru@STrue -> fireTheMissiles tru
+  <<sbool-forgery>>
 #+end_src
 
 To prevent a forgery we need to introduce an evidence type that shares the index
 ~b~. This way we can enforce that our ~SBool~ matches that of our evidence.
 
-#+begin_src haskell
+#+begin_src haskell :tangle ServantAuthRoles/SBoolEvidence.hs
 data IsTrue (b :: Bool) where
   IsTrue :: IsTrue 'True
 
 decide :: SBool b -> Maybe (IsTrue b)
 decide STrue  = Just IsTrue
 decide SFalse = Nothing
+#+end_src
 
+#+begin_src haskell :tangle no
 fireTheMissiles :: IsTrue b -> SBool b -> IO ()
 fireTheMissiles = ...
+#+end_src
+
+#+begin_src haskell :exports none :tangle ServantAuthRoles/SBoolEvidence.hs
+fireTheMissiles :: IsTrue b -> SBool b -> IO ()
+fireTheMissiles IsTrue STrue = print "Missiles have been fired!"
 #+end_src
 
 The only way to call ~fireTheMissiles~ is if our ~SBool b~ matches our ~IsTrue
 b~:
 
-#+begin_src haskell
+#+begin_src haskell :tangle ServantAuthRoles/SBoolEvidence.hs
 check :: Bool -> IO ()
 check input = case toSBool input of
   SomeSBool sb -> case decide sb of
@@ -498,20 +634,49 @@ evidence that ~input~ is ~True~, which we do with ~decide~.
 
 Let's look at our ~banUser~ function:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 banUser :: Proof 'Admin -> Authz -> String
 #+end_src
 
 ~Proof 'Admin~ is our evidence type. If we parameterize it and ~Authz~ with ~r
 :: UserRole~ then ~banUser~ has exactly the same shape as ~fireTheMissiles~:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 banUser :: Proof 'Admin r -> Authz r -> String
 #+end_src
 
 We can only call ~banUser~ with an ~Authz~ that matches ~Proof~.
 
 * Applying singletons
+:PROPERTIES:
+:header-args:haskell: :tangle ServantAuthRoles/Singletons.hs
+:END:
+
+#+begin_src haskell :exports none :noweb yes
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+
+module ServantAuthRoles.Singletons where
+
+import Control.Monad.IO.Class (liftIO)
+import Data.Kind (Constraint, Type)
+import GHC.TypeLits (Symbol)
+import Network.Wai (Request, requestHeaders)
+import Servant
+import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData, mkAuthHandler, unAuthHandler)
+import Servant.Server.Internal.Delayed (addAuthCheck)
+import Servant.Server.Internal.DelayedIO (DelayedIO, delayedFail, delayedFailFatal, withRequest)
+import ServantAuthRoles.Stage1 (UserRole (..))
+
+<<indexed-authz>>
+#+end_src
+
+#+begin_src haskell :exports none :tangle ServantAuthRoles/ProofUnconstrained.hs
+module ServantAuthRoles.ProofUnconstrained where
+#+end_src
 
 Extrapolating from the ~SBool~ example, we have three key changes:
 
@@ -559,9 +724,29 @@ Now in our ~checkRole~ method we replace ~RoleType required~ with its singleton 
 class CheckRole (required :: k) where
   -- | The value-level type that this role checks against.
   type RoleType required :: Type
+#+end_src
 
+#+begin_src haskell :tangle no
   -- | Check whether the given role value satisfies the requirement @required@.
   checkRole :: Sing (actual :: RoleType required) -> ...
+#+end_src
+
+#+begin_src haskell :exports none :noweb yes
+-- The Evidence section shows the signature of checkRole. This comment also
+-- keeps the indentation of the next line when Org tangles the block.
+  <<singletons-check-role>>
+
+instance CheckRole 'Viewer where
+  type RoleType 'Viewer = UserRole
+  checkRole SViewer = Just Proof
+  checkRole SEditor = Just Proof
+  checkRole SAdmin = Just Proof
+
+instance CheckRole 'Admin where
+  type RoleType 'Admin = UserRole
+  checkRole SViewer = Nothing
+  checkRole SEditor = Nothing
+  checkRole SAdmin = Just Proof
 #+end_src
 
 For ~CheckRole 'Viewer~, ~RoleType 'Viewer~ resolves to ~UserRole~ giving us
@@ -576,7 +761,7 @@ Recall that in our current version the user provides ~checkRole :: Proxy
 required -> RoleType required -> Bool~ and then the library function ~checkAuth~
 acts as a smart constructor to build the appropriate ~Proof~:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 checkAuth :: CheckRole required => Proxy required -> RoleType required -> Maybe (Proof required)
 checkAuth p role
   | checkRole p role = Just Proof
@@ -596,7 +781,7 @@ Lets take a step back and think about what proof we need.
 1 is how we dispatch a proof to a handler and 2 is the actual role of the
 authorized user, which ties the proof to the subject it was checked against.
 
-#+begin_src haskell
+#+begin_src haskell :tangle ServantAuthRoles/ProofUnconstrained.hs
 data Proof (required :: kr) (actual :: ka) where
   Proof :: Proof required actual
 #+end_src
@@ -606,7 +791,8 @@ role.
 
 Now we can complete our ~checkRole~ signature, dropping the proxy.
 
-#+begin_src haskell
+#+name: singletons-check-role
+#+begin_src haskell :tangle no
   checkRole :: Sing (actual :: RoleType required) -> Maybe (Proof required actual)
 #+end_src
 
@@ -614,6 +800,7 @@ And we can write an instance like this:
 
 #+begin_src haskell
 instance CheckRole 'Editor where
+  type RoleType 'Editor = UserRole
   checkRole SViewer = Nothing
   checkRole SEditor = Just Proof
   checkRole SAdmin  = Just Proof
@@ -694,7 +881,8 @@ roleAuthHandler = mkAuthHandler $ \req ->
 
 Elimination:
 
-#+begin_src haskell
+#+name: singletons-auth-check
+#+begin_src haskell :tangle no
       authCheck :: Request -> DelayedIO (Satisfies required authF)
       authCheck request = do
         eResult <- liftIO $ runHandler (authHandler' request)
@@ -751,6 +939,72 @@ route by an authorized user.
 banUser :: Proof 'Admin r -> Authz r -> String
 banUser _prf auth = "banned by " <> userName auth
 #+end_src
+
+#+begin_src haskell :exports none :noweb yes
+data RequireRole (tag :: Symbol) (required :: k)
+
+type family AuthF (auth :: Type) :: k -> Type where
+  AuthF (SomeRole authF) = authF
+
+instance
+  forall tag required (authF :: RoleType required -> Type) api context.
+  ( HasServer api context,
+    CheckRole required,
+    AuthServerData (AuthProtect tag) ~ SomeRole authF,
+    HasContextEntry context (AuthHandler Request (SomeRole authF))
+  ) =>
+  HasServer (RequireRole tag required :> api) context
+  where
+  type
+    ServerT (RequireRole tag required :> api) m =
+      Satisfies required (AuthF (AuthServerData (AuthProtect tag)) :: RoleType required -> Type) -> ServerT api m
+
+  hoistServerWithContext _ pc nt s =
+    hoistServerWithContext (Proxy @api) pc nt . s
+
+  route _ context subserver =
+    route (Proxy @api) context (subserver `addAuthCheck` withRequest authCheck)
+    where
+      authHandler' :: Request -> Handler (SomeRole authF)
+      authHandler' = unAuthHandler (getContextEntry context)
+
+      <<singletons-auth-check>>
+
+type instance AuthServerData (AuthProtect "role-auth") = SomeRole Authz
+
+type PanelAdminAPI =
+  RequireRole "role-auth" 'Admin
+    :> "panel"
+    :> Get '[JSON] String
+
+type PanelEditorAPI =
+  RequireRole "role-auth" 'Editor
+    :> "panel"
+    :> Get '[JSON] String
+
+type PanelViewerAPI =
+  RequireRole "role-auth" 'Viewer
+    :> "panel"
+    :> Get '[JSON] String
+
+type API = PanelAdminAPI :<|> PanelEditorAPI :<|> PanelViewerAPI
+
+server :: Server API
+server = adminHandler :<|> editorHandler :<|> viewerHandler
+  where
+    adminHandler :: Satisfies 'Admin Authz -> Handler String
+    adminHandler (Satisfies proof auth) = pure (banUser proof auth)
+
+    editorHandler :: Satisfies 'Editor Authz -> Handler String
+    editorHandler (Satisfies _proof auth) = pure $ "editor: " <> userName auth
+
+    viewerHandler :: Satisfies 'Viewer Authz -> Handler String
+    viewerHandler (Satisfies _proof auth) = pure $ "viewer: " <> userName auth
+
+app :: Application
+app = serveWithContext (Proxy @API) (roleAuthHandler :. EmptyContext) server
+#+end_src
+
 * Conclusion
 
 Wow that was brutal. Writing dependent Haskell is painful. Luckily a ton of this
@@ -759,7 +1013,25 @@ have done in my libary [[https://github.com/solomon-b/servant-auth-roles][servan
 
 The complete ~UserRole~ example becomes:
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle ServantAuthRoles/Conclusion.hs
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+
+module ServantAuthRoles.Conclusion where
+
+import Control.Monad.Except (throwError)
+import Network.Wai (Application, Request, requestHeaders)
+import Servant.API (Get, JSON, type (:<|>) (..), type (:>))
+import Servant.API.Experimental.Auth (AuthProtect)
+import Servant.Auth.Roles.TH
+import Servant.Server (Context (..), Handler, Server, err401, serveWithContext)
+import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData, mkAuthHandler)
+#+end_src
+
+#+begin_src haskell :tangle ServantAuthRoles/Conclusion.hs
 data UserRole = Viewer | Editor | Admin
 
 $(deriveOrdRole ''UserRole)

@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Bounded Space Automata
+#+PROPERTY: header-args:haskell :tangle no
 #+DESCRIPTION: Implementing cellular automata with Comonads, Representable Functors, and Dependent Types
 
 ** Rule 110
@@ -37,6 +38,14 @@
    APIs.
 
 ** The Store Type and its API
+  :PROPERTIES:
+  :header-args:haskell: :tangle BoundedSpaceAutomata/Store.hs
+  :END:
+
+  #+begin_src haskell :exports none
+    module BoundedSpaceAutomata.Store where
+  #+end_src
+
   The ~Store~ type can be thought of as a way to query some indexable
   state along with a cursor that queries into the store at some index.
 
@@ -137,15 +146,18 @@
 
   To recap our ~Store~ API we have:
 
-  #+BEGIN_SRC haskell
-    pos :: Store s a -> a
+  #+BEGIN_SRC haskell :tangle no
+    pos :: Store s a -> s
     peek :: s -> Store s a -> a
-    peeks :: (s -> s) Store s a -> a
-    seek :: s -> Store s a -> a
-    seeks :: (s -> s) Store s a -> a
+    peeks :: (s -> s) -> Store s a -> a
+    seek :: s -> Store s a -> Store s a
+    seeks :: (s -> s) -> Store s a -> Store s a
     experiment :: Functor f => (s -> f s) -> Store s a -> f a
   #+END_SRC
 ** Transformation of State
+   :PROPERTIES:
+   :header-args:haskell: :tangle BoundedSpaceAutomata/Store.hs
+   :END:
    The state of the system is stored implicitely inside the ~s -> a~
    query function rather then in some data structure. Because of this,
    the only way to modify the state would be to modify the query
@@ -179,7 +191,13 @@
    example from earlier, we might want to apply ~not :: Bool -> Bool~
    to invert the state of our system:
 
-   #+BEGIN_SRC haskell
+   #+begin_src haskell :exports none :tangle BoundedSpaceAutomata/Transformation.hs
+     module BoundedSpaceAutomata.Transformation where
+
+     import BoundedSpaceAutomata.Store (Store (..))
+   #+end_src
+
+   #+BEGIN_SRC haskell :tangle BoundedSpaceAutomata/Transformation.hs
      initialStore :: Store Int Bool
      initialStore = Store query 0
          where
@@ -191,7 +209,7 @@
 
    Using equational reasoning we can translate that into:
 
-   #+BEGIN_SRC haskell
+   #+BEGIN_SRC haskell :tangle no
      newState = fmap not initialStore
               = fmap not (Store query s)
               = Store (not . query) s
@@ -201,7 +219,7 @@
    each modification to the implicit state builds up a larger composed
    query function:
 
-   #+BEGIN_SRC haskell
+   #+BEGIN_SRC haskell :tangle no
      newState :: (a -> b) -> (b -> c) -> (c -> d) -> Store s a -> Store s b
      newState h g f store = fmap f (fmap g (fmap h store))
                           = fmap f (fmap g (fmap h (Store query s)))
@@ -221,13 +239,16 @@
    but for now lets ignore the performance issue and focus on the
    tools we need to naively implement Rule 110.
 ** Extending our API with Comonad
+   :PROPERTIES:
+   :header-args:haskell: :tangle BoundedSpaceAutomata/Store.hs
+   :END:
    Not only is ~Store~ a ~Functor~, it is also a ~Comonad~.
 
    ~Comonads~ are the dual of ~Monads~. Where ~Monads~ introduce some
    effect to an argument via the form ~a -> m b~, ~Comonads~
    introduce a notion of querying a structure for data (co-effects):
 
-   #+BEGIN_SRC haskell
+   #+BEGIN_SRC haskell :tangle no
      -- Monadic
      a -> m a
      repeat :: a -> [a]
@@ -247,7 +268,7 @@
 
    Notice the inverse relation to ~return~, ~join~, and ~(=<<)~ from ~Monad~:
 
-   #+BEGIN_SRC haskell
+   #+BEGIN_SRC haskell :tangle no
      extract :: w a -> a
      return  :: a -> m a
 
@@ -268,6 +289,9 @@
      instance Comonad (Store s) where
          extract :: Store s a -> a
          extract (Store query s) = query s
+
+         duplicate :: Store s a -> Store s (Store s a)
+         duplicate (Store query s) = Store (Store query) s
 
          extend :: (Store s a -> b) -> Store s a -> Store s b
          extend f (Store query s) = Store (\s' -> f (Store query s')) s
@@ -302,7 +326,7 @@
 
    #+BEGIN_SRC haskell
      fibStore :: Store Int Int
-     fibStore = store query 0
+     fibStore = Store query 0
        where
          query :: Int -> Int
          query 0 = 0
@@ -333,17 +357,33 @@
    Now if we ~peek~ at any index in the store we see a window of the
    subsequent Fibonacci numbers!
 
-   #+begin_src haskell
+   #+begin_src haskell :tangle sessions/BoundedSpaceAutomata.Store.ghci
      λ> peek 4 $ extend window fibStore
      [3,5,8,13,21,34,55,89,144,233,377]
    #+end_src
 ** A First Attempt at an Algorithm
+   :PROPERTIES:
+   :header-args:haskell: :tangle BoundedSpaceAutomata/Rule110.hs
+   :END:
+
+   #+begin_src haskell :exports none :tangle BoundedSpaceAutomata/Rule110Draft.hs
+     module BoundedSpaceAutomata.Rule110Draft where
+
+     import BoundedSpaceAutomata.Store (Store (..))
+   #+end_src
+
+   #+begin_src haskell :exports none
+     module BoundedSpaceAutomata.Rule110 where
+
+     import BoundedSpaceAutomata.Store (Comonad (extend), Store, experiment)
+   #+end_src
+
    With the tools now available to us, we can make a first attempt at
    our Rule 110 algorithm.
 
    The first step is to load our initial state into the ~Store~:
 
-   #+begin_src haskell
+   #+begin_src haskell :tangle BoundedSpaceAutomata/Rule110Draft.hs
      type Index = Int
 
      initializeStore :: [Bool] -> Store Index Bool
@@ -360,7 +400,17 @@
    Next we need a way to query an index and its neighbors. Just like
    our windowing function, we can use ~experiment~ here.
 
-   #+begin_src haskell
+   #+begin_src haskell :exports none :tangle BoundedSpaceAutomata/NeighborsHole.hs
+     {-# OPTIONS_GHC -fdefer-typed-holes -Wno-typed-holes #-}
+
+     module BoundedSpaceAutomata.NeighborsHole where
+
+     import BoundedSpaceAutomata.Store (Store, experiment)
+
+     type Index = Int
+   #+end_src
+
+   #+begin_src haskell :tangle BoundedSpaceAutomata/NeighborsHole.hs
      neighbors :: Store Index Bool -> [Bool]
      neighbors = experiment _lookupIndices
    #+end_src
@@ -369,13 +419,13 @@
    ~neighborValues~ we let GHC tell us what shape we need for
    ~lookupIndices~:
 
-   #+begin_src haskell
+   #+begin_src text
          • Found hole: _lookupIndices :: Index -> [Index]
    #+end_src
 
    We wan't something like this: 
 
-   #+begin_src haskell
+   #+begin_src haskell :tangle BoundedSpaceAutomata/Rule110Draft.hs
      lookupIndices :: Int -> [Int]
      lookupIndices s = [s-1, s, s+1]
    #+end_src
@@ -431,7 +481,7 @@
    Lets use equational reasoning to take a closer look at what happens
    when you call ~nextGen~:
 
-   #+begin_src haskell
+   #+begin_src haskell :tangle no
      nextGen size store = extend (newState size) store
                         = extend (newState size) (Store query s)
                         = Store (\s' -> (newState size) (Store query s')) s
@@ -439,7 +489,7 @@
 
    And calling ~nextGen~ twice:
 
-   #+begin_src haskell
+   #+begin_src haskell :tangle no
      nextGen size (nextGen size store) = extend (newState size) (extend (newState size) store)
                                        = extend (newState size) (extend (newState size) (Store query s))
                                        = extend (newState size) (Store (\s' -> (newState size) (Store query s')) s)
@@ -486,6 +536,20 @@
 
    What we need is a way to memoize all these calculations.
 ** Representable Functors
+   :PROPERTIES:
+   :header-args:haskell: :tangle BoundedSpaceAutomata/Representable.hs
+   :END:
+
+   #+begin_src haskell :exports none
+     {-# LANGUAGE DataKinds #-}
+     {-# LANGUAGE GADTs #-}
+     {-# LANGUAGE TypeFamilies #-}
+
+     module BoundedSpaceAutomata.Representable where
+
+     import Data.Kind (Type)
+   #+end_src
+
    A ~Functor~ ~f~ is representable if it has a corresponding type
    ~Rep f~ that indexes ~f~ completely. There must be a valid index into ~f~ for
    every value of ~Rep f~ and at the same time we must be able to
@@ -499,7 +563,7 @@
 
    #+begin_src haskell
      class Functor f => Representable f where
-       type Rep f :: *
+       type Rep f :: Type
        tabulate :: (Rep f -> a) -> f a
        index    :: f a -> (Rep f -> a)
    #+end_src
@@ -531,15 +595,15 @@
    What if our ~Functor~ was an infinite stream?
 
    #+begin_src haskell
-     newtype Stream a = Cons a (Strema a)
+     data Stream a = Cons a (Stream a)
      data Nat = Z | S Nat
 
      instance Functor Stream where
          fmap :: (a -> b) -> Stream a -> Stream b
-         fmap f (Stream a as) = Cons (f a) (fmap f as)
+         fmap f (Cons a as) = Cons (f a) (fmap f as)
 
      instance Representable Stream where
-         type Rep f = Nat
+         type Rep Stream = Nat
 
          tabulate :: (Nat -> a) -> Stream a
          tabulate f = Cons (f Z) (tabulate (f . S))
@@ -559,7 +623,7 @@
          fmap f (Identity a) = Identity (f a)
 
      instance Representable Identity where
-         type Rep f = ()
+         type Rep Identity = ()
 
          tabulate :: (() -> a) -> Identity a
          tabulate f = Identity $ f ()
@@ -697,7 +761,7 @@
    initial ~Store~ to ~f : Store s a -> b~:
 
    #+begin_src haskell
-     extend f (Store' g s) = Store (\s' -> f (Store g s')) s
+     extend f (Store g s) = Store (\s' -> f (Store g s')) s
    #+end_src
 
    In our new version, we do the exact same thing but then we pass the

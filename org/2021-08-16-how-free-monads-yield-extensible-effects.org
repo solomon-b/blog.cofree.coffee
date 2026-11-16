@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: How Free Monads Yield Extensible Effects
+#+PROPERTY: header-args:haskell :tangle FreeMonads/SimplestFX.hs
 
 The ~Free~ monad gives you a ~Monad~ for /any/ ~Functor~. The ~Free~
 monad can also be used to construct extensible effect systems. I never
@@ -7,6 +8,16 @@ understood why ~Free~ why this was the case. It turns out it is deeply
 connected to their ability to yield monads for functors.
 
 ** The Free Type
+#+begin_src haskell :exports none
+module FreeMonads.SimplestFX where
+
+import Control.Monad (forM, unless)
+import Control.Monad.Except (throwError)
+import Control.Monad.State (State, get, put, runState)
+import Data.HashSet qualified as S
+import Data.Map qualified as M
+#+end_src
+
 For a warmup, lets review ~Free~[fn:1]:
 
 #+begin_src haskell
@@ -26,7 +37,7 @@ How does that work?
 Looking at ~Free~'s constructors they bear a striking resemblence to
 ~pure~ and ~join~:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
   pure :: Applicative f => a ->      f a
   Pure ::                  a -> Free f a
 
@@ -59,7 +70,7 @@ Now lets take a closer look ~Free~'s Typeclass instances.
 
   instance Functor f => Monad (Free f) where
     return :: a -> Free f a
-    return = Pure
+    return = pure
 
     (>>=) :: Free f a -> (a -> Free f b) -> Free f b
     (>>=) (Pure a) f = f a
@@ -195,6 +206,20 @@ main =
 #+end_src
 
 ** Generalizing
+:PROPERTIES:
+:header-args:haskell: :tangle FreeMonads/Generalizing.hs
+:END:
+
+#+begin_src haskell :exports none
+module FreeMonads.Generalizing where
+
+import Control.Monad.Except (ExceptT (..), runExceptT)
+import Control.Monad.State (State, evalState)
+import Control.Monad.Trans.Class (lift)
+import Data.HashSet qualified as S
+import FreeMonads.SimplestFX (AST (..), Free (..), SimplestFX, Sum (..), assignIndexToVariables)
+#+end_src
+
 In our last example, the interpreter consists of structural recursion
 on ~Free~ along with explicit interpretations of our effects into some
 hard coded result type ~Either e (a, s)~. We can break up the

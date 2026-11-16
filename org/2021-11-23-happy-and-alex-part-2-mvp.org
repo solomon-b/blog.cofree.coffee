@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Happy and Alex Part 2: MVP
+#+PROPERTY: header-args:haskell :tangle no
 
 In my last post I gave a brief introduction to Happy and parser
 generators. In this post I will continue the story with Happy's
@@ -99,7 +100,7 @@ followed by a series of rule statements.
 A rule statement consists of a of a regex pattern (or macro definition)
 and either a chunk of Haskell code wrapped in curly brackets or a semicolon:
 
-#+begin_src haskell
+#+begin_src alex
   $digit+ { \s -> Int (read s) }
 #+end_src
 
@@ -138,7 +139,7 @@ to match on the characters before and after your lexeme.
 ~Left Context~ allows you to match on the beginning of a line via the
 ~^~ character:
 
-#+begin_src haskell
+#+begin_src alex
   ^ $alpha [$alpha]* { \s -> Identifier s }
 #+end_src
 
@@ -156,7 +157,7 @@ following a newline char.
 
    The predicate function's type must be:
 
-   #+begin_src haskell
+   #+begin_src alex
      { ... } :: user       -- predicate state
 	     -> AlexInput  -- input stream before the token
 	     -> Int        -- length of the token
@@ -174,7 +175,11 @@ things like string templating.
 For a minimal Untyped Lambda Calculus using the traditional syntax we
 will need the following lexemes:
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle HappyAlexPart2.hs
+module HappyAlexPart2 where
+#+end_src
+
+#+begin_src haskell :tangle HappyAlexPart2.hs
   data Token
     = Identifier String
     | Lambda
@@ -185,7 +190,7 @@ will need the following lexemes:
 
 Our intial lexer is very straight forward:
 
-#+begin_src haskell
+#+begin_src alex :tangle grammar/HappyAlexPart2/Lexer.x
   {
   module Lexer where
   }
@@ -194,7 +199,7 @@ Our intial lexer is very straight forward:
 
   $digit = 0-9
   $alpha = [a-zA-Z]
-  $alphanum = [a-zA-Z09]
+  $alphanum = [a-zA-Z0-9]
 
   tokens :-
 
@@ -232,7 +237,7 @@ Our intial lexer is very straight forward:
 There isn't a whole lot to say about this lexer. It does pretty much
 what you expect:
 
-#+begin_src haskell
+#+begin_src haskell :tangle grammar/HappyAlexPart2/Lexer.ghci
   > lexer "\\x. y x"
   [Lambda,Identifier "x",Dot,Identifier "y",Identifier "x"]
   > lexer "\\x. y x # this is a comment"
@@ -244,7 +249,7 @@ Note: we had to escape the ~\~ because we are in a Haskell repl.
 The main issues are that it provides no safe error handling and
 provides no spans:
 
-#+begin_src haskell
+#+begin_src haskell :tangle grammar/HappyAlexPart2/Lexer.ghci
   > lexer "[\\x.x]"
   ,*** Exception: lexical error
   CallStack (from HasCallStack):
@@ -264,7 +269,7 @@ basic syntax of a Happy file. Here I will include a complete Happy
 file and go over some of the specific syntax not mentioned in the last
 post.
 
-#+begin_src haskell
+#+begin_src happy :tangle grammar/HappyAlexPart2/Parser.y
   {
   module Parser where
 
@@ -336,7 +341,11 @@ Haskell code like the Alex file.
 
 We can now execute our parser in the repl and build an AST:
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle grammar/HappyAlexPart2/Parser.ghci
+  > import Lexer
+#+end_src
+
+#+begin_src haskell :tangle grammar/HappyAlexPart2/Parser.ghci
   > parser $ lexer "\\x. y x"
   Abs "x" (Ap (Var "y") (Var "x"))
   > parser $ lexer "\\x. y x # this is a comment"

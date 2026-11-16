@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Happy and Alex Part 1: Don't Worry Be Happy
+#+PROPERTY: header-args:haskell :tangle no
 
 When I was first learning Haskell it was emphasized to me via blog
 posts, books, and conversations how wonderful Haskell is for language
@@ -9,7 +10,11 @@ combinators.
 parser combinators are a beautiful example of the powers of abstraction
 and compositionality inherent in Haskell's design.
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle HappyAlexPart1/Parser.hs
+module HappyAlexPart1.Parser where
+#+end_src
+
+#+begin_src haskell :tangle HappyAlexPart1/Parser.hs
 newtype Parser a = Parser { runParser :: String -> Maybe (String, a) }
 #+end_src
 
@@ -43,7 +48,18 @@ combinators.
 
   Using a Megaparsec, we might construct the following parser:
 
-  #+begin_src haskell
+  #+begin_src haskell :exports none :tangle HappyAlexPart1/Megaparsec.hs
+    module HappyAlexPart1.Megaparsec where
+
+    import Control.Applicative (some, (<|>))
+    import Data.Void (Void)
+    import Text.Megaparsec (Parsec, between)
+    import Text.Megaparsec.Char (char, digitChar, space)
+
+    type Parser = Parsec Void String
+  #+end_src
+
+  #+begin_src haskell :tangle HappyAlexPart1/Megaparsec.hs
     data Expr =
         Num Int
       | Add Expr Expr
@@ -54,7 +70,7 @@ combinators.
     parens p = between (char '(') (char ')') p <* space
 
     parseInt :: Parser Expr
-    parseInt = (Num <$> some digitChar) <* space
+    parseInt = (Num . read <$> some digitChar) <* space
 
     parseNegate :: Parser Expr
     parseNegate = do
@@ -102,7 +118,14 @@ combinators.
   We can try to fix the parser precedence by changing the order of the
   alternatives in ~parseExpr~:
 
-  #+begin_src haskell
+  #+begin_src haskell :exports none :tangle HappyAlexPart1/Reordered.hs
+    module HappyAlexPart1.Reordered where
+
+    import Control.Applicative ((<|>))
+    import HappyAlexPart1.Megaparsec (Expr, Parser, parens, parseAdd, parseInt, parseMult, parseNegate)
+  #+end_src
+
+  #+begin_src haskell :tangle HappyAlexPart1/Reordered.hs
     parseExpr :: Parser Expr
     parseExpr =
       parseNegate <|> parseAdd <|> parseMult <|> parseInt <|> parens parseExpr
@@ -169,7 +192,11 @@ combinators.
   A picture paints a thousand words. Lets construct a parser for the
   same arithmetic language:
 
-  #+begin_src haskell
+  #+begin_src haskell :exports none :tangle HappyAlexPart1/Syntax.hs
+    module HappyAlexPart1.Syntax where
+  #+end_src
+
+  #+begin_src haskell :tangle HappyAlexPart1/Syntax.hs
     data Expr =
         Num Int
       | Add Expr Expr
@@ -179,7 +206,8 @@ combinators.
 
   First we declare our parser and specify our initial symbol:
 
-  #+begin_src haskell
+  #+name: happy-name
+  #+begin_src happy
     %name parser expr
   #+end_src
 
@@ -189,7 +217,8 @@ combinators.
 
   Next we declare our terminal symbols and their corresponding lexemes:
 
-  #+begin_src haskell
+  #+name: happy-tokens
+  #+begin_src happy
     %token
 
     '+' { L.Plus }
@@ -214,7 +243,11 @@ combinators.
   For reference, here is the lexeme datatype that corresponds to this
   token declaration:
 
-  #+begin_src haskell
+  #+begin_src haskell :exports none :tangle HappyAlexPart1/Lexer.hs
+    module HappyAlexPart1.Lexer where
+  #+end_src
+
+  #+begin_src haskell :tangle HappyAlexPart1/Lexer.hs
     data Token
       = Num Int
       | Plus
@@ -232,7 +265,7 @@ combinators.
   Next we must define the ~Production Rules~ for ~Non-Terminal
   Symbols~. These take the form:
 
-  #+begin_src haskell
+  #+begin_src happy
     n   : t_1 ... t_n   { E1 }
         | s_1 ... s_n   { E2 }
   #+end_src
@@ -250,7 +283,8 @@ combinators.
 
   For our arithmetic language the production rules will be:
 
-  #+begin_src haskell
+  #+name: happy-rules-flat
+  #+begin_src happy
     expr
       : int           { Num $1 }
       | expr '+' expr { Add $1 $3 }
@@ -259,11 +293,77 @@ combinators.
       | '(' expr ')'  { $2 }
   #+end_src
 
+  #+begin_src happy :exports none :noweb yes :tangle grammar/HappyAlexPart1Flat/Parser.y
+    {
+    module Parser where
+
+    import HappyAlexPart1.Lexer qualified as L
+    import HappyAlexPart1.Syntax
+    }
+
+    <<happy-name>>
+    %tokentype { L.Token }
+    %error { parseError }
+
+    <<happy-tokens>>
+
+    %%
+
+    <<happy-rules-flat>>
+
+    {
+    parseError :: [L.Token] -> a
+    parseError _ = error "ParseError"
+    }
+  #+end_src
+
   We then use Happy to generate a haskell module containing our
   parser. Assuming we have a ~lexer :: String -> [Token]~ we can run
   our parser in the repl and try it out:
 
-  #+begin_src haskell
+  # The lexer that the post assumes. The rules are a copy of 'app/arith/Lexer.x'
+  # in https://github.com/solomon-b/Dont-Worry-Be-Happy.
+  #+name: arith-lexer
+  #+begin_src alex :exports none
+    {
+    module Lexer where
+
+    import HappyAlexPart1.Lexer
+    }
+
+    %wrapper "basic"
+
+    $digit = 0-9
+
+    tokens :-
+
+    $white+                       ;
+
+    \+                            { \_ -> Plus }
+    \-                            { \_ -> Negate }
+    \*                            { \_ -> Multiply }
+    \/                            { \_ -> Divide }
+    \(                            { \_ -> OpenParen }
+    \)                            { \_ -> CloseParen }
+    $digit+                       { \s -> Num (read s) }
+
+    {
+    lexer :: String -> [Token]
+    lexer = alexScanTokens
+    }
+  #+end_src
+
+  #+begin_src alex :exports none :noweb yes :tangle grammar/HappyAlexPart1Flat/Lexer.x
+    <<arith-lexer>>
+  #+end_src
+
+  #+begin_src haskell :exports none :tangle grammar/HappyAlexPart1Flat/Parser.ghci
+    > :add Lexer
+    > :module *Parser Lexer
+    > deriving instance Show Expr
+  #+end_src
+
+  #+begin_src haskell :tangle grammar/HappyAlexPart1Flat/Parser.ghci
     > parser $ lexer "1"
     Num 1
     > parser $ lexer "1 + 2"
@@ -276,7 +376,8 @@ combinators.
   production rules a bit then we can establish precedence in the
   grammar:
 
-  #+begin_src haskell
+  #+name: happy-rules-precedence
+  #+begin_src happy
     expr
       : expr '+' expr1 { Add $1 $3 }
       | expr1 { $1 }
@@ -291,7 +392,41 @@ combinators.
       | '(' expr ')' { $2 }
   #+end_src
 
-  #+begin_src haskell
+  #+begin_src happy :exports none :noweb yes :tangle grammar/HappyAlexPart1Precedence/Parser.y
+    {
+    module Parser where
+
+    import HappyAlexPart1.Lexer qualified as L
+    import HappyAlexPart1.Syntax
+    }
+
+    <<happy-name>>
+    %tokentype { L.Token }
+    %error { parseError }
+
+    <<happy-tokens>>
+
+    %%
+
+    <<happy-rules-precedence>>
+
+    {
+    parseError :: [L.Token] -> a
+    parseError _ = error "ParseError"
+    }
+  #+end_src
+
+  #+begin_src alex :exports none :noweb yes :tangle grammar/HappyAlexPart1Precedence/Lexer.x
+    <<arith-lexer>>
+  #+end_src
+
+  #+begin_src haskell :exports none :tangle grammar/HappyAlexPart1Precedence/Parser.ghci
+    > :add Lexer
+    > :module *Parser Lexer
+    > deriving instance Show Expr
+  #+end_src
+
+  #+begin_src haskell :tangle grammar/HappyAlexPart1Precedence/Parser.ghci
     > parser $ lexer "1 + 2 * -3"
     Add (Num 1) (Multiply (Num 2) (Negate (Num 3)))
     > parser $ lexer "(1 + 2) * -3"

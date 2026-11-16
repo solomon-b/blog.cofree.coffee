@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+title: Lean For Haskell Developers
+#+PROPERTY: header-args:haskell :tangle LeanForHaskellDevelopers.hs
 
 *Last updated 2024-03-03*
 
@@ -89,6 +90,12 @@ inductive List (α : Type u) where
 inductive Bool where
   | false : Bool
   | true : Bool
+#+end_src
+
+#+begin_src haskell :exports none
+{-# LANGUAGE GADTs #-}
+
+module LeanForHaskellDevelopers where
 #+end_src
 
 GADTs can also be done using ~inductive~ statements.

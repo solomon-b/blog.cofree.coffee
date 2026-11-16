@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: A Brief Intro to Monad Transformers
+#+PROPERTY: header-args:haskell :tangle no
 
 A few friends have recently asked about literature introducing ~Monad
 Transformers~. The best introduction I have found was in [[https://haskellbook.com/][Haskell
@@ -9,6 +10,13 @@ purchase, this book, then here is a brief explanation with examples.
 Lets start with the problem they solve.
 
 ** Functors and Applicatives Compose
+:PROPERTIES:
+:header-args:haskell: :tangle MonadTransformers/Compose.hs
+:END:
+
+#+begin_src haskell :exports none
+module MonadTransformers.Compose where
+#+end_src
 
 ~Functor~ and ~Applicative~ are both closed under composition. If we
 compose any two ~Functor~ or ~Applicative~ types then we get a
@@ -38,7 +46,11 @@ instances for ~Compose~:
 
 Now we can compose ~Functors~ together and get combined effects:
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle sessions/MonadTransformers.Compose.ghci
+> deriving instance Show (f (g a)) => Show (Compose f g a)
+#+end_src
+
+#+begin_src haskell :tangle sessions/MonadTransformers.Compose.ghci
 > xs = Compose [Just True, Just False, Nothing]
 > :t xs
 xs :: Compose [] Maybe Bool
@@ -46,7 +58,11 @@ xs :: Compose [] Maybe Bool
 Compose [Just False,Just True,Nothing]
 #+end_src
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle sessions/MonadTransformers.Compose.ghci
+> ys = fmap not xs
+#+end_src
+
+#+begin_src haskell :tangle sessions/MonadTransformers.Compose.ghci
 > xs
 Compose [Just True,Just False,Nothing]
 > ys
@@ -59,7 +75,15 @@ We can do this with /any/ two ~Functors~. That is Really Cool:tm:.
 
 But What about ~Monad~? Can we write a ~Monad~ instance for ~Compose~?
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle MonadTransformers/ComposeMonad.hs
+{-# OPTIONS_GHC -fdefer-typed-holes -Wno-typed-holes -Wno-orphans #-}
+
+module MonadTransformers.ComposeMonad where
+
+import MonadTransformers.Compose (Compose (..))
+#+end_src
+
+#+begin_src haskell :tangle MonadTransformers/ComposeMonad.hs
   instance (Monad f, Monad g) => Monad (Compose f g) where
     return :: a -> Compose f g a
     return = pure
@@ -71,21 +95,21 @@ But What about ~Monad~? Can we write a ~Monad~ instance for ~Compose~?
 What we are trying to do in this ~>>=~ instance is combine these two
 functions:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 Monad f => f a -> (a -> f b) -> f b
 Monad g => g a -> (a -> g b) -> g b
 #+end_src
 
 Into this function:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 (Monad f, Monad g) => f (g a) -> (a -> f (g b)) -> f g b
 #+end_src
 
 It turns out this is impossible. If we look at the combined ~join~
 type we can see the knot we have created:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
 join :: (Monad f, Monad g) => f (g (f (g a))) -> f (g a)
 #+end_src
 
@@ -93,16 +117,26 @@ There simply is no way to implement this while keeping both ~Monads~
 polymorphic.
 
 ** Introducing Monad Transformers
+:PROPERTIES:
+:header-args:haskell: :tangle MonadTransformers/Transformers.hs
+:END:
+
+#+begin_src haskell :exports none
+{-# LANGUAGE LambdaCase #-}
+
+module MonadTransformers.Transformers where
+#+end_src
+
 The fundamental problem with composing two polymorphic ~Monads~ is the
 polymorphism. If we could make one of the ~Monads~ concrete then we
 could define ~bind~ and ~join~:
 
 #+begin_src haskell
-  bind :: Monad f => f (Maybe a) -> (a -> f (Maybe b)) -> f (Maybe b)
-  bind ma f =
-    ma >>= \case
-      Nothing -> pure Nothing
-      Just a -> f a
+bind :: Monad f => f (Maybe a) -> (a -> f (Maybe b)) -> f (Maybe b)
+bind ma f =
+  ma >>= \case
+    Nothing -> pure Nothing
+    Just a -> f a
 
 join :: Monad f => f (Maybe (f (Maybe a))) -> f (Maybe a)
 join ma = ma >>= \case
@@ -131,7 +165,7 @@ polymorphic monad:
 An interesting side note is that you can recover all the standard
 ~Monad~ variants by selecting ~Identity~ for the ~m~ parameter:
 
-#+begin_src haskell
+#+begin_src haskell :tangle no
   type Identity a = IdentityT Identity a
   type Maybe a = MaybeT Identity a
   type Either' e a = ExceptT e Identity a
@@ -167,6 +201,22 @@ instance Monad m => Monad (MaybeT m) where
 #+end_src
 
 ** Why is this useful?
+:PROPERTIES:
+:header-args:haskell: :tangle MonadTransformers/Example.hs
+:END:
+
+#+begin_src haskell :exports none
+{-# LANGUAGE DerivingStrategies #-}
+
+module MonadTransformers.Example where
+
+import Control.Monad (forM, unless)
+import Control.Monad.Except (ExceptT, MonadError, runExceptT, throwError)
+import Control.Monad.State (MonadState, State, evalState, get, put)
+import Data.HashSet qualified as S
+import Data.Map qualified as M
+#+end_src
+
 With combined monadic effects we can do really nice sequencing and
 combination of effects. For example..
 
@@ -220,7 +270,7 @@ Now our program becomes a simple traversal where we can perform both
     in print $ flip evalState mempty $ runExceptT $ runAppM $ assignIndexToVariables ast vars
 #+end_src
 
-#+begin_src haskell
+#+begin_src haskell :tangle sessions/MonadTransformers.Example.ghci
 > main
 Right (Node (Leaf 0) (Node (Leaf 1) (Node (Leaf 0) (Leaf 2))))
 #+end_src

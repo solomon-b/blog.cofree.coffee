@@ -1,5 +1,6 @@
 #+AUTHOR: Solomon Bothwell
 #+TITLE: Chat Bots Revisited
+#+PROPERTY: header-args:haskell :tangle no
 
 It has been a long while since my last post on [[https://blog.cofree.coffee/2022-02-14-how-to-design-a-chat-bot/][chat bots]]; quite a bit longer
 then I intended to be honest. I would like to summarize here where the project
@@ -10,6 +11,33 @@ Special thanks to [[https://github.com/masaeedu][Masaeedu]], [[https://github.co
 contributed to this project either via code or conversation.
 
 * Bots
+:PROPERTIES:
+:header-args:haskell: :tangle ChatBotsRevisited/Bot.hs
+:END:
+
+#+begin_src haskell :exports none
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+module ChatBotsRevisited.Bot where
+
+import Control.Category (Category)
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.ListT (ListT, toListT)
+import Control.Monad.Reader (MonadReader)
+import Control.Monad.State (MonadState)
+import Data.Functor.Monoidal qualified as Functor
+import Data.Machine.Mealy.Coalgebra (MealyTC (..), fixMealyTC)
+import Data.Machine.MealyT (MealyT)
+import Data.Profunctor (Profunctor, Strong)
+import Data.Text (Text)
+import Data.These (These (..))
+import Data.Trifunctor.Monoidal ((|***|))
+import Data.Trifunctor.Monoidal qualified as Trifunctor
+import Data.Void (Void)
+import System.Random (randomIO)
+#+end_src
 
 A ~Bot~ is defined as a sort of variation of a ~Mealy Machine~ which produces
 many monadic results via ~ListT~:
@@ -59,6 +87,20 @@ With those ~Monoidal~ instances we get these combinators:
   (\/) :: (Monad m) => Bot m s i o -> Bot m t i' o' -> Bot m (s, t) (i `Either` i') (o `Either` o')
 #+end_src
 
+#+begin_src haskell :exports none
+(/\) = (|***|)
+
+(/+\) = curry Trifunctor.combine
+
+(/.\) (Bot b1) (Bot b2) = Bot $ \(s1, s2) i -> do
+  Functor.combine (b1 s1 i, b2 s2 i) >>= \case
+    This (o, s1') -> pure (o, (s1', s2))
+    That (o', s2') -> pure (o', (s1, s2'))
+    These (o, s1') (o', s2') -> toListT [(o, (s1', s2)), (o', (s1', s2'))]
+
+(\/) = curry Trifunctor.combine
+#+end_src
+
 For example, ~b1 /\ b2~ will create a new ~Bot~ whose state, input, and output
 are products of that of ~b1~ and ~b2~. ~b1 \/ b1~ will receive ~Either~ the
 input of ~b1~ or ~b2~ and produce ~Either~ the output of ~b1~ and ~b2~.
@@ -90,7 +132,18 @@ This works because ~Bot~ is an instance of ~MonadIO~ allowing us to do MTL
 sillyness. In fact we could rewrite ~helloBot~ to demonstrate we have
 ~MonadState~ and ~MonadReader~ instances as well:
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle ChatBotsRevisited/HelloMTL.hs
+{-# LANGUAGE OverloadedStrings #-}
+
+module ChatBotsRevisited.HelloMTL where
+
+import ChatBotsRevisited.Bot (Bot)
+import Control.Monad.Reader (ask)
+import Control.Monad.State (get)
+import Data.Text (Text)
+#+end_src
+
+#+begin_src haskell :tangle ChatBotsRevisited/HelloMTL.hs
   helloBot :: (Monad m) => Bot m s () Text
   helloBot = do
     s <- get
@@ -119,6 +172,24 @@ types. The ~chat-bots~ ~Bot~ and ~Server~ types are created using ~deriving via~
 and this library.
 
 ** Interfaces
+:PROPERTIES:
+:header-args:haskell: :tangle ChatBotsRevisited/Serializer.hs
+:END:
+
+#+begin_src haskell :exports none
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+module ChatBotsRevisited.Serializer where
+
+import ChatBotsRevisited.Bot (Bot (..))
+import Control.Monad.ListT (emptyListT)
+import Data.Bifunctor (first)
+import Data.Chat.Bot.Serialization ((*|*), (+|+))
+import Data.Text (Text)
+import Data.These (These)
+#+end_src
+
 The nice thing about working with ~Bot~ is that you can be very precise about
 the scope of your chat bot behaviors. ~Bots~ need not receive any more input or
 state then is demanded to produce their outputs. These narrowly scoped behaviors
@@ -171,10 +242,26 @@ same way as ~Bots~:
   -- etc
 #+end_src
 
+#+begin_src haskell :exports none
+(/+\) (Serializer par1 pri1) (Serializer par2 pri2) = Serializer (par1 *|* par2) (pri1 +|+ pri2)
+#+end_src
+
 This allows you to tensor together a bunch of ~Bot~ behaviors, then tensor their
 ~Serializers~, and finally smoosh everything together with ~applySerializer~.
 
 ** Sessions
+:PROPERTIES:
+:header-args:haskell: :tangle ChatBotsRevisited/Session.hs
+:END:
+
+#+begin_src haskell :exports none
+module ChatBotsRevisited.Session where
+
+import ChatBotsRevisited.Bot (Bot (..))
+import Data.IntMap.Strict (IntMap)
+import Data.IntMap.Strict qualified as IntMap
+#+end_src
+
 This was mentioned in my old blog post but I'll reiterate it here briefly. We
 can embed ~Bots~ into "larger" bots that give advanced abilities such as
 multisession ability.
@@ -189,6 +276,29 @@ multisession ability.
     s ->
     Bot m s i o ->
     Bot m (SessionState s) (SessionInput i) (SessionOutput o)
+#+end_src
+
+#+begin_src haskell :exports none
+sessionize defaultState (Bot bot) = Bot $ \(SessionState s) si -> case si of
+  StartSession -> do
+    let k = freshSessionKey s
+    pure $
+      (,) (SessionStarted k) (SessionState $ IntMap.insert k defaultState s)
+  EndSession k -> do
+    pure $ (,) (SessionEnded k) (SessionState $ IntMap.delete k s)
+  InteractWithSession k i -> case IntMap.lookup k s of
+    Nothing -> pure $ (,) (InvalidSession k) (SessionState s)
+    Just s' -> do
+      (responses, nextState) <- bot s' i
+      pure $
+        (,)
+          (SessionOutput k responses)
+          (SessionState $ IntMap.insert k nextState s)
+
+freshSessionKey :: IntMap a -> Int
+freshSessionKey state = case IntMap.lookupMax state of
+  Nothing -> 0
+  Just (k, _) -> k + 1
 #+end_src
 
 Sessionize recieves a bot and embeds its ~s~, ~i~, and ~o~, in session
@@ -207,7 +317,31 @@ Rather then working with unnamed ~Bots~ and these low level combinators like
 The idea is that you define an HKD type which contains fields for all your bot
 behaviors:
 
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle ChatBotsRevisited/HKD.hs
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DerivingStrategies #-}
+
+module ChatBotsRevisited.HKD where
+
+import Data.Chat.Bot
+import Data.Chat.Bot.Calculator
+import Data.Chat.Bot.CoinFlip
+import Data.Chat.Bot.Context
+import Data.Chat.Bot.GHCI
+import Data.Chat.Bot.HKD
+import Data.Chat.Bot.Hello
+import Data.Chat.Bot.Jitsi
+import Data.Chat.Bot.Lists qualified as Lists
+import Data.Chat.Bot.Magic8Ball
+import Data.Chat.Bot.Serialization qualified as S
+import Data.Chat.Bot.Updog
+import Data.Text (Text)
+import GHC.Generics (Generic)
+import GHC.IO.Handle (Handle)
+import System.Process.Typed (Process)
+#+end_src
+
+#+begin_src haskell :tangle ChatBotsRevisited/HKD.hs
   data CofreeBot p = CofreeBot
     { hello :: p () () Text,
       updog :: p () Updog Text,
@@ -227,7 +361,7 @@ Then you use this type to build both a record of ~Bots~ and a record of
 sequence those records into a concrete ~Bot~ and ~Serializer~ which you can
 smoosh together to get your final bot ready to connect to a server:
 
-#+begin_src haskell
+#+begin_src haskell :tangle ChatBotsRevisited/HKD.hs
   bot' :: Process Handle Handle () -> CofreeBot (Bot IO)
   bot' process =
     CofreeBot
@@ -260,6 +394,20 @@ smoosh together to get your final bot ready to connect to a server:
 the HKD.
 
 * Servers
+:PROPERTIES:
+:header-args:haskell: :tangle ChatBotsRevisited/Server.hs
+:END:
+
+#+begin_src haskell :exports none
+module ChatBotsRevisited.Server where
+
+import Control.Monad.ListT (ListT, fromListT)
+import Data.Fix (Fix (..))
+import Data.Machine.MealyT (MealyT (..))
+import Data.Machine.Moore.Coalgebra (MooreTC (..), fixMooreTC)
+import Data.Machine.MooreT (MooreT (..))
+#+end_src
+
 ~Bots~ are protocol agnostic. We use ~Serializers~ to fit them to the API of
 some particular server, but I haven't yet shown you what those look like.
 
@@ -295,18 +443,26 @@ operation ~annihilate~ which I am rather obsessed with:
     (i, nextServer) <- server
     xs <- fromListT $ mealy i
     let o = fmap fst $ xs
-	server' = nextServer o
+        server' = nextServer o
     pure $
       annihilate server' $ case xs of
-	[] -> b
-	_ -> snd $ last xs
+        [] -> b
+        _ -> snd $ last xs
 
   loop :: (Monad f) => Fix f -> f x
   loop (Fix x) = x >>= loop
 #+end_src
 
 Here is the more general version for Mealy and Moore:
-#+begin_src haskell
+#+begin_src haskell :exports none :tangle ChatBotsRevisited/Annihilate.hs
+module ChatBotsRevisited.Annihilate where
+
+import Data.Fix (Fix (..))
+import Data.Machine.MealyT (MealyT (..))
+import Data.Machine.MooreT (MooreT (..))
+#+end_src
+
+#+begin_src haskell :tangle ChatBotsRevisited/Annihilate.hs
   annihilate :: (Monad m) => MooreT m o i -> MealyT m i o -> Fix m
   annihilate (MooreT moore) (MealyT mealy) = Fix $ do
     (i, nextMoore) <- moore
