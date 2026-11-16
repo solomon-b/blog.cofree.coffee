@@ -694,8 +694,8 @@ experiment : (Representable f rep, Functor g) => (rep -> g rep) -> Store f rep a
 experiment f s = map (`peek` s) (f (pos s))
 
 Representable f rep => Comonad (Store f rep) where
-extract (MkStore rep fa) = index fa rep
-extend func (MkStore rep' fa) = MkStore rep' (tabulate (\rep'' => func (MkStore rep'' fa)))
+  extract (MkStore rep fa) = index fa rep
+  extend func (MkStore rep' fa) = MkStore rep' (tabulate (\rep'' => func (MkStore rep'' fa)))
 ```
 
 Again we use `index` to do our actual lookup inside the `f a`. The real
@@ -902,7 +902,7 @@ runSimulation : Store (Vect (3 + k)) (Fin (3 + k)) Bool -> IO ()
 runSimulation s {k} =
   if all id curr || all not curr
      then printState curr
-     else printState curr >>= \_ => runAutomata (nextGen s)
+     else printState curr >>= \_ => runSimulation (nextGen s)
   where
     curr : Vect (3 + k) Bool
     curr = experiment (const universe) s

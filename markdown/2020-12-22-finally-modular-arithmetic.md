@@ -237,8 +237,8 @@ strengthen {n = Z} FZ = Left FZ
 strengthen {n = (S k)} FZ = Right FZ
 strengthen {n = Z} (FS _) impossible
 strengthen {n = (S k)} (FS x) = case strengthen x of
-  Left l => Left (FS' l)
-  Right r => Right (FS' r)
+  Left l => Left (FS l)
+  Right r => Right (FS r)
 ```
 
 `strengthen` is a bit more complex and requires us to use the implicit
@@ -264,7 +264,7 @@ We now have the tools we need to finish `add`:
 
 ``` idris2
 total
-add : Fin n -> Fin n -> Fin n
+add : {n : Nat} -> Fin n -> Fin n -> Fin n
 add FZ y = y
 add (FS x) y =
   case strengthen y of
@@ -311,7 +311,7 @@ function from its modified parameters to `r`.
 Lets use `foldr : (a -> r -> r) -> r -> List a -> r` as an example.
 Looking at the definition of `List a`:
 
-``` idris
+``` idris2
 data List a = Cons a (List a) | Nil
 ```
 
@@ -342,7 +342,7 @@ data Fin : (n : Nat) -> Type where
     FS : Fin k -> Fin (S k)
 
 total
-fin_rec : {n : Nat} -> (r -> r) -> r -> Fin r -> a
+fin_rec : {n : Nat} -> (r -> r) -> r -> Fin n -> r
 fin_rec {n = Z} f x y impossible
 fin_rec {n = (S k)} f x FZ = x
 fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
@@ -427,7 +427,7 @@ wish to invert.
 ``` idris2
 -- return the largest element in a Fin
 total
-last : Fin (S n)
+last : {n : Nat} -> Fin (S n)
 last {n = Z} = FZ
 last {n = (S k)} = FS last
 

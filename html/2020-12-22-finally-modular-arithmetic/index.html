@@ -88,10 +88,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p><code>Fin _</code> is one of those data types that makes you take a
 step back and question how much you really understand typed functional
 programming.</p>
-<pre class="idris2"><code>data Fin : (n : Nat) -&gt; Type where
-    FZ : Fin (S k)
-    FS : Fin k -&gt; Fin (S k)
-</code></pre>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Fin</span> <span class="ot">:</span> (n <span class="ot">:</span> <span class="dt">Nat</span>) <span class="ot">-&gt;</span> <span class="dt">Type</span> <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FZ</span> <span class="ot">:</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FS</span> <span class="ot">:</span> <span class="dt">Fin</span> k <span class="ot">-&gt;</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span></code></pre></div>
 <p>At first glance so a simple and similar to <code>Nat</code>, yet it
 so much more. Like <code>Nat</code>, this is a recursive type with a
 base case <code>FZ</code> and a recursive case <code>FS</code>. Also
@@ -104,47 +104,47 @@ yield a <code>Fin (S k)</code>, a <code>Fin _</code> larger by one.</p>
 <p>Edwin Brady describes <code>Fin _</code> as the type of <em>Finite
 Sets</em>. That is not to say that <code>Fin _</code> is a container,
 but rather that it represents the canonical set of unnamed elements.</p>
-<pre class="idris2"><code>λΠ&gt; the (Fin 1) FZ
-FZ
-
-λΠ&gt; :t the (Fin 1) FZ
-the (Fin 1) FZ : Fin 1
-</code></pre>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> the (<span class="dt">Fin</span> <span class="dv">1</span>) <span class="dt">FZ</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">FZ</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> <span class="ot">:</span>t the (<span class="dt">Fin</span> <span class="dv">1</span>) <span class="dt">FZ</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>the (<span class="dt">Fin</span> <span class="dv">1</span>) <span class="dt">FZ</span> <span class="ot">:</span> <span class="dt">Fin</span> <span class="dv">1</span></span></code></pre></div>
 <p>Here we have <code>FZ</code> as the zero element of the one element
 set. <code>FZ</code> requires a <code>S k</code> so this is the smallest
 possible finite set we can represent. We can represent the zeroth
 element of larger set by simply declaring it so:</p>
-<pre class="idris2"><code>λΠ&gt; the (Fin 12) FZ
-FZ
-
-λΠ&gt; :t the (Fin 12) FZ
-the (Fin 12) FZ : Fin 12
-</code></pre>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> the (<span class="dt">Fin</span> <span class="dv">12</span>) <span class="dt">FZ</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">FZ</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> <span class="ot">:</span>t the (<span class="dt">Fin</span> <span class="dv">12</span>) <span class="dt">FZ</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>the (<span class="dt">Fin</span> <span class="dv">12</span>) <span class="dt">FZ</span> <span class="ot">:</span> <span class="dt">Fin</span> <span class="dv">12</span></span></code></pre></div>
 <p>We use <code>FS</code> to construct subsequent elements of our finite
 set. For example, the second element of the two element set would
 be:</p>
-<pre class="idris2"><code>λΠ&gt; the (Fin 2) (FS FZ)
-FS FZ : Fin 2
-
-λΠ&gt; :t the (Fin 2) (FS FZ)
-the (Fin 2) (FS FZ) : Fin 2
-</code></pre>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> the (<span class="dt">Fin</span> <span class="dv">2</span>) (<span class="dt">FS</span> <span class="dt">FZ</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">FS</span> <span class="dt">FZ</span> <span class="ot">:</span> <span class="dt">Fin</span> <span class="dv">2</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> <span class="ot">:</span>t the (<span class="dt">Fin</span> <span class="dv">2</span>) (<span class="dt">FS</span> <span class="dt">FZ</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>the (<span class="dt">Fin</span> <span class="dv">2</span>) (<span class="dt">FS</span> <span class="dt">FZ</span>) <span class="ot">:</span> <span class="dt">Fin</span> <span class="dv">2</span></span></code></pre></div>
 <p><code>FZ</code> must be of type <code>Fin (S k)</code> and
 <code>FS</code> is <code>Fin n -&gt; Fin (S n)</code>. Thus
 <code>FS FZ</code> produces type <code>Fin (S (S k))</code> and
 <code>k</code> must be <code>Z</code> in order to match our ascribed
 type <code>Fin 2</code>.</p>
 <p>Let's try to produce an element larger then the ascribed set:</p>
-<pre class="idris2"><code>λΠ&gt; the (Fin 1) (FS FZ)
-(interactive):1:14--1:19:When unifying Fin (S (S ?k)) and Fin 1
-Mismatch between:
-  S ?k
-and
-  0
-at:
-1 the (Fin 1) (FS FZ)
-               ^^^^^
-</code></pre>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> the (<span class="dt">Fin</span> <span class="dv">1</span>) (<span class="dt">FS</span> <span class="dt">FZ</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>(interactive)<span class="ot">:</span><span class="dv">1</span><span class="ot">:</span><span class="dv">14</span><span class="co">--1:19:When unifying Fin (S (S ?k)) and Fin 1</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="dt">Mismatch</span> between<span class="ot">:</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">S</span> <span class="fu">?</span>k</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>and</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="dv">0</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="fu">at</span><span class="ot">:</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> the (<span class="dt">Fin</span> <span class="dv">1</span>) (<span class="dt">FS</span> <span class="dt">FZ</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>               <span class="fu">^^^^^</span></span></code></pre></div>
 <p>Here we tried to produce a second element of the one element set.
 Idris is telling us that the only way to construct
 <code>FS FZ : Fin 1</code> would be to have <code>FZ : Fin 0</code>.
@@ -155,24 +155,24 @@ This would allow <code>FS</code> to type check correctly as
 <h2 id="fin-and-vect">Fin And Vect</h2>
 <p>One natural use case for <code>Fin _</code> is type safe indexing
 into <code>Vect</code>:</p>
-<pre class="idris2"><code>index : Fin len -&gt; Vect len elem -&gt; elem
-index FZ     (x::xs) = x
-index (FS k) (x::xs) = index k xs
-</code></pre>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">index</span> <span class="ot">:</span> <span class="dt">Fin</span> len <span class="ot">-&gt;</span> <span class="dt">Vect</span> len elem <span class="ot">-&gt;</span> elem</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>index <span class="dt">FZ</span>     (x<span class="ot">::</span>xs) <span class="fu">=</span> x</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>index (<span class="dt">FS</span> k) (x<span class="ot">::</span>xs) <span class="fu">=</span> index k xs</span></code></pre></div>
 <p><code>Fin _</code> and <code>Vect</code> are parameterized by
 <code>len : Nat</code>. This means that we cannot construct
 <code>Fin</code> values which are out of bounds for our
 <code>Vect</code>. Out of bounds indices are literally unrepresentable.
 In my last blog post we took advantage of this property to create a
 <code>Representable Functor</code>.</p>
-<pre class="idris2"><code>λΠ&gt; index 2 (the (Vect 3 String) [&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;])
-&quot;baz&quot;
-
-λΠ&gt; index 3 (the (Vect 3 String) [&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;])
-(interactive):1:7--1:8:Can&#39;t find an implementation for IsJust (integerToFin 3 3) at:
-1 index 3 (the (Vect 3 String) [&quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot;])
-        ^
-</code></pre>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> index <span class="dv">2</span> (the (<span class="dt">Vect</span> <span class="dv">3</span> <span class="dt">String</span>) [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>])</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;baz&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> index <span class="dv">3</span> (the (<span class="dt">Vect</span> <span class="dv">3</span> <span class="dt">String</span>) [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>])</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>(interactive)<span class="ot">:</span><span class="dv">1</span><span class="ot">:</span><span class="dv">7</span><span class="co">--1:8:Can&#39;t find an implementation for IsJust (integerToFin 3 3) at:</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> index <span class="dv">3</span> (the (<span class="dt">Vect</span> <span class="dv">3</span> <span class="dt">String</span>) [<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>])</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">^</span></span></code></pre></div>
 <p>The error messaging in Idris2 is a lot less clear then Idris1, but
 this is saying that there is not a valid way to convert a
 <code>3 : Nat</code> into a <code>Fin 3</code>.</p>
@@ -185,25 +185,25 @@ to <code>Nat</code> arithmetic, however when we hit the upperbound we
 continue the operation from <code>FZ</code>.</p>
 <p>We might be tempted start our <code>add</code> function like
 this:</p>
-<pre class="idris2"><code>add : Fin n -&gt; Fin n -&gt; Fin n
-add FZ y = y
-add (FS x) y = FS (add ?hole1 ?hole2)
-</code></pre>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">add</span> <span class="ot">:</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>add <span class="dt">FZ</span> y <span class="fu">=</span> y</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>add (<span class="dt">FS</span> x) y <span class="fu">=</span> <span class="dt">FS</span> (add <span class="ot">?hole1</span> <span class="ot">?hole2</span>)</span></code></pre></div>
 <p>This leaves us with two typeholes:</p>
-<pre class="idris2"><code>- + Fin.hole1 [P]
- `--          x : Fin k
-              y : Fin (S k)
-            0 n : Nat
-     -----------------------
-      Fin.hole1 : Fin k
-
-- + Fin.hole2 [P]
- `--          x : Fin k
-              y : Fin (S k)
-            0 n : Nat
-     -----------------------
-      Fin.hole2 : Fin k
-</code></pre>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">-</span> <span class="fu">+</span> <span class="dt">Fin</span><span class="fu">.</span>hole1 [<span class="dt">P</span>]</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a> `<span class="co">--          x : Fin k</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>              <span class="fu">y</span> <span class="ot">:</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>            <span class="dv">0</span> n <span class="ot">:</span> <span class="dt">Nat</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>     <span class="co">-----------------------</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Fin</span><span class="fu">.</span>hole1 <span class="ot">:</span> <span class="dt">Fin</span> k</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">-</span> <span class="fu">+</span> <span class="dt">Fin</span><span class="fu">.</span>hole2 [<span class="dt">P</span>]</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a> `<span class="co">--          x : Fin k</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>              <span class="fu">y</span> <span class="ot">:</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>            <span class="dv">0</span> n <span class="ot">:</span> <span class="dt">Nat</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>     <span class="co">-----------------------</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Fin</span><span class="fu">.</span>hole2 <span class="ot">:</span> <span class="dt">Fin</span> k</span></code></pre></div>
 <p><code>add</code> requires two <code>Fin (S k)</code> terms. We have
 pattern matched on the first argument and peeled off an <code>FS</code>,
 leaving us with <code>x : Fin k</code> and
@@ -225,39 +225,39 @@ the actual value is not the upper bound of the set.</p>
 bound on <code>y</code> if possible and if it is not possible then we
 are at the modulus and must replace <code>y</code> with
 <code>FZ</code>.</p>
-<pre class="idris2"><code>add : Fin n -&gt; Fin n -&gt; Fin n
-add FZ y = y
-add (FS x) y =
-  case ?strengthen y of
-    Left _ =&gt; ?weaken x
-    Right y&#39; =&gt; FS (add x y&#39;)
-</code></pre>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">add</span> <span class="ot">:</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>add <span class="dt">FZ</span> y <span class="fu">=</span> y</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>add (<span class="dt">FS</span> x) y <span class="fu">=</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> <span class="ot">?strengthen</span> y <span class="kw">of</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> <span class="fu">_</span> <span class="ot">=&gt;</span> <span class="ot">?weaken</span> x</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> y&#39; <span class="ot">=&gt;</span> <span class="dt">FS</span> (add x y&#39;)</span></code></pre></div>
 <p>In the case where we wrap around the modulus, we must <em>weaken</em>
 the constraint on <code>x : Fin k</code> to account for the fact that we
 removed an <code>FS</code> from <code>x</code> in the pattern match but
 aren't wrapping an additional <code>FS</code> in the result.</p>
-<pre class="idris2"><code>- + Fin.strengthen [P]
- `--               x : Fin k
-                   y : Fin (S k)
-                 0 n : Nat
-     -------------------------------------------------
-      Fin.strengthen : Fin (S k) -&gt; Either ?_ (Fin k)
-
-- + Fin.weaken [P]
- `--           x : Fin k
-               y : Fin (S k)
-             0 n : Nat
-     ---------------------------------
-      Fin.weaken : Fin k -&gt; Fin (S k)
-</code></pre>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">-</span> <span class="fu">+</span> <span class="dt">Fin</span><span class="fu">.</span>strengthen [<span class="dt">P</span>]</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a> `<span class="co">--               x : Fin k</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">y</span> <span class="ot">:</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                 <span class="dv">0</span> n <span class="ot">:</span> <span class="dt">Nat</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>     <span class="co">-------------------------------------------------</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Fin</span><span class="fu">.</span>strengthen <span class="ot">:</span> <span class="dt">Fin</span> (<span class="dt">S</span> k) <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="fu">?_</span> (<span class="dt">Fin</span> k)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="fu">-</span> <span class="fu">+</span> <span class="dt">Fin</span><span class="fu">.</span>weaken [<span class="dt">P</span>]</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a> `<span class="co">--           x : Fin k</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>               <span class="fu">y</span> <span class="ot">:</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>             <span class="dv">0</span> n <span class="ot">:</span> <span class="dt">Nat</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>     <span class="co">---------------------------------</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Fin</span><span class="fu">.</span>weaken <span class="ot">:</span> <span class="dt">Fin</span> k <span class="ot">-&gt;</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span></code></pre></div>
 <h2 id="strength-and-weakness">Strength and Weakness</h2>
 <p>If we have a way to <em>strengthen</em> and <em>weaken</em> our upper
 bounds along with a way to detect if we are at the max bound of our
 <code>Fin _</code> then we can implement our <code>add</code>
 function.</p>
-<pre class="idris2"><code>weaken : {n : Nat} -&gt; Fin n -&gt; Fin (S n)
-strengthen : {n : Nat} -&gt; Fin (S n) -&gt; Either (Fin (S n)) (Fin n)
-</code></pre>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">weaken</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> (<span class="dt">S</span> n)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">strengthen</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> (<span class="dt">S</span> n) <span class="ot">-&gt;</span> <span class="dt">Either</span> (<span class="dt">Fin</span> (<span class="dt">S</span> n)) (<span class="dt">Fin</span> n)</span></code></pre></div>
 <p><code>weaken</code> takes any <code>Fin _</code> and increases its
 upper bound. This operation is valid for any <code>Fin _</code>
 value.</p>
@@ -268,20 +268,20 @@ around this we return an <code>Either</code> where the <code>Left</code>
 case returns the original bound. This allows us to use
 <code>strengthen</code> for manipulating our bounds and detecting when
 we need to wrap around the modulus.</p>
-<pre class="idris2"><code>weaken : {n : Nat} -&gt; Fin n -&gt; Fin (S n)
-weaken FZ     = FZ
-weaken (FS k) = FS (weaken k)
-</code></pre>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">weaken</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> (<span class="dt">S</span> n)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>weaken <span class="dt">FZ</span>     <span class="fu">=</span> <span class="dt">FZ</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>weaken (<span class="dt">FS</span> k) <span class="fu">=</span> <span class="dt">FS</span> (weaken k)</span></code></pre></div>
 <p>For <code>weaken</code> we recurse through the <code>Fin</code>
 structure and rebuild it with the weakend bounds.</p>
-<pre class="idris2"><code>strengthen : {n : Nat} -&gt; Fin (S n) -&gt; Either (Fin (S n)) (Fin n)
-strengthen {n = Z} FZ = Left FZ
-strengthen {n = (S k)} FZ = Right FZ
-strengthen {n = Z} (FS _) impossible
-strengthen {n = (S k)} (FS x) = case strengthen x of
-  Left l =&gt; Left (FS&#39; l)
-  Right r =&gt; Right (FS&#39; r)
-</code></pre>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">strengthen</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> (<span class="dt">S</span> n) <span class="ot">-&gt;</span> <span class="dt">Either</span> (<span class="dt">Fin</span> (<span class="dt">S</span> n)) (<span class="dt">Fin</span> n)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>strengthen {n <span class="fu">=</span> <span class="dt">Z</span>} <span class="dt">FZ</span> <span class="fu">=</span> <span class="dt">Left</span> <span class="dt">FZ</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>strengthen {n <span class="fu">=</span> (<span class="dt">S</span> k)} <span class="dt">FZ</span> <span class="fu">=</span> <span class="dt">Right</span> <span class="dt">FZ</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>strengthen {n <span class="fu">=</span> <span class="dt">Z</span>} (<span class="dt">FS</span> <span class="fu">_</span>) <span class="kw">impossible</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>strengthen {n <span class="fu">=</span> (<span class="dt">S</span> k)} (<span class="dt">FS</span> x) <span class="fu">=</span> <span class="kw">case</span> strengthen x <span class="kw">of</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Left</span> l <span class="ot">=&gt;</span> <span class="dt">Left</span> (<span class="dt">FS</span> l)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Right</span> r <span class="ot">=&gt;</span> <span class="dt">Right</span> (<span class="dt">FS</span> r)</span></code></pre></div>
 <p><code>strengthen</code> is a bit more complex and requires us to use
 the implicit <code>Nat</code> value from the type signature. Lets go
 through the cases one at a time:</p>
@@ -303,14 +303,14 @@ determine if we can strengthen.</li>
 </ol>
 <h2 id="modular-addition-continued">Modular Addition Continued</h2>
 <p>We now have the tools we need to finish <code>add</code>:</p>
-<pre class="idris2"><code>total
-add : Fin n -&gt; Fin n -&gt; Fin n
-add FZ y = y
-add (FS x) y =
-  case strengthen y of
-    Left _ =&gt; weaken x
-    Right y&#39; =&gt; FS (add x y&#39;)
-</code></pre>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>add <span class="dt">FZ</span> y <span class="fu">=</span> y</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>add (<span class="dt">FS</span> x) y <span class="fu">=</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> strengthen y <span class="kw">of</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> <span class="fu">_</span> <span class="ot">=&gt;</span> weaken x</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> y&#39; <span class="ot">=&gt;</span> <span class="dt">FS</span> (add x y&#39;)</span></code></pre></div>
 <p>Here you can see <code>(2 + 3) mod 10 = 5</code> and
 <code>(2 + 9) mod 10 = 1</code>:</p>
 <div class="sourceCode" id="cb16"><pre
@@ -360,23 +360,23 @@ function returning <code>r</code> and we get
 <code>foldr : (a -&gt; r -&gt; r) -&gt; r -&gt; List a -&gt; r</code>!</p>
 <p>We can also write the Recursion Principles for <code>Nat</code> and
 <code>Fin</code>:</p>
-<pre class="idris2"><code>data Nat = Z | S Nat
-
-total
-nat_rec : (r -&gt; r) -&gt; r -&gt; Nat -&gt; r
-nat_rec f r Z = r
-nat_rec f r (S k) = nat_rec f (f r) k
-
-data Fin : (n : Nat) -&gt; Type where
-    FZ : Fin (S k)
-    FS : Fin k -&gt; Fin (S k)
-
-total
-fin_rec : {n : Nat} -&gt; (r -&gt; r) -&gt; r -&gt; Fin r -&gt; a
-fin_rec {n = Z} f x y impossible
-fin_rec {n = (S k)} f x FZ = x
-fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
-</code></pre>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Nat</span> <span class="fu">=</span> <span class="dt">Z</span> <span class="fu">|</span> <span class="dt">S</span> <span class="dt">Nat</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">nat_rec</span> <span class="ot">:</span> (r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> <span class="dt">Nat</span> <span class="ot">-&gt;</span> r</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>nat_rec f r <span class="dt">Z</span> <span class="fu">=</span> r</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>nat_rec f r (<span class="dt">S</span> k) <span class="fu">=</span> nat_rec f (f r) k</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Fin</span> <span class="ot">:</span> (n <span class="ot">:</span> <span class="dt">Nat</span>) <span class="ot">-&gt;</span> <span class="dt">Type</span> <span class="kw">where</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FZ</span> <span class="ot">:</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FS</span> <span class="ot">:</span> <span class="dt">Fin</span> k <span class="ot">-&gt;</span> <span class="dt">Fin</span> (<span class="dt">S</span> k)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="fu">fin_rec</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> r</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>fin_rec {n <span class="fu">=</span> <span class="dt">Z</span>} f x y <span class="kw">impossible</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>fin_rec {n <span class="fu">=</span> (<span class="dt">S</span> k)} f x <span class="dt">FZ</span> <span class="fu">=</span> x</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>fin_rec {n <span class="fu">=</span> (<span class="dt">S</span> k)} f x (<span class="dt">FS</span> y) <span class="fu">=</span> fin_rec f (f x) y</span></code></pre></div>
 <p>Notice how if you partially apply <code>Nat</code> (or
 <code>Fin</code>) they look like church numerals. In some sense you can
 say that the Recursion Principle for a type is equivalent to that
@@ -398,19 +398,19 @@ over <code>Fin _</code> values in a way we know will terminate.</p>
 <code>Fin n</code> and use a function <code>Fin n -&gt; Fin n</code>
 which increments our intial <code>Fin n</code> value by one and which
 accounts for the modulus.</p>
-<pre class="idris2"><code>total
-inc : {n : Nat} -&gt; Fin n -&gt; Fin n
-inc {n = Z} x impossible
-inc {n = (S k)} x = case strengthen x of
-  Left l =&gt; FZ
-  Right r =&gt; FS r
-</code></pre>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">inc</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>inc {n <span class="fu">=</span> <span class="dt">Z</span>} x <span class="kw">impossible</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>inc {n <span class="fu">=</span> (<span class="dt">S</span> k)} x <span class="fu">=</span> <span class="kw">case</span> strengthen x <span class="kw">of</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Left</span> l <span class="ot">=&gt;</span> <span class="dt">FZ</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Right</span> r <span class="ot">=&gt;</span> <span class="dt">FS</span> r</span></code></pre></div>
 <p>Then we kick off our <code>fin_rec</code> call with the second
 <code>Fin n</code> as the initial value and we are done!</p>
-<pre class="idris2"><code>total
-add : {n : Nat} -&gt; Fin n -&gt; Fin n -&gt; Fin n
-add x y = fin_rec inc y x
-</code></pre>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>add x y <span class="fu">=</span> fin_rec inc y x</span></code></pre></div>
 <p>This function will add 1 to <code>y</code> <code>x</code> many
 times!</p>
 <h2 id="multiplication">Multiplication</h2>
@@ -418,11 +418,11 @@ times!</p>
 addition. We use <code>fin_rec</code> with a partially applied
 <code>add y</code> to add <code>y</code> to <code>FZ</code>
 <code>x</code> times.</p>
-<pre class="idris2"><code>total
-mul : {n : Nat} -&gt; Fin n -&gt; Fin n -&gt; Fin n
-mul {n = Z} x y impossible
-mul {n = (S k)} x y = fin_rec (add y) FZ x
-</code></pre>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mul</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>mul {n <span class="fu">=</span> <span class="dt">Z</span>} x y <span class="kw">impossible</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>mul {n <span class="fu">=</span> (<span class="dt">S</span> k)} x y <span class="fu">=</span> fin_rec (add y) <span class="dt">FZ</span> x</span></code></pre></div>
 <p>We have to pattern match on the implicit value here to prove that the
 <code>n = 0</code> case is impossible because of the explicit
 <code>FZ</code> value.</p>
@@ -442,59 +442,59 @@ inversion.</p>
 exactly like <code>inc</code> but it decremented by 1 then we could use
 <code>fin_rec</code> to decrement down from the modulus <code>x</code>
 times where <code>x</code> is the number we wish to invert.</p>
-<pre class="idris2"><code>-- return the largest element in a Fin
-total
-last : Fin (S n)
-last {n = Z} = FZ
-last {n = (S k)} = FS last
-
-decr : {n : Nat} -&gt; Fin n -&gt; Fin n
-decr {n = 0} x impossible
-decr {n = (S k)} FZ = last
-decr {n = (S k)} (FS x) = weaken x
-
-total
-inv : {n : Nat} -&gt; Fin n -&gt; Fin n
-inv {n = 0} x impossible
-inv {n = (S k)} x = fin_rec decr FZ x
-</code></pre>
-<pre class="idris2"><code>λΠ&gt; inv (the (Fin 5) 2)
-FS (FS (FS FZ))
-</code></pre>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- return the largest element in a Fin</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">last</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> (<span class="dt">S</span> n)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>last {n <span class="fu">=</span> <span class="dt">Z</span>} <span class="fu">=</span> <span class="dt">FZ</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>last {n <span class="fu">=</span> (<span class="dt">S</span> k)} <span class="fu">=</span> <span class="dt">FS</span> last</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="fu">decr</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>decr {n <span class="fu">=</span> <span class="dv">0</span>} x <span class="kw">impossible</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>decr {n <span class="fu">=</span> (<span class="dt">S</span> k)} <span class="dt">FZ</span> <span class="fu">=</span> last</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>decr {n <span class="fu">=</span> (<span class="dt">S</span> k)} (<span class="dt">FS</span> x) <span class="fu">=</span> weaken x</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="fu">inv</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>inv {n <span class="fu">=</span> <span class="dv">0</span>} x <span class="kw">impossible</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>inv {n <span class="fu">=</span> (<span class="dt">S</span> k)} x <span class="fu">=</span> fin_rec decr <span class="dt">FZ</span> x</span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>λΠ<span class="fu">&gt;</span> inv (the (<span class="dt">Fin</span> <span class="dv">5</span>) <span class="dv">2</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="dt">FS</span> (<span class="dt">FS</span> (<span class="dt">FS</span> <span class="dt">FZ</span>))</span></code></pre></div>
 <h2 id="conclusion">Conclusion</h2>
 <p>And there we have it. Our modular arithmetic library:</p>
-<pre class="idris2"><code>total
-inc : {n : Nat} -&gt; Fin n -&gt; Fin n
-inc {n = Z} x impossible
-inc {n = (S k)} x = case strengthen x of
-  Left l =&gt; FZ
-  Right r =&gt; FS r
-
-decr : {n : Nat} -&gt; Fin n -&gt; Fin n
-decr {n = 0} x impossible
-decr {n = (S k)} FZ = last
-decr {n = (S k)} (FS x) = weaken x
-
-total
-fin_rec : {n : Nat} -&gt; {a : Type} -&gt; (a -&gt; a) -&gt; a -&gt; Fin n -&gt; a
-fin_rec {n = Z} f x y impossible
-fin_rec {n = (S k)} f x FZ = x
-fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
-
-total
-add : {n : Nat} -&gt; Fin n -&gt; Fin n -&gt; Fin n
-add x y = fin_rec inc y x
-
-total
-mul : {n : Nat} -&gt; Fin n -&gt; Fin n -&gt; Fin n
-mul {n = Z} x y impossible
-mul {n = (S k)} x y = fin_rec (add y) FZ x
-
-total
-inv : {n : Nat} -&gt; Fin n -&gt; Fin n
-inv {n = 0} x impossible
-inv {n = (S k)} x = fin_rec decr FZ x
-</code></pre>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode idris"><code class="sourceCode idris"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">inc</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>inc {n <span class="fu">=</span> <span class="dt">Z</span>} x <span class="kw">impossible</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>inc {n <span class="fu">=</span> (<span class="dt">S</span> k)} x <span class="fu">=</span> <span class="kw">case</span> strengthen x <span class="kw">of</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Left</span> l <span class="ot">=&gt;</span> <span class="dt">FZ</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Right</span> r <span class="ot">=&gt;</span> <span class="dt">FS</span> r</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="fu">decr</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>decr {n <span class="fu">=</span> <span class="dv">0</span>} x <span class="kw">impossible</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>decr {n <span class="fu">=</span> (<span class="dt">S</span> k)} <span class="dt">FZ</span> <span class="fu">=</span> last</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>decr {n <span class="fu">=</span> (<span class="dt">S</span> k)} (<span class="dt">FS</span> x) <span class="fu">=</span> weaken x</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="fu">fin_rec</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> {a <span class="ot">:</span> <span class="dt">Type</span>} <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> a</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>fin_rec {n <span class="fu">=</span> <span class="dt">Z</span>} f x y <span class="kw">impossible</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>fin_rec {n <span class="fu">=</span> (<span class="dt">S</span> k)} f x <span class="dt">FZ</span> <span class="fu">=</span> x</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>fin_rec {n <span class="fu">=</span> (<span class="dt">S</span> k)} f x (<span class="dt">FS</span> y) <span class="fu">=</span> fin_rec f (f x) y</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a><span class="fu">add</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>add x y <span class="fu">=</span> fin_rec inc y x</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a><span class="fu">mul</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>mul {n <span class="fu">=</span> <span class="dt">Z</span>} x y <span class="kw">impossible</span></span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>mul {n <span class="fu">=</span> (<span class="dt">S</span> k)} x y <span class="fu">=</span> fin_rec (add y) <span class="dt">FZ</span> x</span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a><span class="kw">total</span></span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a><span class="fu">inv</span> <span class="ot">:</span> {n <span class="ot">:</span> <span class="dt">Nat</span>} <span class="ot">-&gt;</span> <span class="dt">Fin</span> n <span class="ot">-&gt;</span> <span class="dt">Fin</span> n</span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>inv {n <span class="fu">=</span> <span class="dv">0</span>} x <span class="kw">impossible</span></span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>inv {n <span class="fu">=</span> (<span class="dt">S</span> k)} x <span class="fu">=</span> fin_rec decr <span class="dt">FZ</span> x</span></code></pre></div>
 <p>Writing proofs for associativity, commutivity, etc of modular
 arithmetic is rather complex and will have to be explored another
 day.</p>

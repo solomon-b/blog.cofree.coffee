@@ -668,8 +668,8 @@ class="sourceCode idris"><code class="sourceCode idris"><span id="cb40-1"><a hre
 <span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>experiment f s <span class="fu">=</span> map (<span class="fu">`peek`</span> s) (f (pos s))</span>
 <span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a><span class="dt">Representable</span> f rep <span class="ot">=&gt;</span> <span class="dt">Comonad</span> (<span class="dt">Store</span> f rep) <span class="kw">where</span></span>
-<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>extract (<span class="dt">MkStore</span> rep fa) <span class="fu">=</span> index fa rep</span>
-<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>extend func (<span class="dt">MkStore</span> rep&#39; fa) <span class="fu">=</span> <span class="dt">MkStore</span> rep&#39; (tabulate (<span class="fu">\</span>rep&#39;&#39; <span class="ot">=&gt;</span> func (<span class="dt">MkStore</span> rep&#39;&#39; fa)))</span></code></pre></div>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>  extract (<span class="dt">MkStore</span> rep fa) <span class="fu">=</span> index fa rep</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>  extend func (<span class="dt">MkStore</span> rep&#39; fa) <span class="fu">=</span> <span class="dt">MkStore</span> rep&#39; (tabulate (<span class="fu">\</span>rep&#39;&#39; <span class="ot">=&gt;</span> func (<span class="dt">MkStore</span> rep&#39;&#39; fa)))</span></code></pre></div>
 <p>Again we use <code>index</code> to do our actual lookup inside the
 <code>f a</code>. The real magic is in <code>extend</code>. In our
 previous <code>Store</code>, extend created a new query function using a
@@ -861,7 +861,7 @@ class="sourceCode idris"><code class="sourceCode idris"><span id="cb47-1"><a hre
 <span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>runSimulation s {k} <span class="fu">=</span></span>
 <span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> all id curr <span class="fu">||</span> all not curr</span>
 <span id="cb47-17"><a href="#cb47-17" aria-hidden="true" tabindex="-1"></a>     <span class="kw">then</span> printState curr</span>
-<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a>     <span class="kw">else</span> printState curr <span class="fu">&gt;&gt;=</span> <span class="fu">\_</span> <span class="ot">=&gt;</span> runAutomata (nextGen s)</span>
+<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a>     <span class="kw">else</span> printState curr <span class="fu">&gt;&gt;=</span> <span class="fu">\_</span> <span class="ot">=&gt;</span> runSimulation (nextGen s)</span>
 <span id="cb47-19"><a href="#cb47-19" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
 <span id="cb47-20"><a href="#cb47-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">curr</span> <span class="ot">:</span> <span class="dt">Vect</span> (<span class="dv">3</span> <span class="fu">+</span> k) <span class="dt">Bool</span></span>
 <span id="cb47-21"><a href="#cb47-21" aria-hidden="true" tabindex="-1"></a>    curr <span class="fu">=</span> experiment (const universe) s</span>
