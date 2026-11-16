@@ -68,6 +68,9 @@
             # Happy and Alex generate Haskell from the grammar blocks.
             pkgs.haskellPackages.alex
             pkgs.haskellPackages.happy
+            # "Bounded Space Automata" uses Idris 1. "Finally Modular Arithmetic" uses Idris 2.
+            pkgs.idris
+            pkgs.idris2
             # GHC typechecks the tangled files. Add the libraries that the posts import.
             (pkgs.haskellPackages.ghcWithPackages (hpkgs: [
               hpkgs.chat-bots

@@ -24,6 +24,9 @@ LITERATE = $(ORG)
 # directory is its own source root, because the posts name the modules 'Lexer'
 # and 'Parser'.
 #
+# An Idris block tangles to 'idris1/Post/Module.idr' or 'idris2/Post/Module.idr'.
+# The directory selects the compiler. The 'idris' label is Idris 1.
+#
 # A GHCi session block tangles to 'sessions/Module.Name.ghci', or to
 # 'grammar/Post/Module.ghci'. 'check-sessions.sh' runs it against that module.
 tangled/.tangled: $(LITERATE)
@@ -31,7 +34,7 @@ tangled/.tangled: $(LITERATE)
 	mkdir -p tangled
 	for f in $(LITERATE); do \
 		cp $$f tangled/post.org && \
-		emacs --batch --eval '(progn (require (quote ob-tangle)) (setq create-lockfiles nil) (push (quote (:mkdirp . "yes")) org-babel-default-header-args) (org-babel-tangle-file "tangled/post.org" nil "haskell\\|happy\\|alex"))' || exit 1; \
+		emacs --batch --eval '(progn (require (quote ob-tangle)) (setq create-lockfiles nil) (push (quote (:mkdirp . "yes")) org-babel-default-header-args) (org-babel-tangle-file "tangled/post.org" nil "haskell\\|happy\\|alex\\|idris"))' || exit 1; \
 	done
 	rm tangled/post.org
 	for f in $$(find tangled/grammar -name '*.x'); do alex $$f || exit 1; done
@@ -41,6 +44,8 @@ tangled/.tangled: $(LITERATE)
 check: tangled/.tangled
 	ghc -fno-code -itangled $$(find tangled -name '*.hs' -not -path 'tangled/grammar/*')
 	for d in tangled/grammar/*/; do ghc -fno-code -itangled -i$$d $$d*.hs || exit 1; done
+	cd tangled/idris1 && for f in $$(find . -name '*.idr'); do idris --check $$f || exit 1; done
+	cd tangled/idris2 && for f in $$(find . -name '*.idr'); do idris2 --check $$f || exit 1; done
 	./check-sessions.sh
 
 publish: check

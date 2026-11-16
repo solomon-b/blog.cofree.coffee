@@ -1,5 +1,6 @@
 -- Pandoc has no highlighter for Happy or Alex source. Yacc and Lex are close.
-local highlighters = { happy = "yacc", alex = "lex" }
+-- It knows Idris only by the name "idris".
+local highlighters = { happy = "yacc", alex = "lex", idris2 = "idris" }
 
 function CodeBlock(block)
   for i, class in ipairs(block.classes) do

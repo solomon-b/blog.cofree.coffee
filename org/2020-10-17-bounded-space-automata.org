@@ -674,7 +674,16 @@
    Here is our ~Representable~ interface (Typeclass) in Idris and
    our instance for ~Vect~/~Fin~:
 
-   #+begin_src idris
+   #+begin_src idris :exports none :tangle idris1/BoundedSpaceAutomata/Rule110.idr
+     module BoundedSpaceAutomata.Rule110
+
+     import Data.Fin
+     import Data.Vect
+
+     %hide Data.Vect.index
+   #+end_src
+
+   #+begin_src idris :tangle idris1/BoundedSpaceAutomata/Rule110.idr
      interface Functor f => Representable (f : Type -> Type) (rep : Type) | f where
        tabulate : (rep -> a) -> f a
        index : f a -> rep -> a
@@ -713,9 +722,19 @@
    Now that we have switched over to Idris we need to rewrite our
    ~Store~ type. We also need to make it to work with ~Representable~:
 
-   #+begin_src idris
+   #+begin_src idris :tangle idris1/BoundedSpaceAutomata/Rule110.idr
      data Store : (Type -> Type) -> Type -> Type -> Type where
        MkStore : rep -> f a -> Store f rep a
+   #+end_src
+
+   #+begin_src idris :exports none :tangle idris1/BoundedSpaceAutomata/Rule110.idr
+     -- The post shows the Comonad instance and does not show the interface.
+     interface Functor w => Comonad (w : Type -> Type) where
+       extract : w a -> a
+       extend : (w a -> b) -> w a -> w b
+
+     Functor f => Functor (Store f rep) where
+       map func (MkStore rep' fa) = MkStore rep' (map func fa)
    #+end_src
 
    This version of ~Store~ contains our current index (now called
@@ -731,7 +750,7 @@
 
    Here is the full ~Store~ API in Idris:
 
-   #+begin_src idris
+   #+begin_src idris :tangle idris1/BoundedSpaceAutomata/Rule110.idr
      pos : Store f rep a -> rep
      pos (MkStore rep' fa) = rep'
 
@@ -751,8 +770,8 @@
      experiment f s = map (`peek` s) (f (pos s))
 
      Representable f rep => Comonad (Store f rep) where
-     extract (MkStore rep fa) = index fa rep
-     extend func (MkStore rep' fa) = MkStore rep' (tabulate (\rep'' => func (MkStore rep'' fa)))
+       extract (MkStore rep fa) = index fa rep
+       extend func (MkStore rep' fa) = MkStore rep' (tabulate (\rep'' => func (MkStore rep'' fa)))
    #+end_src
 
    Again we use ~index~ to do our actual lookup inside the ~f a~. The
@@ -840,7 +859,7 @@
 
   First we intialize the store:
 
-  #+begin_src idris
+  #+begin_src idris :tangle idris1/BoundedSpaceAutomata/Rule110.idr
     initialStore : Vect (3 + k) Bool -> Store (Vect (3 + k)) (Fin (3 + k)) Bool
     initialStore xs = MkStore FZ xs
   #+end_src
@@ -864,7 +883,7 @@
   The next function we will need to rewrite is ~indices~. This will
   require some clever tricks with ~Fin~:
 
-  #+begin_src idris
+  #+begin_src idris :tangle idris1/BoundedSpaceAutomata/Rule110.idr
     up : Fin (S k) -> Fin (S k)
     up = either (const FZ) FS . strengthen
 
@@ -892,9 +911,21 @@
 
   Idris provides us with ~weaken~ and ~strengthen~ to do just this:
 
-  #+begin_src idris
+  #+begin_src idris :exports none :tangle idris1/BoundedSpaceAutomata/FinSignatures.idr
+    module BoundedSpaceAutomata.FinSignatures
+
+    import Data.Fin
+  #+end_src
+
+  #+begin_src idris :tangle idris1/BoundedSpaceAutomata/FinSignatures.idr
     weaken : Fin n -> Fin (S n)
     strengthen : Fin (S n) -> Either (Fin (S n)) (Fin n)
+  #+end_src
+
+  #+begin_src idris :exports none :tangle idris1/BoundedSpaceAutomata/FinSignatures.idr
+    -- The library functions must have the types that the post quotes.
+    weaken = Data.Fin.weaken
+    strengthen = Data.Fin.strengthen
   #+end_src
 
   ~weaken~ says that any ~Fin n~ is also a valid ~Fin (S n)~. It's
@@ -924,7 +955,7 @@
   changes were in the type signatures and removing the explicit
   threading of the size:
 
-  #+begin_src idris
+  #+begin_src idris :tangle idris1/BoundedSpaceAutomata/Rule110.idr
     neighbors : Store (Vect (3 + k)) (Fin (3 + k)) Bool -> Vect 3 Bool
     neighbors = experiment indices
 
@@ -943,7 +974,7 @@
   The last thing we need is an updated ~runSimulation~ written in
   Idris:
 
-  #+begin_src idris
+  #+begin_src idris :tangle idris1/BoundedSpaceAutomata/Rule110.idr
     universe : Vect k (Fin k)
     universe {k = Z} = []
     universe {k = (S k)} = FZ :: map FS (universe {k=k})
@@ -961,7 +992,7 @@
     runSimulation s {k} =
       if all id curr || all not curr
          then printState curr
-         else printState curr >>= \_ => runAutomata (nextGen s)
+         else printState curr >>= \_ => runSimulation (nextGen s)
       where
         curr : Vect (3 + k) Bool
         curr = experiment (const universe) s

@@ -5,7 +5,11 @@
 ~Fin _~ is one of those data types that makes you take a step back and
 question how much you really understand typed functional programming.
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :tangle idris2/FinallyModularArithmetic/Fin.idr
+  module FinallyModularArithmetic.Fin
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Fin.idr
   data Fin : (n : Nat) -> Type where
       FZ : Fin (S k)
       FS : Fin k -> Fin (S k)
@@ -84,7 +88,17 @@ is impossible as ~FZ~ must have type ~S k~.
 ** Fin And Vect
 One natural use case for ~Fin _~ is type safe indexing into ~Vect~:
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :tangle idris2/FinallyModularArithmetic/Index.idr
+  module FinallyModularArithmetic.Index
+
+  import Data.Fin
+  import Data.Vect
+
+  %hide Data.Vect.index
+  %hide Prelude.elem
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Index.idr
   index : Fin len -> Vect len elem -> elem
   index FZ     (x::xs) = x
   index (FS k) (x::xs) = index k xs
@@ -121,7 +135,13 @@ The basic idea is that we perform addition using recursion similiar to
 
 We might be tempted start our ~add~ function like this:
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :tangle idris2/FinallyModularArithmetic/AddHoles.idr
+  module FinallyModularArithmetic.AddHoles
+
+  import Data.Fin
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/AddHoles.idr
   add : Fin n -> Fin n -> Fin n
   add FZ y = y
   add (FS x) y = FS (add ?hole1 ?hole2)
@@ -168,7 +188,13 @@ Since this is modular addition, what we want to do is strengthen the
 bound on ~y~ if possible and if it is not possible then we are at the
 modulus and must replace ~y~ with ~FZ~.
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :tangle idris2/FinallyModularArithmetic/AddStrengthen.idr
+  module FinallyModularArithmetic.AddStrengthen
+
+  import Data.Fin
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/AddStrengthen.idr
   add : Fin n -> Fin n -> Fin n
   add FZ y = y
   add (FS x) y =
@@ -203,7 +229,17 @@ If we have a way to /strengthen/ and /weaken/ our upper bounds along
 with a way to detect if we are at the max bound of our ~Fin _~ then we
 can implement our ~add~ function.
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :tangle idris2/FinallyModularArithmetic/Signatures.idr
+  module FinallyModularArithmetic.Signatures
+
+  import Data.Fin
+
+  %hide Data.Fin.weaken
+  %hide Data.Fin.strengthen
+  %hide Data.Fin.last
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Signatures.idr
   weaken : {n : Nat} -> Fin n -> Fin (S n)
   strengthen : {n : Nat} -> Fin (S n) -> Either (Fin (S n)) (Fin n)
 #+end_src
@@ -218,7 +254,18 @@ cannot reduce it. To get around this we return an ~Either~ where the
 ~strengthen~ for manipulating our bounds and detecting when we need to
 wrap around the modulus.
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :tangle idris2/FinallyModularArithmetic/Arithmetic.idr
+  module FinallyModularArithmetic.Arithmetic
+
+  import Data.Fin
+
+  %hide Data.Fin.weaken
+  %hide Data.Fin.strengthen
+  %hide Data.Fin.last
+#+end_src
+
+#+name: fma-weaken
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Arithmetic.idr
   weaken : {n : Nat} -> Fin n -> Fin (S n)
   weaken FZ     = FZ
   weaken (FS k) = FS (weaken k)
@@ -227,14 +274,15 @@ wrap around the modulus.
 For ~weaken~ we recurse through the ~Fin~ structure and rebuild it
 with the weakend bounds.
 
-#+begin_src idris2
+#+name: fma-strengthen
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Arithmetic.idr
   strengthen : {n : Nat} -> Fin (S n) -> Either (Fin (S n)) (Fin n)
   strengthen {n = Z} FZ = Left FZ
   strengthen {n = (S k)} FZ = Right FZ
   strengthen {n = Z} (FS _) impossible
   strengthen {n = (S k)} (FS x) = case strengthen x of
-    Left l => Left (FS' l)
-    Right r => Right (FS' r)
+    Left l => Left (FS l)
+    Right r => Right (FS r)
 #+end_src
 
 ~strengthen~ is a bit more complex and requires us to use the implicit
@@ -256,9 +304,9 @@ a time:
 ** Modular Addition Continued
 We now have the tools we need to finish ~add~:
 
-#+begin_src idris2
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Arithmetic.idr
   total
-  add : Fin n -> Fin n -> Fin n
+  add : {n : Nat} -> Fin n -> Fin n -> Fin n
   add FZ y = y
   add (FS x) y =
     case strengthen y of
@@ -304,7 +352,14 @@ function from its modified parameters to ~r~.
 Lets use ~foldr : (a -> r -> r) -> r -> List a -> r~ as an
 example. Looking at the definition of ~List a~:
 
-#+begin_src idris
+#+begin_src idris2 :exports none :tangle idris2/FinallyModularArithmetic/List.idr
+  module FinallyModularArithmetic.List
+
+  %hide Prelude.List
+  %hide Prelude.Nil
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/List.idr
   data List a = Cons a (List a) | Nil
 #+end_src
 
@@ -322,7 +377,15 @@ a -> r~!
 
 We can also write the Recursion Principles for ~Nat~ and ~Fin~:
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :tangle idris2/FinallyModularArithmetic/Recursion.idr
+  module FinallyModularArithmetic.Recursion
+
+  %hide Prelude.Nat
+  %hide Prelude.Z
+  %hide Prelude.S
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Recursion.idr
   data Nat = Z | S Nat
 
   total
@@ -335,7 +398,7 @@ We can also write the Recursion Principles for ~Nat~ and ~Fin~:
       FS : Fin k -> Fin (S k)
 
   total
-  fin_rec : {n : Nat} -> (r -> r) -> r -> Fin r -> a
+  fin_rec : {n : Nat} -> (r -> r) -> r -> Fin n -> r
   fin_rec {n = Z} f x y impossible
   fin_rec {n = (S k)} f x FZ = x
   fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
@@ -363,7 +426,27 @@ For modular addition we want to specialize ~r~ to ~Fin n~ and use a
 function ~Fin n -> Fin n~ which increments our intial ~Fin n~ value by
 one and which accounts for the modulus.
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :noweb yes :tangle idris2/FinallyModularArithmetic/Modular.idr
+  module FinallyModularArithmetic.Modular
+
+  import Data.Fin
+
+  %hide Data.Fin.weaken
+  %hide Data.Fin.strengthen
+  %hide Data.Fin.last
+
+  <<fma-weaken>>
+
+  <<fma-strengthen>>
+
+  total
+  fin_rec : {n : Nat} -> {a : Type} -> (a -> a) -> a -> Fin n -> a
+  fin_rec {n = Z} f x y impossible
+  fin_rec {n = (S k)} f x FZ = x
+  fin_rec {n = (S k)} f x (FS y) = fin_rec f (f x) y
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Modular.idr
   total
   inc : {n : Nat} -> Fin n -> Fin n
   inc {n = Z} x impossible
@@ -375,7 +458,7 @@ one and which accounts for the modulus.
 Then we kick off our ~fin_rec~ call with the second ~Fin n~ as the
 initial value and we are done!
 
-#+begin_src idris2
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Modular.idr
 total
 add : {n : Nat} -> Fin n -> Fin n -> Fin n
 add x y = fin_rec inc y x
@@ -388,7 +471,7 @@ Just as with ~Nat~, multiplication is defined in terms of addition. We
 use ~fin_rec~ with a partially applied ~add y~ to add ~y~ to ~FZ~ ~x~
 times.
 
-#+begin_src idris2
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Modular.idr
   total
   mul : {n : Nat} -> Fin n -> Fin n -> Fin n
   mul {n = Z} x y impossible
@@ -416,10 +499,10 @@ exactly like ~inc~ but it decremented by 1 then we could use ~fin_rec~
 to decrement down from the modulus ~x~ times where ~x~ is the number
 we wish to invert.
 
-#+begin_src idris2
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Modular.idr
   -- return the largest element in a Fin
   total
-  last : Fin (S n)
+  last : {n : Nat} -> Fin (S n)
   last {n = Z} = FZ
   last {n = (S k)} = FS last
 
@@ -442,7 +525,26 @@ we wish to invert.
 ** Conclusion
 And there we have it. Our modular arithmetic library:
 
-#+begin_src idris2
+#+begin_src idris2 :exports none :noweb yes :tangle idris2/FinallyModularArithmetic/Conclusion.idr
+  module FinallyModularArithmetic.Conclusion
+
+  import Data.Fin
+
+  %hide Data.Fin.weaken
+  %hide Data.Fin.strengthen
+  %hide Data.Fin.last
+
+  <<fma-weaken>>
+
+  <<fma-strengthen>>
+
+  total
+  last : {n : Nat} -> Fin (S n)
+  last {n = Z} = FZ
+  last {n = (S k)} = FS last
+#+end_src
+
+#+begin_src idris2 :tangle idris2/FinallyModularArithmetic/Conclusion.idr
   total
   inc : {n : Nat} -> Fin n -> Fin n
   inc {n = Z} x impossible
