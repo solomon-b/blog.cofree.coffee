@@ -211,51 +211,51 @@ do a ← s,
 
 Lean has a very similar typeclass hierarchy in the prelude:
 
--   [Init.Prelude.Functor](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Functor)
--   [Init.Prelude.Applicative](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Applicative)
--   [Init.Control.Basic.Alternative](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Basic.html#Alternative)
--   [Init.Prelude.Monad](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Monad)
+- [Init.Prelude.Functor](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Functor)
+- [Init.Prelude.Applicative](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Applicative)
+- [Init.Control.Basic.Alternative](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Basic.html#Alternative)
+- [Init.Prelude.Monad](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Monad)
 
 Note that some common classes need to be found in `Mathlib`. Classes
 requiring proofs are noted.
 
--   [Mathlib.Control.Bifunctor.Bifunctor](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Control/Bifunctor.html#Bifunctor)
--   [Init.Control.Basic.MonadControl](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Basic.html#MonadControl)
-    (MonadBaseControl)
--   [Mathlib.Algebra.Group.Defs.Semigroup](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Group/Defs.html#Semigroup)
-    (requires proof)
--   [Mathlib.Algebra.Group.Defs.Monoid](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Group/Defs.html#Monoid)
-    (requires proof)
--   [Mathlib.Control.Traversable.Basic.Traversable](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Control/Traversable/Basic.html#Traversable)
--   [Mathlib.CategoryTheory.Category.Basic.Category](https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Category/Basic.html#CategoryTheory.Category)
-    (requires proofs)
+- [Mathlib.Control.Bifunctor.Bifunctor](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Control/Bifunctor.html#Bifunctor)
+- [Init.Control.Basic.MonadControl](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Basic.html#MonadControl)
+  (MonadBaseControl)
+- [Mathlib.Algebra.Group.Defs.Semigroup](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Group/Defs.html#Semigroup)
+  (requires proof)
+- [Mathlib.Algebra.Group.Defs.Monoid](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Group/Defs.html#Monoid)
+  (requires proof)
+- [Mathlib.Control.Traversable.Basic.Traversable](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Control/Traversable/Basic.html#Traversable)
+- [Mathlib.CategoryTheory.Category.Basic.Category](https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Category/Basic.html#CategoryTheory.Category)
+  (requires proofs)
 
 Notably Absent
 
--   `Foldable` has been folded into `Traversable`.
--   `Profunctor` but should be recoverable using
-    [CategoryTheory.Functor](https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Functor/Basic.html)
-    from `Mathlib` (requires proofs).
+- `Foldable` has been folded into `Traversable`.
+- `Profunctor` but should be recoverable using
+  [CategoryTheory.Functor](https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Functor/Basic.html)
+  from `Mathlib` (requires proofs).
 
 ## Common Types
 
--   [Unit](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Unit)
--   [Init.Prelude.List](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#List)
--   [Init.Control.Id](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Id.html#Id)
-    (Identity)
--   [Init.Control.Reader](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Reader.html)
--   [Init.System.IO](https://leanprover-community.github.io/mathlib4_docs/Init/System/IO.html#IO)
--   [Init.Control.State](https://leanprover-community.github.io/mathlib4_docs/Init/Control/State.html)
--   [Init.Control.Option](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Option.html)
-    (Maybe)
--   [Init.Prelude.Except](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Except)
-    (Either)
--   [Init.Core.Sum](https://leanprover-community.github.io/mathlib4_docs/Init/Core.html#Sum)
--   [Std.Data.HashMap.Basic.HashMap](https://leanprover-community.github.io/mathlib4_docs/Std/Data/HashMap/Basic.html#Std.HashMap)
--   [Init.Prelude.Array](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Array)
--   [Init.Prelude.String](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#String)
-    [Init.Data.String.Basic](https://leanprover-community.github.io/mathlib4_docs/Init/Data/String/Basic.html)
-    [Init.Data.String.Extra](https://leanprover-community.github.io/mathlib4_docs/Init/Data/String/Extra.html)
+- [Unit](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Unit)
+- [Init.Prelude.List](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#List)
+- [Init.Control.Id](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Id.html#Id)
+  (Identity)
+- [Init.Control.Reader](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Reader.html)
+- [Init.System.IO](https://leanprover-community.github.io/mathlib4_docs/Init/System/IO.html#IO)
+- [Init.Control.State](https://leanprover-community.github.io/mathlib4_docs/Init/Control/State.html)
+- [Init.Control.Option](https://leanprover-community.github.io/mathlib4_docs/Init/Control/Option.html)
+  (Maybe)
+- [Init.Prelude.Except](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Except)
+  (Either)
+- [Init.Core.Sum](https://leanprover-community.github.io/mathlib4_docs/Init/Core.html#Sum)
+- [Std.Data.HashMap.Basic.HashMap](https://leanprover-community.github.io/mathlib4_docs/Std/Data/HashMap/Basic.html#Std.HashMap)
+- [Init.Prelude.Array](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#Array)
+- [Init.Prelude.String](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#String)
+  [Init.Data.String.Basic](https://leanprover-community.github.io/mathlib4_docs/Init/Data/String/Basic.html)
+  [Init.Data.String.Extra](https://leanprover-community.github.io/mathlib4_docs/Init/Data/String/Extra.html)
 
 ## Common Tools/Libaries
 
@@ -263,8 +263,8 @@ JSON Serialization
 
 Aeson style typeclasses can be found in mathlib:
 
--   [Lean.Data.Json.FromToJson.FromJSON](https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Json/FromToJson.html#Lean.FromJson)
--   [Lean.Data.Json.FromToJson.ToJSON](https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Json/FromToJson.html#Lean.ToJson)
+- [Lean.Data.Json.FromToJson.FromJSON](https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Json/FromToJson.html#Lean.FromJson)
+- [Lean.Data.Json.FromToJson.ToJSON](https://leanprover-community.github.io/mathlib4_docs/Lean/Data/Json/FromToJson.html#Lean.ToJson)
 
 Web Servers/Clients/TLS/JOSE/JWT
 
@@ -286,26 +286,26 @@ File Handling, FilePaths, Directories, and Environment
 
 This stuff is all mixed togther in the following modules:
 
--   [Init.System.IO](https://leanprover-community.github.io/mathlib4_docs/Init/System/IO.html)
--   [Init.System.FilePath](https://leanprover-community.github.io/mathlib4_docs/Init/System/FilePath.html#System.FilePath)
+- [Init.System.IO](https://leanprover-community.github.io/mathlib4_docs/Init/System/IO.html)
+- [Init.System.FilePath](https://leanprover-community.github.io/mathlib4_docs/Init/System/FilePath.html#System.FilePath)
 
 IORefs/Mutation/Concurrency
 
--   [IO.Mutex](https://leanprover-community.github.io/mathlib4_docs/Init/System/Mutex.html#IO.Mutex)
-    Similar to an IO Ref.
--   [IO.Promise](https://leanprover-community.github.io/mathlib4_docs/Init/System/Promise.html)
--   [Init.Data.Channel](https://leanprover-community.github.io/mathlib4_docs/Init/Data/Channel.html#IO.Channel)
+- [IO.Mutex](https://leanprover-community.github.io/mathlib4_docs/Init/System/Mutex.html#IO.Mutex)
+  Similar to an IO Ref.
+- [IO.Promise](https://leanprover-community.github.io/mathlib4_docs/Init/System/Promise.html)
+- [Init.Data.Channel](https://leanprover-community.github.io/mathlib4_docs/Init/Data/Channel.html#IO.Channel)
 
 ST/STM
 
 ## Package Registry?
 
--   <https://reservoir.lean-lang.org/>
+- <https://reservoir.lean-lang.org/>
 
 ## Where can I learn more?
 
--   <https://reservoir.lean-lang.org/>
--   <https://leanprover-community.github.io/>
--   <https://lean-lang.org/lean4/doc/>
--   <https://lean-lang.org/functional_programming_in_lean/>
--   <https://leanprover.github.io/theorem_proving_in_lean4/>
+- <https://reservoir.lean-lang.org/>
+- <https://leanprover-community.github.io/>
+- <https://lean-lang.org/lean4/doc/>
+- <https://lean-lang.org/functional_programming_in_lean/>
+- <https://leanprover.github.io/theorem_proving_in_lean4/>

@@ -3,8 +3,8 @@ author: Solomon Bothwell
 title: A Brief Intro to Monad Transformers
 ---
 
-A few friends have recently asked about literature introducing `Monad
-Transformers`. The best introduction I have found was in [Haskell
+A few friends have recently asked about literature introducing
+`Monad Transformers`. The best introduction I have found was in [Haskell
 Programming From First Principles](https://haskellbook.com/). If you
 don\'t have, or want to purchase, this book, then here is a brief
 explanation with examples.
@@ -102,11 +102,11 @@ polymorphism. If we could make one of the `Monads` concrete then we
 could define `bind` and `join`:
 
 ``` haskell
-  bind :: Monad f => f (Maybe a) -> (a -> f (Maybe b)) -> f (Maybe b)
-  bind ma f =
-    ma >>= \case
-      Nothing -> pure Nothing
-      Just a -> f a
+bind :: Monad f => f (Maybe a) -> (a -> f (Maybe b)) -> f (Maybe b)
+bind ma f =
+  ma >>= \case
+    Nothing -> pure Nothing
+    Just a -> f a
 
 join :: Monad f => f (Maybe (f (Maybe a))) -> f (Maybe a)
 join ma = ma >>= \case

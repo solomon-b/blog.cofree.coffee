@@ -8,8 +8,9 @@
     <title>Chat Bots Revisited</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -20,7 +21,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -327,10 +328,10 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a
 <p><code>Env</code> represents the server you wish to run the
 <code>Bot</code> against. I should rename this type to
 <code>Server</code>. It is actually a coalgebriac encoding of a monadic
-<code>Moore
-Machine</code>. Like <code>Bot</code> with <code>MealyT</code> we offer
-a fixed point operation for folding over the <code>s</code> and
-producing a <code>MooreT</code> from <code>machines</code>:</p>
+<code>Moore Machine</code>. Like <code>Bot</code> with
+<code>MealyT</code> we offer a fixed point operation for folding over
+the <code>s</code> and producing a <code>MooreT</code> from
+<code>machines</code>:</p>
 <div class="sourceCode" id="cb16"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fixEnv ::</span> <span class="kw">forall</span> m s o i<span class="op">.</span> (<span class="dt">Functor</span> m) <span class="ot">=&gt;</span> <span class="dt">Env</span> m s o i <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> <span class="dt">MooreT</span> m [o] i</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fixEnv <span class="ot">=</span> fixMooreTC <span class="op">.</span> <span class="dt">MooreTC</span> <span class="op">.</span> runEnv</span></code></pre></div>
@@ -354,11 +355,11 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  (i, nextServer) <span class="ot">&lt;-</span> server</span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  xs <span class="ot">&lt;-</span> fromListT <span class="op">$</span> mealy i</span>
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> o <span class="ot">=</span> <span class="fu">fmap</span> <span class="fu">fst</span> <span class="op">$</span> xs</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  server&#39; <span class="ot">=</span> nextServer o</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>      server&#39; <span class="ot">=</span> nextServer o</span>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> <span class="op">$</span></span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    annihilate server&#39; <span class="op">$</span> <span class="kw">case</span> xs <span class="kw">of</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  [] <span class="ot">-&gt;</span> b</span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  _ <span class="ot">-&gt;</span> <span class="fu">snd</span> <span class="op">$</span> <span class="fu">last</span> xs</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>      [] <span class="ot">-&gt;</span> b</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>      _ <span class="ot">-&gt;</span> <span class="fu">snd</span> <span class="op">$</span> <span class="fu">last</span> xs</span>
 <span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="ot">loop ::</span> (<span class="dt">Monad</span> f) <span class="ot">=&gt;</span> <span class="dt">Fix</span> f <span class="ot">-&gt;</span> f x</span>
 <span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>loop (<span class="dt">Fix</span> x) <span class="ot">=</span> x <span class="op">&gt;&gt;=</span> loop</span></code></pre></div>

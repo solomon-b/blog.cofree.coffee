@@ -108,7 +108,7 @@ A rule statement consists of a of a regex pattern (or macro definition)
 and either a chunk of Haskell code wrapped in curly brackets or a
 semicolon:
 
-``` haskell
+``` alex
 $digit+ { \s -> Int (read s) }
 ```
 
@@ -154,7 +154,7 @@ chose to define.
     `Left Context` allows you to match on the beginning of a line via
     the `^` character:
 
-    ``` haskell
+    ``` alex
     ^ $alpha [$alpha]* { \s -> Identifier s }
     ```
 
@@ -174,7 +174,7 @@ chose to define.
 
         The predicate function\'s type must be:
 
-        ``` haskell
+        ``` alex
         { ... } :: user       -- predicate state
             -> AlexInput  -- input stream before the token
             -> Int        -- length of the token
@@ -205,7 +205,7 @@ data Token
 
 Our intial lexer is very straight forward:
 
-``` haskell
+``` alex
 {
 module Lexer where
 }
@@ -214,7 +214,7 @@ module Lexer where
 
 $digit = 0-9
 $alpha = [a-zA-Z]
-$alphanum = [a-zA-Z09]
+$alphanum = [a-zA-Z0-9]
 
 tokens :-
 
@@ -287,7 +287,7 @@ described the basic syntax of a Happy file. Here I will include a
 complete Happy file and go over some of the specific syntax not
 mentioned in the last post.
 
-``` haskell
+``` happy
 {
 module Parser where
 
@@ -338,21 +338,21 @@ Happy parser generator.
 
 In this file we use:
 
--   `%name`: Declares the name of the final parser function and the
-    initial production rule to kick off the parsing process. You can
-    actually have multiple name directives yielding several different
-    parsers from a single grammar.
--   `%tokenType`: Declares the type of the lexeme token used as input to
-    the parser.
--   `%error`: The error handling function. This function is applied to
-    the remaining token stream when a parse error is encountered.
--   `%token`: This kicks off the terminal symbols section of our
-    grammar. Lexemes matched in curly brackets are replaced by the
-    identifers on their left in the following production rules. You can
-    think of this section as a case statement on the lexeme token type.
--   `%%`: This kicks off the production rules section of the grammar.
-    Production rules are described in my previous post, so I will omit
-    them here.
+- `%name`: Declares the name of the final parser function and the
+  initial production rule to kick off the parsing process. You can
+  actually have multiple name directives yielding several different
+  parsers from a single grammar.
+- `%tokenType`: Declares the type of the lexeme token used as input to
+  the parser.
+- `%error`: The error handling function. This function is applied to the
+  remaining token stream when a parse error is encountered.
+- `%token`: This kicks off the terminal symbols section of our grammar.
+  Lexemes matched in curly brackets are replaced by the identifers on
+  their left in the following production rules. You can think of this
+  section as a case statement on the lexeme token type.
+- `%%`: This kicks off the production rules section of the grammar.
+  Production rules are described in my previous post, so I will omit
+  them here.
 
 In addition to our directives, the happy file can be bookended with
 Haskell code like the Alex file.

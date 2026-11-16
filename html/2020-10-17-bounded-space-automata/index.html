@@ -10,8 +10,9 @@ Representable Functors, and Dependent Types" name="description" />
     <title>Bounded Space Automata</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -22,7 +23,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -109,7 +110,7 @@ vector are considered neighbors. In other words, the automata in Rule
 element:</p>
 <table>
 <tbody>
-<tr class="odd">
+<tr>
 <td>Current Pattern</td>
 <td>111</td>
 <td>110</td>
@@ -120,7 +121,7 @@ element:</p>
 <td>001</td>
 <td>000</td>
 </tr>
-<tr class="even">
+<tr>
 <td>New State</td>
 <td>0</td>
 <td>1</td>
@@ -174,9 +175,8 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a 
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>peeks f (<span class="dt">Store</span> query s) <span class="ot">=</span> query (f s)</span></code></pre></div>
 <p><code>peek</code> disregards the current cursor and instead applies a
 new cursor to the store's query function. <code>peeks</code> uses a
-function <code>s -&gt;
-  s</code> to modify the current cursor and then query the store with
-the new cursor.</p>
+function <code>s -&gt;   s</code> to modify the current cursor and then
+query the store with the new cursor.</p>
 <p>We would also like a way to set and shift our cursor index:</p>
 <div class="sourceCode" id="cb5"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">seek ::</span> s <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> <span class="dt">Store</span> s a</span>
@@ -204,20 +204,20 @@ our cursor value without losing the current behavior of the
 function.</p>
 <p>If we replace the <code>f s</code> parameter with a function
 <code>s -&gt; f s</code> then we could apply the current cursor to our
-function and generate an <code>f
-  s</code> to generate our <code>f a</code> output. Then if we want the
-precise behavior of <code>peekFunctor</code> we can simply apply
+function and generate an <code>f   s</code> to generate our
+<code>f a</code> output. Then if we want the precise behavior of
+<code>peekFunctor</code> we can simply apply
 <code>const (x :: f s)</code> and ignore the current cursor!</p>
 <div class="sourceCode" id="cb8"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">experiment ::</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> (s <span class="ot">-&gt;</span> f s) <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> f a</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>experiment f store <span class="ot">=</span> <span class="fu">fmap</span> (<span class="fu">flip</span> peek store) (f (pos store))</span></code></pre></div>
 <p>To recap our <code>Store</code> API we have:</p>
 <div class="sourceCode" id="cb9"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">pos ::</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> a</span>
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">pos ::</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> s</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ot">peek ::</span> s <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> a</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ot">peeks ::</span> (s <span class="ot">-&gt;</span> s) <span class="dt">Store</span> s a <span class="ot">-&gt;</span> a</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ot">seek ::</span> s <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> a</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ot">seeks ::</span> (s <span class="ot">-&gt;</span> s) <span class="dt">Store</span> s a <span class="ot">-&gt;</span> a</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ot">peeks ::</span> (s <span class="ot">-&gt;</span> s) <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> a</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ot">seek ::</span> s <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> <span class="dt">Store</span> s a</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ot">seeks ::</span> (s <span class="ot">-&gt;</span> s) <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> <span class="dt">Store</span> s a</span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="ot">experiment ::</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> (s <span class="ot">-&gt;</span> f s) <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> f a</span></code></pre></div>
 <h2 id="transformation-of-state">Transformation of State</h2>
 <p>The state of the system is stored implicitely inside the
@@ -322,8 +322,11 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ot">    extract ::</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> a</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    extract (<span class="dt">Store</span> query s) <span class="ot">=</span> query s</span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="ot">    extend ::</span> (<span class="dt">Store</span> s a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> <span class="dt">Store</span> s b</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    extend f (<span class="dt">Store</span> query s) <span class="ot">=</span> <span class="dt">Store</span> (\s&#39; <span class="ot">-&gt;</span> f (<span class="dt">Store</span> query s&#39;)) s</span></code></pre></div>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="ot">    duplicate ::</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> <span class="dt">Store</span> s (<span class="dt">Store</span> s a)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    duplicate (<span class="dt">Store</span> query s) <span class="ot">=</span> <span class="dt">Store</span> (<span class="dt">Store</span> query) s</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="ot">    extend ::</span> (<span class="dt">Store</span> s a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Store</span> s a <span class="ot">-&gt;</span> <span class="dt">Store</span> s b</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    extend f (<span class="dt">Store</span> query s) <span class="ot">=</span> <span class="dt">Store</span> (\s&#39; <span class="ot">-&gt;</span> f (<span class="dt">Store</span> query s&#39;)) s</span></code></pre></div>
 <p><code>extract</code> applies the current cursor to the query function
 and <code>extend</code> chains state transforming queries.</p>
 <p><code>extract</code> is fairly trivial in this case, but
@@ -348,7 +351,7 @@ so I chose the Fibbonaci sequence. At each point in time (each index) we
 get the next Fibbonaci number.</p>
 <div class="sourceCode" id="cb19"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fibStore ::</span> <span class="dt">Store</span> <span class="dt">Int</span> <span class="dt">Int</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>fibStore <span class="ot">=</span> store query <span class="dv">0</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>fibStore <span class="ot">=</span> <span class="dt">Store</span> query <span class="dv">0</span></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="ot">    query ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
 <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    query <span class="dv">0</span> <span class="ot">=</span> <span class="dv">0</span></span>
@@ -363,9 +366,9 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a
 <p>I chose to fix the window at 10 units of time arbitrarily.</p>
 <p>Now notice the shape of <code>window</code> is
 <code>Store Int a -&gt; [a]</code>. That looks a lot like the comonadic
-action for <code>extend</code>: <code>Store s a -&gt;
-   b</code>. We can use <code>extend</code> to apply <code>window</code>
-over the enter store:</p>
+action for <code>extend</code>: <code>Store s a -&gt;    b</code>. We
+can use <code>extend</code> to apply <code>window</code> over the enter
+store:</p>
 <div class="sourceCode" id="cb21"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ot">windowedStore ::</span> <span class="dt">Store</span> <span class="dt">Int</span> [<span class="dt">Int</span>]</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>windowedStore <span class="ot">=</span> extend window fibStore</span></code></pre></div>
@@ -399,8 +402,8 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a
 <p><code>_lookupIndices</code> is a type hole we need to fill. By
 starting from <code>neighborValues</code> we let GHC tell us what shape
 we need for <code>lookupIndices</code>:</p>
-<div class="sourceCode" id="cb25"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>• <span class="dt">Found</span> hole<span class="op">:</span><span class="ot"> _lookupIndices ::</span> <span class="dt">Index</span> <span class="ot">-&gt;</span> [<span class="dt">Index</span>]</span></code></pre></div>
+<pre class="text"><code>• Found hole: _lookupIndices :: Index -&gt; [Index]
+</code></pre>
 <p>We wan't something like this:</p>
 <div class="sourceCode" id="cb26"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ot">lookupIndices ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">Int</span>]</span>
@@ -498,7 +501,7 @@ This isomorphism is witnessed by the <code>tabulate</code> and
 typeclass:</p>
 <div class="sourceCode" id="cb34"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> <span class="dt">Representable</span> f <span class="kw">where</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span> <span class="dt">Rep</span><span class="ot"> f ::</span> <span class="op">*</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">type</span> <span class="dt">Rep</span><span class="ot"> f ::</span> <span class="dt">Type</span></span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  tabulate ::</span> (<span class="dt">Rep</span> f <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> f a</span>
 <span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="ot">  index    ::</span> f a <span class="ot">-&gt;</span> (<span class="dt">Rep</span> f <span class="ot">-&gt;</span> a)</span></code></pre></div>
 <p>It's hard to see exactly how this would be useful to us, but there is
@@ -526,15 +529,15 @@ to have a <code>NonEmpty</code> without an element for every
 <code>Nat</code>.</p>
 <p>What if our <code>Functor</code> was an infinite stream?</p>
 <div class="sourceCode" id="cb35"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Stream</span> a <span class="ot">=</span> <span class="dt">Cons</span> a (<span class="dt">Strema</span> a)</span>
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Stream</span> a <span class="ot">=</span> <span class="dt">Cons</span> a (<span class="dt">Stream</span> a)</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Nat</span> <span class="ot">=</span> <span class="dt">Z</span> <span class="op">|</span> <span class="dt">S</span> <span class="dt">Nat</span></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> <span class="dt">Stream</span> <span class="kw">where</span></span>
 <span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="ot">    fmap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Stream</span> a <span class="ot">-&gt;</span> <span class="dt">Stream</span> b</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fmap</span> f (<span class="dt">Stream</span> a as) <span class="ot">=</span> <span class="dt">Cons</span> (f a) (<span class="fu">fmap</span> f as)</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fmap</span> f (<span class="dt">Cons</span> a as) <span class="ot">=</span> <span class="dt">Cons</span> (f a) (<span class="fu">fmap</span> f as)</span>
 <span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Representable</span> <span class="dt">Stream</span> <span class="kw">where</span></span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="dt">Rep</span> f <span class="ot">=</span> <span class="dt">Nat</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="dt">Rep</span> <span class="dt">Stream</span> <span class="ot">=</span> <span class="dt">Nat</span></span>
 <span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a><span class="ot">    tabulate ::</span> (<span class="dt">Nat</span> <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> <span class="dt">Stream</span> a</span>
 <span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    tabulate f <span class="ot">=</span> <span class="dt">Cons</span> (f <span class="dt">Z</span>) (tabulate (f <span class="op">.</span> <span class="dt">S</span>))</span>
@@ -551,7 +554,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a
 <span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fmap</span> f (<span class="dt">Identity</span> a) <span class="ot">=</span> <span class="dt">Identity</span> (f a)</span>
 <span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Representable</span> <span class="dt">Identity</span> <span class="kw">where</span></span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="dt">Rep</span> f <span class="ot">=</span> ()</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="dt">Rep</span> <span class="dt">Identity</span> <span class="ot">=</span> ()</span>
 <span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="ot">    tabulate ::</span> (() <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> <span class="dt">Identity</span> a</span>
 <span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    tabulate f <span class="ot">=</span> <span class="dt">Identity</span> <span class="op">$</span> f ()</span>
@@ -608,11 +611,10 @@ class="sourceCode idris"><code class="sourceCode idris"><span id="cb38-1"><a hre
 level." Types are first class values that can be passed around and
 worked with like any other values.</p>
 <p>Correspondingly, type parameters (such as the <code>n</code> in
-<code>Vect n (Fin
-   n)</code> are the same as term level parameters and can be passed
-into functions and pattern matched on. You can see this in the
-definition of <code>tabulate</code> above where the <code>n</code> from
-<code>Vect n</code> is wrapped in curly braces and treated like a
+<code>Vect n (Fin    n)</code> are the same as term level parameters and
+can be passed into functions and pattern matched on. You can see this in
+the definition of <code>tabulate</code> above where the <code>n</code>
+from <code>Vect n</code> is wrapped in curly braces and treated like a
 function parameter.</p>
 <p>The curly braces indicate that it is an implict parameter. This means
 that the typechecker is able to infer the value of the parameter and the
@@ -674,12 +676,12 @@ previous <code>Store</code>, extend created a new query function using a
 lambda which applied the initial <code>Store</code> to
 <code>f : Store s a -&gt; b</code>:</p>
 <div class="sourceCode" id="cb41"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>extend f (<span class="dt">Store&#39;</span> g s) <span class="ot">=</span> <span class="dt">Store</span> (\s&#39; <span class="ot">-&gt;</span> f (<span class="dt">Store</span> g s&#39;)) s</span></code></pre></div>
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>extend f (<span class="dt">Store</span> g s) <span class="ot">=</span> <span class="dt">Store</span> (\s&#39; <span class="ot">-&gt;</span> f (<span class="dt">Store</span> g s&#39;)) s</span></code></pre></div>
 <p>In our new version, we do the exact same thing but then we pass the
 new query function into
-<code>tabulate :: (Fin n -&gt; Bool) -&gt; Vect (Fin
-   N) Bool</code>, which uses that query function to generate the
-complete new state in a <code>Vect (Fin n)</code>.</p>
+<code>tabulate :: (Fin n -&gt; Bool) -&gt; Vect (Fin    N) Bool</code>,
+which uses that query function to generate the complete new state in a
+<code>Vect (Fin n)</code>.</p>
 <p>Lets use equational reasoning to walk through a small example of
 <code>extend</code> where we pass in a function to extract the element
 at the current index and apply <code>not</code> to it. We can use that
@@ -815,13 +817,12 @@ need to show whether or not <code>x</code> is also a valid
 member of the set of numbers 0 to 5 and the set 0 to 4 but not the set 0
 to 3.</p>
 <p><code>strengthen</code> says if <code>x : Fin (S n)</code> is too big
-to be a valid <code>Fin
-  n</code> then return it as <code>Fin (S n)</code>, otherwise return it
-as <code>Fin
-  n</code>. <code>up</code> is saying that if <code>x : Fin (S n)</code>
-is too big to be <code>Fin n</code> it must be the modulus point and we
-loop around to zero. Otherwise, we convert it to <code>Fin n</code> and
-apply <code>FS</code> to it to increment its value and keep the type as
+to be a valid <code>Fin   n</code> then return it as
+<code>Fin (S n)</code>, otherwise return it as <code>Fin   n</code>.
+<code>up</code> is saying that if <code>x : Fin (S n)</code> is too big
+to be <code>Fin n</code> it must be the modulus point and we loop around
+to zero. Otherwise, we convert it to <code>Fin n</code> and apply
+<code>FS</code> to it to increment its value and keep the type as
 <code>Fin (S n)</code>.</p>
 <p>The rest of the algorithm is as you would expect. The only changes
 were in the type signatures and removing the explicit threading of the

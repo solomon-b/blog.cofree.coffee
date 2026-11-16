@@ -174,7 +174,9 @@ to extract a role from our auth context.
 ``` haskell
 class HasRole auth r | auth -> r where
   getRole :: auth -> r
+```
 
+``` haskell
 instance HasRole Authz UserRole where
   getRole = userRole
 ```
@@ -259,7 +261,7 @@ Armed with a working servant combinator we can build a working example.
 
 ``` haskell
 data UserRole = Viewer | Editor | Admin
-  deriving (Ord)
+  deriving (Eq, Ord, Show)
 
 instance CheckRole 'Viewer where
   type RoleType 'Viewer = UserRole
@@ -477,7 +479,7 @@ fireTheMissiles STrue = print "Missiles have been fired!"
 
 check :: Bool -> IO ()
 check input = case toSBool input of
-  SomeSBool tru  -> fireTheMissiles tru
+  SomeSBool tru@STrue  -> fireTheMissiles tru
   SomeSBool SFalse -> pure ()
 ```
 
@@ -500,7 +502,9 @@ data IsTrue (b :: Bool) where
 decide :: SBool b -> Maybe (IsTrue b)
 decide STrue  = Just IsTrue
 decide SFalse = Nothing
+```
 
+``` haskell
 fireTheMissiles :: IsTrue b -> SBool b -> IO ()
 fireTheMissiles = ...
 ```
@@ -586,9 +590,11 @@ singleton via `Sing`.
 class CheckRole (required :: k) where
   -- | The value-level type that this role checks against.
   type RoleType required :: Type
+```
 
-  -- | Check whether the given role value satisfies the requirement @required@.
-  checkRole :: Sing (actual :: RoleType required) -> ...
+``` haskell
+-- | Check whether the given role value satisfies the requirement @required@.
+checkRole :: Sing (actual :: RoleType required) -> ...
 ```
 
 For `CheckRole 'Viewer`, `RoleType 'Viewer` resolves to `UserRole`
@@ -644,6 +650,7 @@ And we can write an instance like this:
 
 ``` haskell
 instance CheckRole 'Editor where
+  type RoleType 'Editor = UserRole
   checkRole SViewer = Nothing
   checkRole SEditor = Just Proof
   checkRole SAdmin  = Just Proof

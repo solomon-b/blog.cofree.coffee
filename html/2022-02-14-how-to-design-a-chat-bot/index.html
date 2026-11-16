@@ -9,8 +9,9 @@
     <title>How To Design A Chat Bot</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -21,7 +22,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -206,7 +207,7 @@ interesting uses for the structures defined previously.</p>
 <p>We start with the simplest bot. Eg., one which receives and produces
 <code>Text</code> and operates with no state or monadic effects:</p>
 <div class="sourceCode" id="cb11"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ot">simplestBot ::</span> <span class="dt">Bot</span> <span class="dt">Identity</span> () <span class="dt">Text</span> <span class="dt">Text</span></span>
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ot">simplestBot ::</span> <span class="dt">Applicative</span> m <span class="ot">=&gt;</span> <span class="dt">Bot</span> m () <span class="dt">Text</span> <span class="dt">Text</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>simplestBot <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="st">&quot;Hello, &quot;</span> <span class="op">&lt;&gt;</span> i)</span></code></pre></div>
 <p>This bot will respond to all messages with a fixed response.</p>
 <p>We can simplify the construction of other pure, stateless bots with a
@@ -234,9 +235,10 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>todoBot <span class="ot">=</span> <span class="dt">Bot</span> <span class="op">$</span> \i s <span class="ot">-&gt;</span></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> T.uncons i <span class="kw">of</span></span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Just</span> (<span class="ch">&#39;&gt;&#39;</span>, todo) <span class="ot">-&gt;</span> <span class="fu">pure</span> (todo<span class="op">:</span>s, <span class="st">&quot;Recorded todo!&quot;</span>)</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Just</span> (<span class="ch">&#39;&lt;&#39;</span>, _) <span class="op">|</span> <span class="fu">length</span> s <span class="op">==</span> <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="st">&quot;No more todos!&quot;</span>)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Just</span> (<span class="ch">&#39;&lt;&#39;</span>, _) <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="fu">tail</span> s, <span class="fu">head</span> s)</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    _ <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="st">&quot;I didn&#39;t understand that.&quot;</span>)</span></code></pre></div>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Just</span> (<span class="ch">&#39;&lt;&#39;</span>, _) <span class="ot">-&gt;</span> <span class="kw">case</span> s <span class="kw">of</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>      [] <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="st">&quot;No more todos!&quot;</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>      todo <span class="op">:</span> rest <span class="ot">-&gt;</span> <span class="fu">pure</span> (rest, todo)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    _ <span class="ot">-&gt;</span> <span class="fu">pure</span> (s, <span class="st">&quot;I didn&#39;t understand that.&quot;</span>)</span></code></pre></div>
 <p>Notice that all of these bots <em>must</em> return a response
 regardless of the input. This is something we will need to address
 shortly.</p>
@@ -252,20 +254,19 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="ot">    go ::</span> s <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    go state <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStr</span> <span class="st">&quot;&gt; &quot;</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  hFlush stdout</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  input <span class="ot">&lt;-</span> <span class="fu">fmap</span> T.pack <span class="op">$</span> <span class="fu">getLine</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> try <span class="op">@</span><span class="dt">SomeException</span> <span class="op">$</span> runBot bot input state</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> result <span class="kw">of</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> _ <span class="ot">-&gt;</span> go state</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> (nextState, output) <span class="ot">-&gt;</span> <span class="kw">do</span></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">putStrLn</span> <span class="op">$</span> T.unpack output</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>      go nextState</span></code></pre></div>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">putStr</span> <span class="st">&quot;&gt; &quot;</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>      hFlush stdout</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>      input <span class="ot">&lt;-</span> <span class="fu">fmap</span> T.pack <span class="op">$</span> <span class="fu">getLine</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>      result <span class="ot">&lt;-</span> try <span class="op">@</span><span class="dt">SomeException</span> <span class="op">$</span> runBot bot input state</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>      <span class="kw">case</span> result <span class="kw">of</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Left</span> _ <span class="ot">-&gt;</span> go state</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Right</span> (nextState, output) <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>          <span class="fu">putStrLn</span> <span class="op">$</span> T.unpack output</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>          go nextState</span></code></pre></div>
 <p>Note: This interpreter will only work with <code>Bots</code>
 polymorphic on <code>m</code> or where <code>m ~ IO</code>. A more
 general <code>replBot</code> would have the signature:
-<code>forall m s. (MonadCatch m, MonadIO m) =&gt; Bot m s Text Text -&gt; s -&gt; m
-()</code>.</p>
+<code>forall m s. (MonadCatch m, MonadIO m) =&gt; Bot m s Text Text -&gt; s -&gt; m ()</code>.</p>
 <p>We use <code>try</code> to capture exceptions as an
 <code>Either</code> value which we ignore when recursing. This will make
 more sense later on.</p>
@@ -280,8 +281,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href=
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> World</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Hello,</span> World</span></code></pre></div>
 <p>However, we still cannot run <code>coinFlipBot</code>. We require a
-<code>Bot IO s
-Text Text</code> and <code>coinFlipBot</code> is
+<code>Bot IO s Text Text</code> and <code>coinFlipBot</code> is
 <code>Bot IO s () Bool</code>.</p>
 <p>To match it up with <code>runReplBot</code>, we need a way to map
 <code>Text -&gt; ()</code> for the input and
@@ -522,7 +522,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  ::</span> <span class="dt">Monad</span> m</span>
 <span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=&gt;</span> s</span>
 <span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="ot">-&gt;</span> <span class="dt">Bot</span> m s i o</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">-&gt;</span> <span class="dt">Sessionized</span> m s i o</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">-&gt;</span> <span class="dt">Sessionized</span> <span class="dt">Bot</span> m s i o</span>
 <span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>sessionize <span class="ot">=</span> _</span></code></pre></div>
 <p>A 'sessionized' bot would receive <code>SessionInput</code> input and
 dispatch the wrapped <code>i</code> term along with the appropriate

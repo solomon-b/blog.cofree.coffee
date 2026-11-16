@@ -10,8 +10,9 @@ sets" name="description" />
     <title>Finally Modular Arithmetic</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -22,7 +23,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -129,10 +130,10 @@ FS FZ : Fin 2
 the (Fin 2) (FS FZ) : Fin 2
 </code></pre>
 <p><code>FZ</code> must be of type <code>Fin (S k)</code> and
-<code>FS</code> is <code>Fin n -&gt; Fin (S
-n)</code>. Thus <code>FS FZ</code> produces type
-<code>Fin (S (S k))</code> and <code>k</code> must be <code>Z</code> in
-order to match our ascribed type <code>Fin 2</code>.</p>
+<code>FS</code> is <code>Fin n -&gt; Fin (S n)</code>. Thus
+<code>FS FZ</code> produces type <code>Fin (S (S k))</code> and
+<code>k</code> must be <code>Z</code> in order to match our ascribed
+type <code>Fin 2</code>.</p>
 <p>Let's try to produce an element larger then the ascribed set:</p>
 <pre class="idris2"><code>λΠ&gt; the (Fin 1) (FS FZ)
 (interactive):1:14--1:19:When unifying Fin (S (S ?k)) and Fin 1
@@ -145,11 +146,12 @@ at:
                ^^^^^
 </code></pre>
 <p>Here we tried to produce a second element of the one element set.
-Idris is telling us that the only way to construct <code>FS FZ : Fin
-1</code> would be to have <code>FZ : Fin 0</code>. This would allow
-<code>FS</code> to type check correctly as <code>Fin 1</code>, however
-by the definition of <code>Fin _</code>, <code>FZ : Fin 0</code> is
-impossible as <code>FZ</code> must have type <code>S k</code>.</p>
+Idris is telling us that the only way to construct
+<code>FS FZ : Fin 1</code> would be to have <code>FZ : Fin 0</code>.
+This would allow <code>FS</code> to type check correctly as
+<code>Fin 1</code>, however by the definition of <code>Fin _</code>,
+<code>FZ : Fin 0</code> is impossible as <code>FZ</code> must have type
+<code>S k</code>.</p>
 <h2 id="fin-and-vect">Fin And Vect</h2>
 <p>One natural use case for <code>Fin _</code> is type safe indexing
 into <code>Vect</code>:</p>
@@ -217,9 +219,8 @@ call in an <code>FS</code>, we only need to fill the holes with a
 <em>strengthen</em> (reduce in size) the bounds by one so that it fits
 the hole.</p>
 <p>Strengthening the bounds means reducing the upper limit on a
-<code>Fin (S
-k)</code> to <code>Fin k</code>. This is only possible if the actual
-value is not the upper bound of the set.</p>
+<code>Fin (S k)</code> to <code>Fin k</code>. This is only possible if
+the actual value is not the upper bound of the set.</p>
 <p>Since this is modular addition, what we want to do is strengthen the
 bound on <code>y</code> if possible and if it is not possible then we
 are at the modulus and must replace <code>y</code> with
@@ -327,11 +328,11 @@ an eliminator function for it. This will allow us to write simple non
 recursive functions which we can apply to the recursion principle to
 deconstruct our <code>Fin _</code> values and produce some result.</p>
 <p>The Recursion Principle for a recursive type is a function
-<code>(t : Type)
--&gt; r</code> which deconstructs a value of <code>t : Type</code> into
-some <code>r</code>. The Recursion Principle captures the essence of a
-recursive function on <code>t</code> and will recursively call itself on
-every layer of <code>t</code> inside of <code>t</code>.</p>
+<code>(t : Type) -&gt; r</code> which deconstructs a value of
+<code>t : Type</code> into some <code>r</code>. The Recursion Principle
+captures the essence of a recursive function on <code>t</code> and will
+recursively call itself on every layer of <code>t</code> inside of
+<code>t</code>.</p>
 <p>This allows us to traverse through the structure of <code>t</code>
 and use some other non-recursive function(s) to accumulate
 <code>r</code>. The shape of these non-recursive functions is based on
@@ -353,12 +354,10 @@ is isomorphic to <code>r</code>, we can simply call this
 <p>For <code>Cons</code> we have a pair of <code>a</code> and
 <code>List a</code>. We replace all recursive instances with
 <code>r</code> leaving us with <code>(a, r) -&gt; r</code>, or
-<code>a -&gt; r
--&gt; r</code> in curried form.</p>
+<code>a -&gt; r -&gt; r</code> in curried form.</p>
 <p>Now we pass in those two functions as parameters to our recursive
 function returning <code>r</code> and we get
-<code>foldr : (a -&gt; r -&gt; r) -&gt; r -&gt; List
-a -&gt; r</code>!</p>
+<code>foldr : (a -&gt; r -&gt; r) -&gt; r -&gt; List a -&gt; r</code>!</p>
 <p>We can also write the Recursion Principles for <code>Nat</code> and
 <code>Fin</code>:</p>
 <pre class="idris2"><code>data Nat = Z | S Nat

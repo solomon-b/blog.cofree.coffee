@@ -163,7 +163,7 @@ We start with the simplest bot. Eg., one which receives and produces
 `Text` and operates with no state or monadic effects:
 
 ``` haskell
-simplestBot :: Bot Identity () Text Text
+simplestBot :: Applicative m => Bot m () Text Text
 simplestBot = Bot $ \i s -> pure (s, "Hello, " <> i)
 ```
 
@@ -203,8 +203,9 @@ todoBot :: Applicative m => Bot m [T.Text] T.Text T.Text
 todoBot = Bot $ \i s ->
   case T.uncons i of
     Just ('>', todo) -> pure (todo:s, "Recorded todo!")
-    Just ('<', _) | length s == 0 -> pure (s, "No more todos!")
-    Just ('<', _) -> pure (tail s, head s)
+    Just ('<', _) -> case s of
+      [] -> pure (s, "No more todos!")
+      todo : rest -> pure (rest, todo)
     _ -> pure (s, "I didn't understand that.")
 ```
 
@@ -226,21 +227,20 @@ runReplBot bot = go
   where
     go :: s -> IO ()
     go state = do
-  putStr "> "
-  hFlush stdout
-  input <- fmap T.pack $ getLine
-  result <- try @SomeException $ runBot bot input state
-  case result of
-    Left _ -> go state
-    Right (nextState, output) -> do
-      putStrLn $ T.unpack output
-      go nextState
+      putStr "> "
+      hFlush stdout
+      input <- fmap T.pack $ getLine
+      result <- try @SomeException $ runBot bot input state
+      case result of
+        Left _ -> go state
+        Right (nextState, output) -> do
+          putStrLn $ T.unpack output
+          go nextState
 ```
 
 Note: This interpreter will only work with `Bots` polymorphic on `m` or
 where `m ~ IO`. A more general `replBot` would have the signature:
-`forall m s. (MonadCatch m, MonadIO m) => Bot m s Text Text -> s -> m
-()`.
+`forall m s. (MonadCatch m, MonadIO m) => Bot m s Text Text -> s -> m ()`.
 
 We use `try` to capture exceptions as an `Either` value which we ignore
 when recursing. This will make more sense later on.
@@ -258,8 +258,8 @@ ghci> runReplBot simplestBot ()
 Hello, World
 ```
 
-However, we still cannot run `coinFlipBot`. We require a `Bot IO s
-Text Text` and `coinFlipBot` is `Bot IO s () Bool`.
+However, we still cannot run `coinFlipBot`. We require a
+`Bot IO s Text Text` and `coinFlipBot` is `Bot IO s () Bool`.
 
 To match it up with `runReplBot`, we need a way to map `Text -> ()` for
 the input and `Bool -> Text` for the output. It turns out this is
@@ -553,7 +553,7 @@ sessionize
   :: Monad m
   => s
   -> Bot m s i o
-  -> Sessionized m s i o
+  -> Sessionized Bot m s i o
 sessionize = _
 ```
 

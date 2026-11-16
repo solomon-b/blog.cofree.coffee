@@ -63,7 +63,7 @@ instance Functor f => Applicative (Free f) where
 
 instance Functor f => Monad (Free f) where
   return :: a -> Free f a
-  return = Pure
+  return = pure
 
   (>>=) :: Free f a -> (a -> Free f b) -> Free f b
   (>>=) (Pure a) f = f a

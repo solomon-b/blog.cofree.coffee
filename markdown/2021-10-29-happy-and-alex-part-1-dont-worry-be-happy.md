@@ -52,7 +52,7 @@ parens :: Parser a -> Parser a
 parens p = between (char '(') (char ')') p <* space
 
 parseInt :: Parser Expr
-parseInt = (Num <$> some digitChar) <* space
+parseInt = (Num . read <$> some digitChar) <* space
 
 parseNegate :: Parser Expr
 parseNegate = do
@@ -181,7 +181,7 @@ data Expr =
 
 First we declare our parser and specify our initial symbol:
 
-``` haskell
+``` happy
 %name parser expr
 ```
 
@@ -191,7 +191,7 @@ automaton.
 
 Next we declare our terminal symbols and their corresponding lexemes:
 
-``` haskell
+``` happy
 %token
 
 '+' { L.Plus }
@@ -231,10 +231,10 @@ Note: This type would be defined in the lexer which generates the token
 stream we pass into our Parser. I am omitting the lexer in this example,
 but in later posts I will be introducing `Alex` and using.
 
-Next we must define the `Production Rules` for `Non-Terminal
-  Symbols`. These take the form:
+Next we must define the `Production Rules` for `Non-Terminal   Symbols`.
+These take the form:
 
-``` haskell
+``` happy
 n   : t_1 ... t_n   { E1 }
     | s_1 ... s_n   { E2 }
 ```
@@ -251,7 +251,7 @@ input stream has been consumed and a parse tree has been constructed.
 
 For our arithmetic language the production rules will be:
 
-``` haskell
+``` happy
 expr
   : int           { Num $1 }
   | expr '+' expr { Add $1 $3 }
@@ -276,7 +276,7 @@ Multiply (Add (Num 1) (Num 2)) (Negate (Num 3))
 Oops we forgot to handle operator precedence! If we break up our
 production rules a bit then we can establish precedence in the grammar:
 
-``` haskell
+``` happy
 expr
   : expr '+' expr1 { Add $1 $3 }
   | expr1 { $1 }

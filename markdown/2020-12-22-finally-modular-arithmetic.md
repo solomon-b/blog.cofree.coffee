@@ -59,9 +59,9 @@ FS FZ : Fin 2
 the (Fin 2) (FS FZ) : Fin 2
 ```
 
-`FZ` must be of type `Fin (S k)` and `FS` is `Fin n -> Fin (S
-n)`. Thus `FS FZ` produces type `Fin (S (S k))` and `k` must be `Z` in
-order to match our ascribed type `Fin 2`.
+`FZ` must be of type `Fin (S k)` and `FS` is `Fin n -> Fin (S n)`. Thus
+`FS FZ` produces type `Fin (S (S k))` and `k` must be `Z` in order to
+match our ascribed type `Fin 2`.
 
 Let\'s try to produce an element larger then the ascribed set:
 
@@ -78,10 +78,10 @@ at:
 ```
 
 Here we tried to produce a second element of the one element set. Idris
-is telling us that the only way to construct `FS FZ : Fin
-1` would be to have `FZ : Fin 0`. This would allow `FS` to type check
-correctly as `Fin 1`, however by the definition of `Fin _`, `FZ : Fin 0`
-is impossible as `FZ` must have type `S k`.
+is telling us that the only way to construct `FS FZ : Fin 1` would be to
+have `FZ : Fin 0`. This would allow `FS` to type check correctly as
+`Fin 1`, however by the definition of `Fin _`, `FZ : Fin 0` is
+impossible as `FZ` must have type `S k`.
 
 ## Fin And Vect
 
@@ -163,9 +163,9 @@ perfectly as is, however `y : Fin (S k)` has too weak of bounds. We need
 to *strengthen* (reduce in size) the bounds by one so that it fits the
 hole.
 
-Strengthening the bounds means reducing the upper limit on a `Fin (S
-k)` to `Fin k`. This is only possible if the actual value is not the
-upper bound of the set.
+Strengthening the bounds means reducing the upper limit on a `Fin (S k)`
+to `Fin k`. This is only possible if the actual value is not the upper
+bound of the set.
 
 Since this is modular addition, what we want to do is strengthen the
 bound on `y` if possible and if it is not possible then we are at the
@@ -293,10 +293,11 @@ an eliminator function for it. This will allow us to write simple non
 recursive functions which we can apply to the recursion principle to
 deconstruct our `Fin _` values and produce some result.
 
-The Recursion Principle for a recursive type is a function `(t : Type)
--> r` which deconstructs a value of `t : Type` into some `r`. The
-Recursion Principle captures the essence of a recursive function on `t`
-and will recursively call itself on every layer of `t` inside of `t`.
+The Recursion Principle for a recursive type is a function
+`(t : Type) -> r` which deconstructs a value of `t : Type` into some
+`r`. The Recursion Principle captures the essence of a recursive
+function on `t` and will recursively call itself on every layer of `t`
+inside of `t`.
 
 This allows us to traverse through the structure of `t` and use some
 other non-recursive function(s) to accumulate `r`. The shape of these
@@ -319,12 +320,12 @@ a function `() -> r`. Since this is isomorphic to `r`, we can simply
 call this `r`.
 
 For `Cons` we have a pair of `a` and `List a`. We replace all recursive
-instances with `r` leaving us with `(a, r) -> r`, or `a -> r
--> r` in curried form.
+instances with `r` leaving us with `(a, r) -> r`, or `a -> r -> r` in
+curried form.
 
 Now we pass in those two functions as parameters to our recursive
-function returning `r` and we get `foldr : (a -> r -> r) -> r -> List
-a -> r`!
+function returning `r` and we get
+`foldr : (a -> r -> r) -> r -> List a -> r`!
 
 We can also write the Recursion Principles for `Nat` and `Fin`:
 

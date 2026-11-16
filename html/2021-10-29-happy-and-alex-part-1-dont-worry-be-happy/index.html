@@ -8,8 +8,9 @@
     <title>Happy and Alex Part 1: Don't Worry Be Happy</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -20,7 +21,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -124,7 +125,7 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a 
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>parens p <span class="ot">=</span> between (char <span class="ch">&#39;(&#39;</span>) (char <span class="ch">&#39;)&#39;</span>) p <span class="op">&lt;*</span> space</span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="ot">parseInt ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>parseInt <span class="ot">=</span> (<span class="dt">Num</span> <span class="op">&lt;$&gt;</span> some digitChar) <span class="op">&lt;*</span> space</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>parseInt <span class="ot">=</span> (<span class="dt">Num</span> <span class="op">.</span> <span class="fu">read</span> <span class="op">&lt;$&gt;</span> some digitChar) <span class="op">&lt;*</span> space</span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="ot">parseNegate ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>parseNegate <span class="ot">=</span> <span class="kw">do</span></span>
@@ -235,23 +236,23 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a 
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">Multiply</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span></code></pre></div>
 <p>First we declare our parser and specify our initial symbol:</p>
 <div class="sourceCode" id="cb5"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>name parser expr</span></code></pre></div>
+class="sourceCode yacc"><code class="sourceCode yacc"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">%name</span> parser expr</span></code></pre></div>
 <p>The initial symbol is the first production rule to be applied to the
 token stream and is essentially the entry point into the parsing
 automaton.</p>
 <p>Next we declare our terminal symbols and their corresponding
 lexemes:</p>
 <div class="sourceCode" id="cb6"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>token</span>
+class="sourceCode yacc"><code class="sourceCode yacc"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">%token</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;+&#39;</span> { <span class="dt">L.Plus</span> }</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;-&#39;</span> { <span class="dt">L.Negate</span> }</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;*&#39;</span> { <span class="dt">L.Multiply</span> }</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;(&#39;</span> { <span class="dt">L.OpenParen</span> }</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;)&#39;</span> { <span class="dt">L.CloseParen</span> }</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>int { <span class="dt">L.Num</span> <span class="op">$$</span> }</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;+&#39;</span> { L.Plus }</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;-&#39;</span> { L.Negate }</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;*&#39;</span> { L.Multiply }</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;(&#39;</span> { L.OpenParen }</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;)&#39;</span> { L.CloseParen }</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>int { L.Num $$ }</span>
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>left <span class="ch">&#39;+&#39;</span> <span class="ch">&#39;*&#39;</span> <span class="ch">&#39;-&#39;</span></span></code></pre></div>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="kw">%left</span> <span class="ch">&#39;+&#39;</span> <span class="ch">&#39;*&#39;</span> <span class="ch">&#39;-&#39;</span></span></code></pre></div>
 <p>On the left are the <code>terminal symbols</code> and on the right
 within curly brackets are the corresponding lexemes that map to them.
 The <code>$$</code> is a placeholder that allows us to pick out a
@@ -276,11 +277,10 @@ token stream we pass into our Parser. I am omitting the lexer in this
 example, but in later posts I will be introducing <code>Alex</code> and
 using.</p>
 <p>Next we must define the <code>Production Rules</code> for
-<code>Non-Terminal
-  Symbols</code>. These take the form:</p>
+<code>Non-Terminal   Symbols</code>. These take the form:</p>
 <div class="sourceCode" id="cb8"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>n   <span class="op">:</span> t_1 <span class="op">...</span> t_n   { <span class="dt">E1</span> }</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> s_1 <span class="op">...</span> s_n   { <span class="dt">E2</span> }</span></code></pre></div>
+class="sourceCode yacc"><code class="sourceCode yacc"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>n   : t_1 ... t_n   { E1 }</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    | s_1 ... s_n   { E2 }</span></code></pre></div>
 <p>Where <code>n</code> is a <code>non-terminal symbol</code> and to the
 right of the colon is a set of one or more possible expansions of
 <code>n</code> seperated by <code>∣</code> symbols. <code>E1</code> and
@@ -293,12 +293,12 @@ the input stream has been consumed and a parse tree has been
 constructed.</p>
 <p>For our arithmetic language the production rules will be:</p>
 <div class="sourceCode" id="cb9"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>expr</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">:</span> int           { <span class="dt">Num</span> <span class="op">$</span><span class="dv">1</span> }</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> expr <span class="ch">&#39;+&#39;</span> expr { <span class="dt">Add</span> <span class="op">$</span><span class="dv">1</span> <span class="op">$</span><span class="dv">3</span> }</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> expr <span class="ch">&#39;*&#39;</span> expr { <span class="dt">Multiply</span> <span class="op">$</span><span class="dv">1</span> <span class="op">$</span><span class="dv">3</span> }</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="ch">&#39;-&#39;</span> expr      { <span class="dt">Negate</span> <span class="op">$</span><span class="dv">2</span> }</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="ch">&#39;(&#39;</span> expr <span class="ch">&#39;)&#39;</span>  { <span class="op">$</span><span class="dv">2</span> }</span></code></pre></div>
+class="sourceCode yacc"><code class="sourceCode yacc"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>expr</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  : int           { Num $1 }</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  | expr &#39;+&#39; expr { Add $1 $3 }</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  | expr &#39;*&#39; expr { Multiply $1 $3 }</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  | &#39;-&#39; expr      { Negate $2 }</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  | &#39;(&#39; expr &#39;)&#39;  { $2 }</span></code></pre></div>
 <p>We then use Happy to generate a haskell module containing our parser.
 Assuming we have a <code>lexer :: String -&gt; [Token]</code> we can run
 our parser in the repl and try it out:</p>
@@ -313,18 +313,18 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a
 production rules a bit then we can establish precedence in the
 grammar:</p>
 <div class="sourceCode" id="cb11"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>expr</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">:</span> expr <span class="ch">&#39;+&#39;</span> expr1 { <span class="dt">Add</span> <span class="op">$</span><span class="dv">1</span> <span class="op">$</span><span class="dv">3</span> }</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> expr1 { <span class="op">$</span><span class="dv">1</span> }</span>
+class="sourceCode yacc"><code class="sourceCode yacc"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>expr</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  : expr &#39;+&#39; expr1 { Add $1 $3 }</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  | expr1 { $1 }</span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>expr1</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">:</span> expr1 <span class="ch">&#39;*&#39;</span> expr2 { <span class="dt">Multiply</span> <span class="op">$</span><span class="dv">1</span>  <span class="op">$</span><span class="dv">3</span> }</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> expr2 { <span class="op">$</span><span class="dv">1</span> }</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  : expr1 &#39;*&#39; expr2 { Multiply $1  $3 }</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  | expr2 { $1 }</span>
 <span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>expr2</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="op">:</span> int { <span class="dt">Num</span> <span class="op">$</span><span class="dv">1</span> }</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="ch">&#39;-&#39;</span> expr2 { <span class="dt">Negate</span> <span class="op">$</span><span class="dv">2</span> }</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="ch">&#39;(&#39;</span> expr <span class="ch">&#39;)&#39;</span> { <span class="op">$</span><span class="dv">2</span> }</span></code></pre></div>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  : int { Num $1 }</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  | &#39;-&#39; expr2 { Negate $2 }</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  | &#39;(&#39; expr &#39;)&#39; { $2 }</span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre
 class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> parser <span class="op">$</span> lexer <span class="st">&quot;1 + 2 * -3&quot;</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Add</span> (<span class="dt">Num</span> <span class="dv">1</span>) (<span class="dt">Multiply</span> (<span class="dt">Num</span> <span class="dv">2</span>) (<span class="dt">Negate</span> (<span class="dt">Num</span> <span class="dv">3</span>)))</span>

@@ -8,8 +8,9 @@
     <title>Lensy Moore</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -20,7 +21,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -120,9 +121,9 @@ class="sourceCode Agda"><code class="sourceCode agda"><span id="cb4-1"><a href="
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    map-fiber <span class="ot">:</span> <span class="ot">(</span>base <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">)</span> <span class="ot">→</span> Q <span class="ot">.</span>Fiber <span class="ot">(</span>map-base base<span class="ot">)</span> <span class="ot">→</span> P <span class="ot">.</span>Fiber tag</span></code></pre></div>
 <p>Here we map from the Base of <code>P</code> to the Base of
 <code>Q</code> but then we do a weird backwards feeling contravariant
-move and say 'given a particular base of <code>Base
-P</code> we have a map from the <code>Fiber Q (map-base base)</code> to
-the <code>Fiber P base</code>.</p>
+move and say 'given a particular base of <code>Base P</code> we have a
+map from the <code>Fiber Q (map-base base)</code> to the
+<code>Fiber P base</code>.</p>
 <h3 id="lenses-in-poly">Lenses in Poly</h3>
 <p>If you squint your eyes at the definition of poly maps you can see
 that <code>map-base</code> and <code>map-fiber</code> have the same
@@ -253,12 +254,12 @@ to the interface <code>R</code>, giving you a new way to interact with
 <p>In this sense <code>Poly</code> is the language of interface
 design.</p>
 <p>To make this a little more concrete, imagine <code>g</code> were a
-Moore Machine <code>Syˢ ⇒
-Oyᴵ</code> and <code>f</code> were some poly map <code>Oyᴵ ⇒ Byᴬ</code>.
-By composing them together we create a new poly map
-<code>Syˢ ⇒ Byᴬ</code> where <code>f</code> maps <code>A</code> inputs
-to <code>I</code> inputs and <code>B</code> outputs to <code>O</code>
-outputs which are fed into the original Moore Machine.</p>
+Moore Machine <code>Syˢ ⇒ Oyᴵ</code> and <code>f</code> were some poly
+map <code>Oyᴵ ⇒ Byᴬ</code>. By composing them together we create a new
+poly map <code>Syˢ ⇒ Byᴬ</code> where <code>f</code> maps <code>A</code>
+inputs to <code>I</code> inputs and <code>B</code> outputs to
+<code>O</code> outputs which are fed into the original Moore
+Machine.</p>
 <h2 id="lensy-moore-1">Lensy Moore</h2>
 <p>With that rapid fire overview of <code>Poly</code> concepts out of
 the way we can move on to our <code>lens</code> based encodings. To make
@@ -299,9 +300,9 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- Int × y^Int =&gt; Int × y^Int</span></span>
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="ot">latchMachine ::</span> <span class="dt">Moore</span> <span class="dt">Int</span> <span class="dt">Int</span> <span class="dt">Int</span></span>
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>latchMachine <span class="ot">=</span> lens <span class="fu">id</span> <span class="fu">max</span></span></code></pre></div>
-<pre><code>&gt; runMoore latchMachine 0 [1,2,3,4,5,4,3,2,1]
-[0,1,2,3,4,5,5,5,5]
-</code></pre>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> runMoore latchMachine <span class="dv">0</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">4</span>,<span class="dv">3</span>,<span class="dv">2</span>,<span class="dv">1</span>]</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>[<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">5</span>]</span></code></pre></div>
 <p>Neat!</p>
 <p>We can create some other classic examples from the <a
 href="https://github.com/ToposInstitute/poly/blob/pdf/poly-book.pdf">Poly
@@ -389,16 +390,16 @@ explain what poly map actually means. To put it most simply, we have two
 functions which we can derive by plugging in the types from
 <code>fibWiring</code> into our definition of a poly map:</p>
 <div class="sourceCode" id="cb24"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span><span class="op">-</span>base <span class="op">:</span> <span class="dt">P</span> <span class="op">.</span><span class="dt">Base</span> → <span class="dt">Q</span> <span class="op">.</span><span class="dt">Base</span> </span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span><span class="op">-</span>base <span class="op">:</span> (ℤ × ℤ) → ℤ</span>
+class="sourceCode agda"><code class="sourceCode agda"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>map-base <span class="ot">:</span> P <span class="ot">.</span>Base <span class="ot">→</span> Q <span class="ot">.</span>Base</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>map-base <span class="ot">:</span> <span class="ot">(</span>ℤ × ℤ<span class="ot">)</span> <span class="ot">→</span> ℤ</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span><span class="op">-</span>fiber <span class="op">:</span> (tag <span class="op">:</span> <span class="dt">P</span> <span class="op">.</span><span class="dt">Base</span>) → <span class="dt">Q</span> <span class="op">.</span><span class="dt">Fiber</span> (<span class="fu">map</span><span class="op">-</span>base tag) → <span class="dt">P</span> <span class="op">.</span><span class="dt">Fiber</span> tag</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span><span class="op">-</span>fiber <span class="op">:</span> (ℤ × ℤ)         → <span class="dt">Unit</span>                    → ((ℤ, ℤ), ℤ)</span></code></pre></div>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>map-fiber <span class="ot">:</span> <span class="ot">(</span>tag <span class="ot">:</span> P <span class="ot">.</span>Base<span class="ot">)</span> <span class="ot">→</span> Q <span class="ot">.</span>Fiber <span class="ot">(</span>map-base tag<span class="ot">)</span> <span class="ot">→</span> P <span class="ot">.</span>Fiber tag</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>map-fiber <span class="ot">:</span> <span class="ot">(</span>ℤ × ℤ<span class="ot">)</span>         <span class="ot">→</span> Unit                    <span class="ot">→</span> <span class="ot">((</span>ℤ, ℤ<span class="ot">)</span>, ℤ<span class="ot">)</span></span></code></pre></div>
 <p>Under the Wiring Diagram perspective, these functions represent a
 plan for how to wire the 'inner' and 'outer' polynomials together. Here
-the inner one is <code>P ⊗
-Q</code>, eg., <code>(ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ)</code>, and the outer one
-is <code>ℤ y^ Unit</code>.</p>
+the inner one is <code>P ⊗ Q</code>, eg.,
+<code>(ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ)</code>, and the outer one is
+<code>ℤ y^ Unit</code>.</p>
 <p>The <code>Fiber</code> represents 'inputs' to the polynomial and the
 <code>Base</code> represents 'outputs'.</p>
 <p><code>map-base</code> is a function that wires the outputs from the
@@ -447,9 +448,9 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Moore</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) () <span class="dt">Int</span></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>fib <span class="ot">=</span> plusDelay <span class="op">.</span> fibWiring</span></code></pre></div>
 <p>If we run this thing we get just what we expected:</p>
-<pre><code>&gt; runMoore fib (1, 0) [(), (), (), (), (), (), (), (), (), ()]
-[0,1,1,2,3,5,8,13,21,34]
-</code></pre>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> runMoore fib (<span class="dv">1</span>, <span class="dv">0</span>) [(), (), (), (), (), (), (), (), (), ()]</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>[<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">8</span>,<span class="dv">13</span>,<span class="dv">21</span>,<span class="dv">34</span>]</span></code></pre></div>
 <p>Trippy!</p>
 <p>NOTE: I removed the final section on interactions between
 <code>Mealy</code> and <code>Moore</code> as it needs a bit more work

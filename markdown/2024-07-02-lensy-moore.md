@@ -55,8 +55,7 @@ record _⇒_ (P Q : Poly) : Set where
 
 Here we map from the Base of `P` to the Base of `Q` but then we do a
 weird backwards feeling contravariant move and say \'given a particular
-base of `Base
-P` we have a map from the `Fiber Q (map-base base)` to the
+base of `Base P` we have a map from the `Fiber Q (map-base base)` to the
 `Fiber P base`.
 
 ### Lenses in Poly
@@ -216,11 +215,10 @@ interact with `P`.
 In this sense `Poly` is the language of interface design.
 
 To make this a little more concrete, imagine `g` were a Moore Machine
-`Syˢ ⇒
-Oyᴵ` and `f` were some poly map `Oyᴵ ⇒ Byᴬ`. By composing them together
-we create a new poly map `Syˢ ⇒ Byᴬ` where `f` maps `A` inputs to `I`
-inputs and `B` outputs to `O` outputs which are fed into the original
-Moore Machine.
+`Syˢ ⇒ Oyᴵ` and `f` were some poly map `Oyᴵ ⇒ Byᴬ`. By composing them
+together we create a new poly map `Syˢ ⇒ Byᴬ` where `f` maps `A` inputs
+to `I` inputs and `B` outputs to `O` outputs which are fed into the
+original Moore Machine.
 
 ## Lensy Moore {#lensy-moore-1}
 
@@ -273,8 +271,10 @@ latchMachine :: Moore Int Int Int
 latchMachine = lens id max
 ```
 
-    > runMoore latchMachine 0 [1,2,3,4,5,4,3,2,1]
-    [0,1,2,3,4,5,5,5,5]
+``` haskell
+> runMoore latchMachine 0 [1,2,3,4,5,4,3,2,1]
+[0,1,2,3,4,5,5,5,5]
+```
 
 Neat!
 
@@ -381,8 +381,8 @@ explain what poly map actually means. To put it most simply, we have two
 functions which we can derive by plugging in the types from `fibWiring`
 into our definition of a poly map:
 
-``` haskell
-map-base : P .Base → Q .Base 
+``` agda
+map-base : P .Base → Q .Base
 map-base : (ℤ × ℤ) → ℤ
 
 map-fiber : (tag : P .Base) → Q .Fiber (map-base tag) → P .Fiber tag
@@ -391,8 +391,8 @@ map-fiber : (ℤ × ℤ)         → Unit                    → ((ℤ, ℤ), �
 
 Under the Wiring Diagram perspective, these functions represent a plan
 for how to wire the \'inner\' and \'outer\' polynomials together. Here
-the inner one is `P ⊗
-Q`, eg., `(ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ)`, and the outer one is `ℤ y^ Unit`.
+the inner one is `P ⊗ Q`, eg., `(ℤ × ℤ) y^ ((ℤ × ℤ) × ℤ)`, and the outer
+one is `ℤ y^ Unit`.
 
 The `Fiber` represents \'inputs\' to the polynomial and the `Base`
 represents \'outputs\'.
@@ -456,8 +456,10 @@ fib = plusDelay . fibWiring
 
 If we run this thing we get just what we expected:
 
-    > runMoore fib (1, 0) [(), (), (), (), (), (), (), (), (), ()]
-    [0,1,1,2,3,5,8,13,21,34]
+``` haskell
+> runMoore fib (1, 0) [(), (), (), (), (), (), (), (), (), ()]
+[0,1,1,2,3,5,8,13,21,34]
+```
 
 Trippy!
 

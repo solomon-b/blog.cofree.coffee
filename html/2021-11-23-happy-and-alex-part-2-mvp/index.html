@@ -8,8 +8,9 @@
     <title>Happy and Alex Part 2: MVP</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -20,7 +21,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -178,7 +179,7 @@ meat and potatos of the lexer. A rules block is declared with
 definition) and either a chunk of Haskell code wrapped in curly brackets
 or a semicolon:</p>
 <div class="sourceCode" id="cb2"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">$</span>digit<span class="op">+</span> { \s <span class="ot">-&gt;</span> <span class="dt">Int</span> (<span class="fu">read</span> s) }</span></code></pre></div>
+class="sourceCode lex"><code class="sourceCode lex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>$digit+ { \s -&gt; Int (read s) }</span></code></pre></div>
 <p>Rules are translated into Haskell functions whose type is determined
 by our wrapper implementation. To be more precise, rule function's type
 is the <code>a</code> param in the <a
@@ -217,7 +218,7 @@ lexeme.</p>
 <p><code>Left Context</code> allows you to match on the beginning of a
 line via the <code>^</code> character:</p>
 <div class="sourceCode" id="cb3"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">^</span> <span class="op">$</span>alpha [<span class="op">$</span>alpha]<span class="op">*</span> { \s <span class="ot">-&gt;</span> <span class="dt">Identifier</span> s }</span></code></pre></div>
+class="sourceCode lex"><code class="sourceCode lex"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>^ $alpha [$alpha]* { \s -&gt; Identifier s }</span></code></pre></div>
 <p>This rule will only match a string of alpha characters immediately
 following a newline char.</p>
 <p><code>Right context</code> is more powerful and has three forms:</p>
@@ -230,11 +231,11 @@ is immediately followed by the additional provided regex.</p></li>
 rule to determine if it matches.</p>
 <p>The predicate function's type must be:</p>
 <div class="sourceCode" id="cb4"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>{ <span class="op">...</span> }<span class="ot"> ::</span> user       <span class="co">-- predicate state</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="ot">-&gt;</span> <span class="dt">AlexInput</span>  <span class="co">-- input stream before the token</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="ot">-&gt;</span> <span class="dt">Int</span>        <span class="co">-- length of the token</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="ot">-&gt;</span> <span class="dt">AlexInput</span>  <span class="co">-- input stream after the token</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="ot">-&gt;</span> <span class="dt">Bool</span>       <span class="co">-- True &lt;=&gt; accept the token</span></span></code></pre></div></li>
+class="sourceCode lex"><code class="sourceCode lex"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>{ ... } :: user       -- predicate state</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">-&gt;</span> AlexInput  <span class="op">--</span> input stream before the token</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">-&gt;</span> Int        <span class="op">--</span> length of the token</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">-&gt;</span> AlexInput  <span class="op">--</span> input stream after the token</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">-&gt;</span> Bool       <span class="op">--</span> True <span class="op">&lt;=&gt;</span> accept the token</span></code></pre></div></li>
 </ol></li>
 <li><p>Start Codes</p>
 <p>Another powerful tool for writing Alex rules are
@@ -254,43 +255,43 @@ class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a 
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">CloseParen</span></span></code></pre></div>
 <p>Our intial lexer is very straight forward:</p>
 <div class="sourceCode" id="cb6"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>{</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> <span class="dt">Lexer</span> <span class="kw">where</span></span>
+class="sourceCode lex"><code class="sourceCode lex"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">module </span><span class="st">Lexer</span><span class="al"> where</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>wrapper <span class="st">&quot;basic&quot;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">%wrapper &quot;basic&quot;</span></span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="op">$</span>digit <span class="ot">=</span> <span class="dv">0</span><span class="op">-</span><span class="dv">9</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="op">$</span>alpha <span class="ot">=</span> [a<span class="op">-</span>zA<span class="op">-</span><span class="dt">Z</span>]</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">$</span>alphanum <span class="ot">=</span> [a<span class="op">-</span>zA<span class="op">-</span><span class="dt">Z09</span>]</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>$digit = 0-9</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>$alpha = [a-zA-Z]</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>$alphanum = [a-zA-Z0-9]</span>
 <span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>tokens <span class="op">:-</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="dt">tokens </span><span class="st">:-</span></span>
 <span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- Whitespace insensitive</span></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">$</span>white<span class="op">+</span>                       ;</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>-- Whitespace insensitive</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>$white+                       ;</span>
 <span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">-- Comments</span></span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;#&quot;</span><span class="op">.*</span>                         ;</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>-- Comments</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>&quot;#&quot;.*                         ;</span>
 <span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co">-- Syntax</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>\\                            { \_ <span class="ot">-&gt;</span> <span class="dt">Lambda</span> }</span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>\<span class="op">.</span>                            { \_ <span class="ot">-&gt;</span> <span class="dt">Dot</span> }</span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>\(                            { \_ <span class="ot">-&gt;</span> <span class="dt">OpenParen</span> }</span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>\)                            { \_ <span class="ot">-&gt;</span> <span class="dt">CloseParen</span> }</span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="op">$</span>alpha [<span class="op">$</span>alpha <span class="op">$</span>digit \_ \<span class="op">-</span>]<span class="op">*</span> { \s <span class="ot">-&gt;</span> <span class="dt">Identifier</span> s }</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>-- Syntax</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>\\                            { \_ -&gt; Lambda }</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>\.                            { \_ -&gt; Dot }</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>\(                            { \_ -&gt; OpenParen }</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>\)                            { \_ -&gt; CloseParen }</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>$alpha [$alpha $digit \_ \-]* { \s -&gt; Identifier s }</span>
 <span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>{</span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Token</span></span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=</span> <span class="dt">Identifier</span> <span class="dt">String</span></span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">Lambda</span></span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">Dot</span></span>
-<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">OpenParen</span></span>
-<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">CloseParen</span></span>
-<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="dt">data </span><span class="st">Token</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  <span class="op">=</span> Identifier String</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> Lambda</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> Dot</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> OpenParen</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> CloseParen</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>  deriving Show</span>
 <span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="ot">lexer ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> [<span class="dt">Token</span>]</span>
-<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>lexer <span class="ot">=</span> alexScanTokens</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="dt">lexer </span><span class="st">::</span><span class="al"> String -&gt; [Token]</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a><span class="dt">lexer </span><span class="st">=</span><span class="al"> alexScanTokens</span></span>
 <span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p><code>alexScanTokens</code> is supplied by the <code>basic</code>
 wrapper and we bind it to <code>lexer</code> for convinence.</p>
@@ -324,48 +325,48 @@ post</a> I described the basic syntax of a Happy file. Here I will
 include a complete Happy file and go over some of the specific syntax
 not mentioned in the last post.</p>
 <div class="sourceCode" id="cb9"><pre
-class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>{</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> <span class="dt">Parser</span> <span class="kw">where</span></span>
+class="sourceCode yacc"><code class="sourceCode yacc"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>module Parser where</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Lexer</span> <span class="kw">as</span> <span class="dt">L</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>import qualified Lexer as L</span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>name parser expr</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>tokentype { <span class="dt">L.Token</span> }</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="op">%</span><span class="fu">error</span> { parseError }</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="kw">%name</span> parser expr</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="kw">%tokentype</span> { L.Token }</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="kw">%error</span> { parseError }</span>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>token</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="kw">%token</span></span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>ident  { <span class="dt">L.Identifier</span> <span class="op">$$</span> }</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>lambda { <span class="dt">L.Lambda</span> }</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;.&#39;</span>    { <span class="dt">L.Dot</span> }</span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;(&#39;</span>    { <span class="dt">L.OpenParen</span> }</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;)&#39;</span>    { <span class="dt">L.CloseParen</span> }</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>ident  { L.Identifier $$ }</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>lambda { L.Lambda }</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;.&#39;</span>    { L.Dot }</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;(&#39;</span>    { L.OpenParen }</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="ch">&#39;)&#39;</span>    { L.CloseParen }</span>
 <span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="bn">%%</span></span>
 <span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>expr</span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  <span class="op">:</span> lambda ident <span class="ch">&#39;.&#39;</span> ap { <span class="dt">Abs</span> <span class="op">$</span><span class="dv">2</span> <span class="op">$</span><span class="dv">4</span> }</span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> ap                  { <span class="op">$</span><span class="dv">1</span> }</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="st">expr</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="st">  </span>: lambda ident <span class="ch">&#39;.&#39;</span> ap { Abs <span class="kw">$2</span> <span class="kw">$4</span> }</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  | ap                  { <span class="kw">$1</span> }</span>
 <span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>ap</span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>  <span class="op">:</span> ap atom { <span class="dt">Ap</span> <span class="op">$</span><span class="dv">1</span> <span class="op">$</span><span class="dv">2</span> }</span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> atom { <span class="op">$</span><span class="dv">1</span> }</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>  : ap atom { Ap <span class="kw">$1</span> <span class="kw">$2</span> }</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>  | atom { <span class="kw">$1</span> }</span>
 <span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>atom</span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  <span class="op">:</span> <span class="ch">&#39;(&#39;</span> expr  <span class="ch">&#39;)&#39;</span> { <span class="op">$</span><span class="dv">2</span> }</span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> ident { <span class="dt">Var</span> <span class="op">$</span><span class="dv">1</span> }</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  : <span class="ch">&#39;(&#39;</span> expr  <span class="ch">&#39;)&#39;</span> { <span class="kw">$2</span> }</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  | ident { Var <span class="kw">$1</span> }</span>
 <span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>{</span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a><span class="ot">parseError ::</span> [<span class="dt">L.Token</span>] <span class="ot">-&gt;</span> a</span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>parseError [] <span class="ot">=</span> <span class="fu">error</span> <span class="st">&quot;ParseError: Empty token stream.&quot;</span></span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>parseError (tok<span class="op">:</span>_) <span class="ot">=</span> <span class="fu">error</span> <span class="op">$</span> <span class="st">&quot;ParseError: Unexpected token &#39;&quot;</span> <span class="op">&lt;&gt;</span> <span class="fu">show</span> tok <span class="op">&lt;&gt;</span> <span class="st">&quot;&#39;.&quot;</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>parseError <span class="op">::</span> <span class="op">[</span>L<span class="op">.</span>Token<span class="op">]</span> <span class="op">-&gt;</span> a</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>parseError <span class="op">[]</span> <span class="op">=</span> error <span class="st">&quot;ParseError: Empty token stream.&quot;</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>parseError <span class="op">(</span>tok<span class="op">:</span>_<span class="op">)</span> <span class="op">=</span> error <span class="kw">$</span> <span class="st">&quot;ParseError: Unexpected token &#39;&quot;</span> <span class="op">&lt;&gt;</span> show tok <span class="op">&lt;&gt;</span> <span class="st">&quot;&#39;.&quot;</span></span>
 <span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Term</span> <span class="ot">=</span></span>
-<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Var</span> <span class="dt">String</span></span>
-<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">Abs</span> <span class="dt">String</span> <span class="dt">Term</span></span>
-<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">Ap</span> <span class="dt">Term</span> <span class="dt">Term</span></span>
-<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>data Term <span class="op">=</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>    Var String</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> Abs String Term</span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> Ap Term Term</span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>  deriving Show</span>
 <span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Lines beginning with <code>%</code> are known as Directives. These
 are input to the Happy parser generator.</p>

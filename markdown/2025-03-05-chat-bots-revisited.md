@@ -298,9 +298,9 @@ newtype Env m s o i = Env {runEnv :: s -> m (i, [o] -> s)}
 
 `Env` represents the server you wish to run the `Bot` against. I should
 rename this type to `Server`. It is actually a coalgebriac encoding of a
-monadic `Moore
-Machine`. Like `Bot` with `MealyT` we offer a fixed point operation for
-folding over the `s` and producing a `MooreT` from `machines`:
+monadic `Moore Machine`. Like `Bot` with `MealyT` we offer a fixed point
+operation for folding over the `s` and producing a `MooreT` from
+`machines`:
 
 ``` haskell
 fixEnv :: forall m s o i. (Functor m) => Env m s o i -> s -> MooreT m [o] i
@@ -330,11 +330,11 @@ annihilate (MooreT server) b@(MealyT mealy) = Fix $ do
   (i, nextServer) <- server
   xs <- fromListT $ mealy i
   let o = fmap fst $ xs
-  server' = nextServer o
+      server' = nextServer o
   pure $
     annihilate server' $ case xs of
-  [] -> b
-  _ -> snd $ last xs
+      [] -> b
+      _ -> snd $ last xs
 
 loop :: (Monad f) => Fix f -> f x
 loop (Fix x) = x >>= loop

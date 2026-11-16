@@ -126,9 +126,10 @@ typecheck = \case
 ```
 
 The `Reader` trick happens in the `Abs` case where we introduce a new
-binder. Notice the use of `local :: MonadReader r m => (r -> r) -> m a
--> m a`. This function allows us to create a new local `Reader` context
-using an `r -> r` function and the current context `r`.
+binder. Notice the use of
+`local :: MonadReader r m => (r -> r) -> m a -> m a`. This function
+allows us to create a new local `Reader` context using an `r -> r`
+function and the current context `r`.
 
 In our case `r` is `Context` and our `r -> r` function simply cons\'s
 the new binder and its type onto our `Context`. This little one liner

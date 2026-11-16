@@ -89,9 +89,8 @@ peeks f (Store query s) = query (f s)
 ```
 
 `peek` disregards the current cursor and instead applies a new cursor to
-the store\'s query function. `peeks` uses a function `s ->
-  s` to modify the current cursor and then query the store with the new
-cursor.
+the store\'s query function. `peeks` uses a function `s ->   s` to
+modify the current cursor and then query the store with the new cursor.
 
 We would also like a way to set and shift our cursor index:
 
@@ -129,9 +128,9 @@ It would be great if we could modify `peekFunctor` to use our cursor
 value without losing the current behavior of the function.
 
 If we replace the `f s` parameter with a function `s -> f s` then we
-could apply the current cursor to our function and generate an `f
-  s` to generate our `f a` output. Then if we want the precise behavior
-of `peekFunctor` we can simply apply `const (x :: f s)` and ignore the
+could apply the current cursor to our function and generate an `f   s`
+to generate our `f a` output. Then if we want the precise behavior of
+`peekFunctor` we can simply apply `const (x :: f s)` and ignore the
 current cursor!
 
 ``` haskell
@@ -142,11 +141,11 @@ experiment f store = fmap (flip peek store) (f (pos store))
 To recap our `Store` API we have:
 
 ``` haskell
-pos :: Store s a -> a
+pos :: Store s a -> s
 peek :: s -> Store s a -> a
-peeks :: (s -> s) Store s a -> a
-seek :: s -> Store s a -> a
-seeks :: (s -> s) Store s a -> a
+peeks :: (s -> s) -> Store s a -> a
+seek :: s -> Store s a -> Store s a
+seeks :: (s -> s) -> Store s a -> Store s a
 experiment :: Functor f => (s -> f s) -> Store s a -> f a
 ```
 
@@ -275,6 +274,9 @@ instance Comonad (Store s) where
     extract :: Store s a -> a
     extract (Store query s) = query s
 
+    duplicate :: Store s a -> Store s (Store s a)
+    duplicate (Store query s) = Store (Store query) s
+
     extend :: (Store s a -> b) -> Store s a -> Store s b
     extend f (Store query s) = Store (\s' -> f (Store query s')) s
 ```
@@ -308,7 +310,7 @@ number.
 
 ``` haskell
 fibStore :: Store Int Int
-fibStore = store query 0
+fibStore = Store query 0
   where
     query :: Int -> Int
     query 0 = 0
@@ -328,8 +330,8 @@ window store = experiment (\s -> [s..s+10]) store
 I chose to fix the window at 10 units of time arbitrarily.
 
 Now notice the shape of `window` is `Store Int a -> [a]`. That looks a
-lot like the comonadic action for `extend`: `Store s a ->
-   b`. We can use `extend` to apply `window` over the enter store:
+lot like the comonadic action for `extend`: `Store s a ->    b`. We can
+use `extend` to apply `window` over the enter store:
 
 ``` haskell
 windowedStore :: Store Int [Int]
@@ -377,7 +379,7 @@ neighbors = experiment _lookupIndices
 `neighborValues` we let GHC tell us what shape we need for
 `lookupIndices`:
 
-``` haskell
+``` text
 • Found hole: _lookupIndices :: Index -> [Index]
 ```
 
@@ -506,7 +508,7 @@ witnessed by the `tabulate` and `index` functions from the
 
 ``` haskell
 class Functor f => Representable f where
-  type Rep f :: *
+  type Rep f :: Type
   tabulate :: (Rep f -> a) -> f a
   index    :: f a -> (Rep f -> a)
 ```
@@ -537,15 +539,15 @@ empty? Unfortunately there is no `Representable` instance for `[]`.
 What if our `Functor` was an infinite stream?
 
 ``` haskell
-newtype Stream a = Cons a (Strema a)
+data Stream a = Cons a (Stream a)
 data Nat = Z | S Nat
 
 instance Functor Stream where
     fmap :: (a -> b) -> Stream a -> Stream b
-    fmap f (Stream a as) = Cons (f a) (fmap f as)
+    fmap f (Cons a as) = Cons (f a) (fmap f as)
 
 instance Representable Stream where
-    type Rep f = Nat
+    type Rep Stream = Nat
 
     tabulate :: (Nat -> a) -> Stream a
     tabulate f = Cons (f Z) (tabulate (f . S))
@@ -565,7 +567,7 @@ instance Functor Identity where
     fmap f (Identity a) = Identity (f a)
 
 instance Representable Identity where
-    type Rep f = ()
+    type Rep Identity = ()
 
     tabulate :: (() -> a) -> Identity a
     tabulate f = Identity $ f ()
@@ -631,11 +633,11 @@ In Idris there is no distinction between the \"type level\" and \"term
 level.\" Types are first class values that can be passed around and
 worked with like any other values.
 
-Correspondingly, type parameters (such as the `n` in `Vect n (Fin
-   n)` are the same as term level parameters and can be passed into
-functions and pattern matched on. You can see this in the definition of
-`tabulate` above where the `n` from `Vect n` is wrapped in curly braces
-and treated like a function parameter.
+Correspondingly, type parameters (such as the `n` in `Vect n (Fin    n)`
+are the same as term level parameters and can be passed into functions
+and pattern matched on. You can see this in the definition of `tabulate`
+above where the `n` from `Vect n` is wrapped in curly braces and treated
+like a function parameter.
 
 The curly braces indicate that it is an implict parameter. This means
 that the typechecker is able to infer the value of the parameter and the
@@ -702,13 +704,13 @@ query function using a lambda which applied the initial `Store` to
 `f : Store s a -> b`:
 
 ``` haskell
-extend f (Store' g s) = Store (\s' -> f (Store g s')) s
+extend f (Store g s) = Store (\s' -> f (Store g s')) s
 ```
 
 In our new version, we do the exact same thing but then we pass the new
-query function into `tabulate :: (Fin n -> Bool) -> Vect (Fin
-   N) Bool`, which uses that query function to generate the complete new
-state in a `Vect (Fin n)`.
+query function into
+`tabulate :: (Fin n -> Bool) -> Vect (Fin    N) Bool`, which uses that
+query function to generate the complete new state in a `Vect (Fin n)`.
 
 Lets use equational reasoning to walk through a small example of
 `extend` where we pass in a function to extract the element at the
@@ -854,12 +856,12 @@ whether or not `x` is also a valid `Fin n`. eg., if `x` were 4, then it
 would be a member of the set of numbers 0 to 5 and the set 0 to 4 but
 not the set 0 to 3.
 
-`strengthen` says if `x : Fin (S n)` is too big to be a valid `Fin
-  n` then return it as `Fin (S n)`, otherwise return it as `Fin
-  n`. `up` is saying that if `x : Fin (S n)` is too big to be `Fin n` it
-must be the modulus point and we loop around to zero. Otherwise, we
-convert it to `Fin n` and apply `FS` to it to increment its value and
-keep the type as `Fin (S n)`.
+`strengthen` says if `x : Fin (S n)` is too big to be a valid `Fin   n`
+then return it as `Fin (S n)`, otherwise return it as `Fin   n`. `up` is
+saying that if `x : Fin (S n)` is too big to be `Fin n` it must be the
+modulus point and we loop around to zero. Otherwise, we convert it to
+`Fin n` and apply `FS` to it to increment its value and keep the type as
+`Fin (S n)`.
 
 The rest of the algorithm is as you would expect. The only changes were
 in the type signatures and removing the explicit threading of the size:
